@@ -3,6 +3,7 @@ import { communityModuleRouter } from "./routers/community";
 import { lmsModuleRouter } from "./routers/lms";
 import { siteModuleRouter } from "./routers/site";
 import { userModuleRouter } from "./routers/user";
+import { agentModuleRouter } from "./routers/agent";
 
 /**
  * This is the primary router for your server.
@@ -17,7 +18,7 @@ export const appRouter = router({
   // project: projectRouter,
   siteModule: siteModuleRouter,
   communityModule: communityModuleRouter,
-  // agentModule: agentModuleRouter,
+  agentModule: agentModuleRouter,
   // organizationModule: organizationModuleRouter,
   lmsModule: lmsModuleRouter,
 });
