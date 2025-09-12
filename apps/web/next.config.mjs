@@ -4,7 +4,7 @@ const remotePatterns = [
   
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    transpilePackages: ["@workspace/ui", "@workspace/icons", "@workspace/components-library"],
+    transpilePackages: ["@workspace/ui", "@workspace/components-library"],
     images: { remotePatterns },
     i18n: {
         locales: ["en", "ru", "kz"],

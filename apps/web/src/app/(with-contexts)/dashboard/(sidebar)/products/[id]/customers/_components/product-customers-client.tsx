@@ -2,30 +2,29 @@
 
 import DashboardContent from "@/components/admin/dashboard-content";
 import {
+  BTN_INVITE,
+  TOAST_TITLE_ERROR,
+  TOAST_TITLE_SUCCESS
+} from "@/lib/ui/config/strings";
+import { formattedLocaleDate } from "@/lib/ui/lib/utils";
+import { GeneralRouterOutputs } from "@/server/api/types";
+import { trpc } from "@/utils/trpc";
+import { Constants } from "@workspace/common-models";
+import { useToast } from "@workspace/components-library";
+import { CheckCircled } from "@workspace/icons";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
-import {
-  ArrowLeft,
-  UserPlus,
-  Search,
-  Copy,
-  MoreHorizontal,
-  Eye,
-} from "lucide-react";
-import { useRouter, useParams } from "next/navigation";
-import { useState, useMemo, useEffect } from "react";
-import { trpc } from "@/utils/trpc";
-import { useToast } from "@workspace/components-library";
-import {
-  BTN_INVITE,
-  TOAST_TITLE_ERROR,
-  TOAST_TITLE_SUCCESS,
-  USER_TAGS_SUBHEADER,
-} from "@/lib/ui/config/strings";
 import {
   Dialog,
   DialogContent,
@@ -35,20 +34,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@workspace/ui/components/dialog";
-import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
-import { Badge } from "@workspace/ui/components/badge";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 import {
   Table,
   TableBody,
@@ -57,12 +50,19 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import { Constants } from "@workspace/common-models";
-import { GeneralRouterOutputs } from "@/server/api/types";
-import { formattedLocaleDate } from "@/lib/ui/lib/utils";
-import { CheckCircled, Circle } from "@workspace/icons";
 import { truncate } from "@workspace/utils";
+import {
+  ArrowLeft,
+  Circle,
+  Copy,
+  Eye,
+  MoreHorizontal,
+  Search,
+  UserPlus
+} from "lucide-react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 type MemberType =
   GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["getMembers"]["items"][number] & {
@@ -137,12 +137,12 @@ export default function ProductCustomersClient({
       ...member,
       progressInPercentage:
         product?.type === Constants.CourseType.COURSE &&
-        product?.lessons?.length! > 0
+          product?.lessons?.length! > 0
           ? Math.round(
-              ((member.completedLessons?.length || 0) /
-                (product?.lessons?.length || 0)) *
-                100,
-            )
+            ((member.completedLessons?.length || 0) /
+              (product?.lessons?.length || 0)) *
+            100,
+          )
           : undefined,
     }));
     setMembers(computed);
@@ -325,7 +325,7 @@ export default function ProductCustomersClient({
                   <TableHead>Status</TableHead>
                   <TableHead>
                     {product?.type?.toLowerCase() ===
-                    Constants.CourseType.COURSE
+                      Constants.CourseType.COURSE
                       ? "Progress"
                       : "Downloaded"}
                   </TableHead>
@@ -420,7 +420,7 @@ export default function ProductCustomersClient({
                       </TableCell>
                       <TableCell>
                         {product?.type?.toLowerCase() ===
-                        Constants.CourseType.COURSE ? (
+                          Constants.CourseType.COURSE ? (
                           <>
                             {product?.lessons?.length! > 0 && (
                               <div className="flex items-center space-x-2">

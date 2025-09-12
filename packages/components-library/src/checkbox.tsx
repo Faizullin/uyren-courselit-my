@@ -1,6 +1,6 @@
 import React from "react";
 import { Indicator, Root } from "@radix-ui/react-checkbox";
-import { Check } from "@workspace/icons";
+import { Check } from "lucide-react";
 
 interface CheckboxProps {
   checked: boolean;

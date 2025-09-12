@@ -1,61 +1,49 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
-import { Badge } from "@workspace/ui/components/badge";
-import {
-  Upload,
-  Plus,
-  Trash2,
-  FileText,
-  Code,
-  Image,
-  FileCode,
-  ALargeSmall,
-  MoreVertical,
-  Type,
-  ImageIcon,
-} from "lucide-react";
-import { useThemeContext } from "./theme-context";
-import { useState, useEffect, useCallback, useMemo } from "react";
 import { trpc } from "@/utils/trpc";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   DeleteConfirmNiceDialog,
   NiceModal,
   useToast,
 } from "@workspace/components-library";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@workspace/ui/components/tabs";
-import { Separator } from "@workspace/ui/components/separator";
-import {
-  ResizablePanel,
-  ResizableHandle,
-  ResizablePanelGroup,
-} from "@workspace/ui/components/resizable";
-import { Edit, Search } from "@workspace/icons";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { cn } from "@workspace/ui/lib/utils";
-import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@workspace/ui/components/resizable";
+import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs";
+import {
+  Code,
+  Edit,
+  FileText,
+  ImageIcon,
+  MoreVertical,
+  Plus,
+  Trash2,
+  Type
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useThemeContext } from "./theme-context";
+;
 
 // Simple Monaco-like editor component (you can replace this with actual Monaco editor)
 function MonacoEditor({
