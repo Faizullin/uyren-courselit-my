@@ -55,6 +55,7 @@
   --brand-background: 236 236 236; /* #ececec */
 }
 
+/* Dark Mode Custom Properties
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -89,14 +90,15 @@
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
   
-  /* Brand Colors for Dark Mode */
-  --brand-primary: 241 81 27; /* Keep same brand color */
-  --brand-primary-hover: 230 74 25; /* Keep same hover */
-  --brand-dark: 255 255 255; /* White text in dark mode */
-  --brand-gray: 200 200 200; /* Lighter gray for dark mode */
-  --brand-light-gray: 55 55 55; /* Dark gray for cards */
-  --brand-background: 40 40 40; /* Dark background */
+
+  --brand-primary: 241 81 27; 
+  --brand-primary-hover: 230 74 25;
+  --brand-dark: 255 255 255; 
+  --brand-gray: 200 200 200;
+  --brand-light-gray: 55 55 55; 
+  --brand-background: 40 40 40; 
 }
+  */
 
 @theme inline {
   --color-background: var(--background);

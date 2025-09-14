@@ -63,16 +63,16 @@ export function SortableItem({
   );
 }
 
-const DragAndDrop = ({
+const DragAndDrop = <T extends { id: string }>({
   items,
   onChange,
   Renderer,
 }: {
-  items: any;
-  onChange: any;
-  Renderer: FC<any>;
+  items: T[];
+  onChange: (items: T[]) => void;
+  Renderer: FC<T>;
 }) => {
-  const [data, setData] = useState(items);
+  const [data, setData] = useState<T[]>(items);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -98,14 +98,14 @@ const DragAndDrop = ({
     }),
   );
 
-  const findPositionOfItems = (id: number) =>
-    data.findIndex((item: { id: number }) => item.id === id);
+  const findPositionOfItems = (id: string) =>
+    data.findIndex((item: T) => item.id === id);
 
   const handleDragEnd = (event: { active: any; over: any }) => {
     const { active, over } = event;
 
     if (active.id === over.id) return;
-    setData((data: any) => {
+    setData((data: T[]) => {
       const originalPos = findPositionOfItems(active.id);
       const newPos = findPositionOfItems(over.id);
       return arrayMove(data, originalPos, newPos);

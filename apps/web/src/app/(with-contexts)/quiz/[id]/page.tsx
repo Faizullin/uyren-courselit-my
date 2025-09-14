@@ -16,6 +16,7 @@ import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QuizActions from "./_components/quiz-actions";
+import { NotFoundException } from "@/server/api/core/exceptions";
 
 interface QuizPageProps {
   params: Promise<{ id: string }>;
@@ -52,10 +53,6 @@ export default async function QuizPage({ params }: QuizPageProps) {
 
   try {
     const quiz = await fetchQuizDetails(id);
-
-    if (!quiz) {
-      notFound();
-    }
 
     let attemptStats = null;
     let userAttempts: any[] = [];
@@ -310,6 +307,9 @@ export default async function QuizPage({ params }: QuizPageProps) {
       </div>
     );
   } catch (error) {
+   if (error instanceof NotFoundException) {
     notFound();
+   }
+   throw error;
   }
 }

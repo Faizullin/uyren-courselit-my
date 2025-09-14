@@ -22,7 +22,7 @@ import { useEffect } from "react";
 
 export default function UserForm({ id }: { id: string }) {
   const { toast } = useToast();
-  const { profile } = useProfile();
+  const trpcUtils = trpc.useUtils();
 
   // Use tRPC queries instead of GraphQL
   const {
@@ -33,7 +33,7 @@ export default function UserForm({ id }: { id: string }) {
     userId: id,
   });
 
-  const { data: tagsData, isLoading: tagsLoading } =
+  const { data: tagsData } =
     trpc.userModule.tag.list.useQuery();
 
   // Mutations
@@ -42,6 +42,9 @@ export default function UserForm({ id }: { id: string }) {
       toast({
         title: "Success",
         description: "User updated successfully",
+      });
+      trpcUtils.userModule.user.getByUserId.invalidate({
+        userId: id,
       });
     },
     onError: (error) => {

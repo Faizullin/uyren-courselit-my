@@ -57,6 +57,7 @@ import { ArrowLeft, Copy, MoreHorizontal, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { NiceModal, DeleteConfirmNiceDialog } from "@workspace/components-library";
 
 interface CustomerFormData {
   email: string;
@@ -73,6 +74,8 @@ export default function ProductCustomersPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
+  const approveMutation = trpc.lmsModule.courseModule.course.approveMember.useMutation();
+  const removeMutation = trpc.lmsModule.courseModule.course.removeMember.useMutation();
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [customerFormData, setCustomerFormData] = useState<CustomerFormData>({
     email: "",
@@ -214,7 +217,9 @@ export default function ProductCustomersPage() {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => {
-          const quiz = row.original;
+          const member = row.original;
+          const canApprove = member.status?.toLowerCase() === "pending";
+          const canReject = !!member.joiningReason;
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -224,28 +229,63 @@ export default function ProductCustomersPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  {/* <Link href={`/dashboard/lms/quizzes/${quiz._id}`}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit Quiz
-                              </Link> */}
+                {canApprove && (
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      try {
+                        await approveMutation.mutateAsync({
+                          data: { courseId: productId, userId: member.userId },
+                        });
+                        toast({ title: TOAST_TITLE_SUCCESS, description: "Access approved" });
+                        loadListQuery.refetch();
+                      } catch (err: any) {
+                        toast({ title: TOAST_TITLE_ERROR, description: err.message, variant: "destructive" });
+                      }
+                    }}
+                  >
+                    Approve Access
+                  </DropdownMenuItem>
+                )}
+                {member.joiningReason && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      alert(`Reason: ${member.joiningReason}`);
+                    }}
+                  >
+                    View Request Reason
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={async () => {
+                    const result = await NiceModal.show(DeleteConfirmNiceDialog, {
+                      title: canReject ? "Reject Access" : "Delete Membership",
+                      message: canReject
+                        ? "Are you sure you want to reject this user's access?"
+                        : "Are you sure you want to permanently delete this membership? This cannot be undone.",
+                      data: null,
+                    });
+                    if (result.reason !== "confirm") return;
+                    try {
+                      await removeMutation.mutateAsync({
+                        data: { courseId: productId, userId: member.userId, forDelete: !canReject },
+                      });
+                      toast({ title: TOAST_TITLE_SUCCESS, description: canReject ? "Access rejected" : "Membership deleted" });
+                      loadListQuery.refetch();
+                    } catch (err: any) {
+                      toast({ title: TOAST_TITLE_ERROR, description: err.message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  {canReject ? "Reject Access" : "Delete Membership"}
                 </DropdownMenuItem>
-                {/* {quiz.status !== "archived" && (
-                              <DropdownMenuItem
-                                  onClick={() => handleArchive(quiz)}
-                                  className="text-orange-600"
-                              >
-                                  <Archive className="h-4 w-4 mr-2" />
-                                  Archive Quiz
-                              </DropdownMenuItem>
-                          )} */}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         },
       },
     ];
-  }, [handleCopyToClipboard]);
+  }, [handleCopyToClipboard, productId, approveMutation, removeMutation, toast]);
   const { table } = useDataTable({
     columns,
     data: parsedData,

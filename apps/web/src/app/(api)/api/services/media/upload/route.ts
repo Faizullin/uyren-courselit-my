@@ -1,5 +1,5 @@
 import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import MediaModel from "@/models/Media";
 import { CloudinaryService } from "@/server/services/cloudinary";
 import { connectToDatabase } from "@workspace/common-logic";
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           type,
           caption,
           access,
-        });
+        }, domainData.domainObj);
         break;
       default:
         return NextResponse.json(

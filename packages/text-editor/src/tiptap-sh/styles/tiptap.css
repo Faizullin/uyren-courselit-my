@@ -138,7 +138,7 @@
   line-height: 1.75;
   margin: var(--editor-spacing-4) 0;
   color: var(--editor-text-default);
-  font-size: 1.125rem;
+  font-size: 1rem;
 }
 
 .ProseMirror > p {
@@ -158,12 +158,12 @@
 }
 
 .ProseMirror h1 {
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   margin: var(--editor-spacing-8) 0 var(--editor-spacing-4);
 }
 
 .ProseMirror h2 {
-  font-size: 2rem;
+  font-size: 1.875rem;
   margin: var(--editor-spacing-8) 0 var(--editor-spacing-4);
 }
 
@@ -173,7 +173,7 @@
 }
 
 .ProseMirror h4 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   margin: var(--editor-spacing-4) 0 var(--editor-spacing-2);
 }
 
@@ -387,9 +387,9 @@
   }
 
   .ProseMirror h1 { font-size: 2rem; }
-  .ProseMirror h2 { font-size: 1.75rem; }
-  .ProseMirror h3 { font-size: 1.5rem; }
-  .ProseMirror h4 { font-size: 1.25rem; }
+  .ProseMirror h2 { font-size: 1.5rem; }
+  .ProseMirror h3 { font-size: 1.25rem; }
+  .ProseMirror h4 { font-size: 1.125rem; }
   .ProseMirror p { font-size: 1rem; }
 }
 

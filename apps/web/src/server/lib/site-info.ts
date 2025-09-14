@@ -1,4 +1,4 @@
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import { cache } from "react";
 
 /**

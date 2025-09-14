@@ -28,6 +28,7 @@ import { router } from "../../core/trpc";
 import { mediaWrappedFieldValidator } from "../../core/validators";
 
 import currencies from "@/data/currencies.json";
+import DomainManager from "@/server/lib/domain";
 
 const { permissions } = UIConstants;
 
@@ -305,7 +306,9 @@ export const siteInfoRouter = router({
 
       validateSiteInfo(domain);
 
+      await DomainManager.removeFromCache(domain);
       await domain.save();
+      await DomainManager.setDomainCache(domain);
 
       return domain;
     }),
@@ -349,13 +352,14 @@ export const siteInfoRouter = router({
           name: 1,
           keyId: 1,
           createdAt: 1,
+          purposeKey: 1,
         },
       ).lean()) as unknown as {
         name: string;
         keyId: string;
         createdAt: string;
+        purposeKey: string;
       }[];
-
       return apikeys;
     }),
 
@@ -365,6 +369,7 @@ export const siteInfoRouter = router({
     .input(
       getFormDataSchema({
         name: z.string().min(1).max(255),
+        purposeKey: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -382,12 +387,14 @@ export const siteInfoRouter = router({
       const apikey = await ApikeyModel.create({
         name: input.data.name,
         domain: domain._id,
+        purposeKey: input.data.purposeKey,
       });
 
       return {
         name: apikey.name,
         keyId: apikey.keyId,
         key: apikey.key,
+        purposeKey: apikey.purposeKey,
       };
     }),
 

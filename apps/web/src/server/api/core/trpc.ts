@@ -1,5 +1,5 @@
 import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import { initTRPC } from "@trpc/server";
 import { getServerSession } from "next-auth";
 import superjson from "superjson";

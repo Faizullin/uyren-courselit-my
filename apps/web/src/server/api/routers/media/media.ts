@@ -7,8 +7,9 @@ import {
 import MediaModel from "@/models/Media";
 import { ListInputSchema } from "@/server/api/core/schema";
 import { CloudinaryService } from "@/server/services/cloudinary";
+import { deleteMedia } from "@/server/services/media";
 
-export const mediaRouter: any = router({
+export const mediaRouter = router({
   // List media files (for admin dashboard)
   list: protectedProcedure
     .use(createDomainRequiredMiddleware())
@@ -231,5 +232,27 @@ export const mediaRouter: any = router({
         storageProviders: storageStats,
         mimeTypes: mimeTypeStats,
       };
+    }),
+
+  // Delete media by ID
+  delete: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      z.object({
+        mediaId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Ensure media belongs to this domain before deleting upstream
+      const existing = await MediaModel.findOne({
+        mediaId: input.mediaId,
+        domain: ctx.domainData.domainObj._id,
+      }).lean();
+      if (!existing) {
+        throw new Error("Media not found");
+      }
+      await deleteMedia(input.mediaId);
+      await MediaModel.deleteOne({ mediaId: input.mediaId, domain: ctx.domainData.domainObj._id });
+      return { success: true };
     }),
 });

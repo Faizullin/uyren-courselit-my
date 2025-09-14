@@ -1,4 +1,4 @@
-import { analyzeDomain } from "@/lib/domain-utils";
+import { analyzeDomain } from "@/server/lib/domain-utils";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 

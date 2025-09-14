@@ -26,7 +26,7 @@ export interface Course {
   cost: number;
   costType: ProductPriceType;
   creatorId: string;
-  featuredImage: Media;
+  featuredImage: Media | null;
   isBlog: boolean;
   tags: string[];
   type: CourseType;
@@ -43,4 +43,7 @@ export interface Course {
   level: CourseLevel;
   duration: number;
   shortDescription?: string;
+
+  
+  allowEnrollment?: boolean;
 }

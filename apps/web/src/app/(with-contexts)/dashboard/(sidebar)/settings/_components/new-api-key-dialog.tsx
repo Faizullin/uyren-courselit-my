@@ -1,6 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import {
+  APIKEY_NEW_BTN_CAPTION,
+  APIKEY_NEW_GENERATED_KEY_COPIED,
+  APIKEY_NEW_GENERATED_KEY_DESC,
+  APIKEY_NEW_GENERATED_KEY_HEADER,
+  APIKEY_NEW_HEADER,
+  APIKEY_NEW_LABEL,
+  BUTTON_CANCEL_TEXT,
+  BUTTON_DONE_TEXT,
+  TOAST_TITLE_ERROR,
+  TOAST_TITLE_SUCCESS,
+} from "@/lib/ui/config/strings";
+import { trpc } from "@/utils/trpc";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -14,58 +28,42 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
+  FormLabel
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
-import { useToast } from "@workspace/components-library";
-import { trpc } from "@/utils/trpc";
-import {
-  APIKEY_NEW_BTN_CAPTION,
-  APIKEY_NEW_GENERATED_KEY_COPIED,
-  APIKEY_NEW_GENERATED_KEY_DESC,
-  APIKEY_NEW_GENERATED_KEY_HEADER,
-  APIKEY_NEW_HEADER,
-  APIKEY_NEW_LABEL,
-  BUTTON_CANCEL_TEXT,
-  BUTTON_DONE_TEXT,
-  TOAST_TITLE_ERROR,
-  TOAST_TITLE_SUCCESS,
-} from "@/lib/ui/config/strings";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Label } from "@workspace/ui/components/label";
+import { Copy } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Copy } from "lucide-react";
-import { Label } from "@workspace/ui/components/label";
 
 const newApiKeySchema = z.object({
   name: z.string().min(1, "API key name is required"),
+  purposeKey: z.string(),
 });
 
 type NewApiKeyFormData = z.infer<typeof newApiKeySchema>;
 
 interface NewApiKeyDialogProps {
   children: React.ReactNode;
-  onSuccess?: () => void;
 }
 
 export default function NewApiKeyDialog({
   children,
-  onSuccess,
 }: NewApiKeyDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [generatedKey, setGeneratedKey] = useState("");
   const { toast } = useToast();
 
+  const trpcUtils = trpc.useUtils();
   const addApiKeyMutation = trpc.siteModule.siteInfo.addApiKey.useMutation({
     onSuccess: (response) => {
       if (response?.key) {
         setGeneratedKey(response.key);
-        // toast({
-        //   title: TOAST_TITLE_SUCCESS,
-        //   description: "API key created successfully",
-        // });
+        trpcUtils.siteModule.siteInfo.listApiKeys.invalidate();
       }
     },
     onError: (error: any) => {
@@ -81,18 +79,20 @@ export default function NewApiKeyDialog({
     resolver: zodResolver(newApiKeySchema),
     defaultValues: {
       name: "",
+      purposeKey: "",
     },
   });
 
   const onSubmit = async (data: NewApiKeyFormData) => {
     try {
       await addApiKeyMutation.mutateAsync({
-        data: {
-          name: data.name,
-        },
+        data,
       });
     } catch (error) {
-      // Error handling is done in the mutation
+      toast({
+        title: TOAST_TITLE_ERROR,
+        variant: "destructive",
+      });
     }
   };
 
@@ -155,6 +155,28 @@ export default function NewApiKeyDialog({
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="purposeKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Purpose Key
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter API key purpose..."
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional value used to identify the API key purpose.
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+
               <DialogFooter>
                 <Button
                   type="button"
@@ -176,9 +198,6 @@ export default function NewApiKeyDialog({
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">
-                {APIKEY_NEW_GENERATED_KEY_HEADER}
-              </h3>
               <p className="text-sm text-muted-foreground">
                 {APIKEY_NEW_GENERATED_KEY_DESC}
               </p>

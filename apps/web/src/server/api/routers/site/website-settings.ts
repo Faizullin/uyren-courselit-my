@@ -1,9 +1,8 @@
 import { Domain } from "@/models/Domain";
 import WebsiteSettingsModel from "@/models/WebsiteSettings";
-import { WebsiteSettings } from "@workspace/common-models";
-import { checkPermission } from "@workspace/utils";
+import WebsiteSettingsManager from "@/server/lib/website-settings-manager";
+import { UIConstants } from "@workspace/common-models";
 import { z } from "zod";
-import { NotFoundException } from "../../core/exceptions";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
@@ -12,7 +11,6 @@ import {
 } from "../../core/procedures";
 import { getFormDataSchema } from "../../core/schema";
 import { router } from "../../core/trpc";
-import { UIConstants } from "@workspace/common-models";
 import { textEditorContentValidator } from "../../core/validators";
 
 const { permissions } = UIConstants;
@@ -41,32 +39,14 @@ export const websiteSettingsRouter = router({
   getPublicWebsiteSettings: publicProcedure
     .use(createDomainRequiredMiddleware())
     .query(async ({ ctx }) => {
-      let websiteSettings = await WebsiteSettingsModel.findOne({
-        domain: ctx.domainData.domainObj._id,
-      }).lean();
-      if (!websiteSettings) {
-        await createWebsiteSettings(ctx.domainData.domainObj);
-        websiteSettings = await WebsiteSettingsModel.findOne({
-          domain: ctx.domainData.domainObj._id,
-        }).lean();
-      }
-      return websiteSettings;
+      return await WebsiteSettingsManager.getOrCreate(ctx.domainData.domainObj._id.toString());
     }),
 
   // Get website settings for current domain (protected)
   getWebsiteSettings: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .query(async ({ ctx }) => {
-      let websiteSettings = await WebsiteSettingsModel.findOne({
-        domain: ctx.domainData.domainObj._id,
-      }).lean();
-      if (!websiteSettings) {
-        await createWebsiteSettings(ctx.domainData.domainObj);
-        websiteSettings = await WebsiteSettingsModel.findOne({
-          domain: ctx.domainData.domainObj._id,
-        }).lean();
-      }
-      return websiteSettings;
+      return await WebsiteSettingsManager.getOrCreate(ctx.domainData.domainObj._id.toString());
     }),
 
   // Update website settings
@@ -136,6 +116,10 @@ export const websiteSettingsRouter = router({
       }
 
       await websiteSettings.save();
+
+      // Update Redis cache
+      await WebsiteSettingsManager.add(ctx.domainData.domainObj._id.toString(), websiteSettings.toObject());
+
       return websiteSettings;
     }),
 });

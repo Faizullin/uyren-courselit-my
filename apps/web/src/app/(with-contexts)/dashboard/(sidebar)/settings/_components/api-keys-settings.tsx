@@ -15,7 +15,7 @@ import {
 } from "@/lib/ui/config/strings";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
-import { useToast } from "@workspace/components-library";
+import { DeleteConfirmNiceDialog, NiceModal, useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -36,6 +36,7 @@ import {
 } from "@workspace/ui/components/table";
 import NewApiKeyDialog from "./new-api-key-dialog";
 import { useSettingsContext } from "./settings-context";
+import { Trash2 } from "lucide-react";
 
 type ApiKeyType =
   GeneralRouterOutputs["siteModule"]["siteInfo"]["listApiKeys"][number] & {
@@ -65,20 +66,19 @@ export default function ApiKeysSettings() {
       },
     });
 
-  const removeApiKey = async (keyId: string) => {
-    try {
-      await removeApiKeyMutation.mutateAsync({
-        data: {
-          keyId,
-        },
-      });
-    } catch (error) {
-      // Error handling is done in the mutation
-    }
-  };
-
-  const handleApiKeyCreated = () => {
-    loadApiKeysQuery.refetch();
+  const handleDelete = (obj: ApiKeyType) => {
+    NiceModal.show(DeleteConfirmNiceDialog, {
+      title: "Delete API Key",
+      data: obj,
+    }).then((result) => {
+      if (result.reason === "confirm") {
+        removeApiKeyMutation.mutateAsync({
+          data: {
+            keyId: obj.keyId,
+          },
+        });
+      }
+    });
   };
 
   const isRemoving = removeApiKeyMutation.isPending;
@@ -89,7 +89,7 @@ export default function ApiKeysSettings() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">{APIKEY_EXISTING_HEADER}</h2>
-        <NewApiKeyDialog onSuccess={handleApiKeyCreated}>
+        <NewApiKeyDialog>
           <Button disabled={isDisabled}>{APIKEY_NEW_BUTTON}</Button>
         </NewApiKeyDialog>
       </div>
@@ -110,30 +110,15 @@ export default function ApiKeysSettings() {
                 {new Date(item.createdAt).toLocaleDateString()}
               </TableCell>
               <TableCell className="text-right">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" disabled={isDisabled}>
-                      {APIKEY_REMOVE_BTN}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{APIKEY_REMOVE_DIALOG_HEADER}</DialogTitle>
-                      <DialogDescription>
-                        {APIKYE_REMOVE_DIALOG_DESC}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button
-                        variant="destructive"
-                        onClick={() => removeApiKey(item.keyId)}
-                        disabled={isDisabled}
-                      >
-                        {isRemoving ? "Removing..." : APIKEY_REMOVE_BTN}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  disabled={isDisabled} 
+                  onClick={() => handleDelete(item)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}

@@ -143,6 +143,7 @@ export const ActivityType = {
   COMMUNITY_REPLY_LIKED: "community_reply_liked",
   COMMUNITY_MEMBERSHIP_REQUESTED: "community_membership_requested",
   COMMUNITY_MEMBERSHIP_GRANTED: "community_membership_granted",
+  COURSE_ACCESS_REVOKED: "course_access_revoked",
 } as const;
 export const CourseType = {
   COURSE: "course",

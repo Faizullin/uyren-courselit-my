@@ -1,7 +1,7 @@
 "use server";
 
 import { authOptions } from "@/lib/auth/options";
-import DomainManager, { getDomainData } from "@/lib/domain";
+import DomainManager, { getDomainData } from "@/server/lib/domain";
 import { checkPermission } from "@workspace/utils";
 import { getServerSession } from "next-auth";
 

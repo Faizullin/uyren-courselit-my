@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import InvoiceModel from "@/models/Invoice";
 import MembershipModel from "@/models/Membership";
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
 import { Log } from "@/lib/logger";

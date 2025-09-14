@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   UserCredential,
+  updateProfile,
 } from "firebase/auth";
 import { signIn as nextAuthSignIn } from "next-auth/react";
 import { getFirebaseAuth } from "./firebase";
@@ -80,8 +81,6 @@ export class AuthClientService {
       );
 
       const idToken = await result.user.getIdToken();
-
-      // Use NextAuth to create session with Firebase token
       const response = await nextAuthSignIn("credentials", {
         idToken,
         redirect: false,
@@ -120,14 +119,15 @@ export class AuthClientService {
 
       // Update display name if provided
       if (name && result.user) {
-        await (result.user as any).updateProfile({
-          displayName: name,
-        });
+        await updateProfile(
+          result.user,
+          {
+            displayName: name,
+          },
+        );
       }
 
       const idToken = await result.user.getIdToken();
-
-      // Use NextAuth to create session with Firebase token
       const response = await nextAuthSignIn("credentials", {
         idToken,
         redirect: false,

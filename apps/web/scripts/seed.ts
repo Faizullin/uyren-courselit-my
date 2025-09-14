@@ -96,42 +96,8 @@ const DomainSchema = new mongoose.Schema(
       stripeKey: { type: String },
       codeInjectionHead: { type: String },
     },
-    sharedWidgets: { type: mongoose.Schema.Types.Mixed, default: {} },
-    draftSharedWidgets: { type: mongoose.Schema.Types.Mixed, default: {} },
-    typefaces: [
-      {
-        section: { type: String },
-        typeface: { type: String },
-        fontWeights: [Number],
-        fontSize: { type: Number },
-        lineHeight: { type: Number },
-        letterSpacing: { type: Number },
-        case: { type: String },
-      },
-    ],
-    draftTypefaces: [
-      {
-        section: { type: String },
-        typeface: { type: String },
-        fontWeights: [Number],
-        fontSize: { type: Number },
-        lineHeight: { type: Number },
-        letterSpacing: { type: Number },
-        case: { type: String },
-      },
-    ],
     firstRun: { type: Boolean, required: true, default: false },
     tags: { type: [String], default: [] },
-    quota: {
-      mail: {
-        daily: { type: Number, default: 0 },
-        monthly: { type: Number, default: 0 },
-        dailyCount: { type: Number, default: 0 },
-        monthlyCount: { type: Number, default: 0 },
-        lastDailyCountUpdate: { type: Date, default: Date.now },
-        lastMonthlyCountUpdate: { type: Date, default: Date.now },
-      },
-    },
   },
   { timestamps: true },
 );
@@ -236,41 +202,7 @@ async function createRootDomain() {
       deleted: false,
       firstRun: true,
       settings: defaultSettings,
-      sharedWidgets: {},
-      draftSharedWidgets: {},
-      typefaces: [
-        {
-          section: "default",
-          typeface: "Roboto",
-          fontWeights: [300, 400, 500, 700],
-          fontSize: 0,
-          lineHeight: 0,
-          letterSpacing: 0,
-          case: "captilize",
-        },
-      ],
-      draftTypefaces: [
-        {
-          section: "default",
-          typeface: "Roboto",
-          fontWeights: [300, 400, 500, 700],
-          fontSize: 0,
-          lineHeight: 0,
-          letterSpacing: 0,
-          case: "captilize",
-        },
-      ],
       tags: [],
-      quota: {
-        mail: {
-          daily: 100,
-          monthly: 1000,
-          dailyCount: 0,
-          monthlyCount: 0,
-          lastDailyCountUpdate: new Date(),
-          lastMonthlyCountUpdate: new Date(),
-        },
-      },
     });
 
     await domain.save();

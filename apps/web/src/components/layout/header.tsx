@@ -30,7 +30,6 @@ export default function Header() {
   const [langOpen, setLangOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const [currentLang, setCurrentLang] = useState(i18n.language || "en");
@@ -40,7 +39,7 @@ export default function Header() {
     { name: t("nav_about"), href: "/about" },
     { name: t("nav_courses"), href: "/courses" },
     { name: t("nav_grants"), href: "/grants" },
-    { name: t("nav_community"), href: "/community" },
+    // { name: t("nav_community"), href: "/community" },
     { name: t("nav_sponsorship"), href: "/sponsorship" },
   ];
 
@@ -53,29 +52,10 @@ export default function Header() {
   const handleNavigation = (href: string, e: React.MouseEvent) => {
     e.preventDefault();
     if (href === pathname) return;
-
-    // Show loading bar
-    setIsNavigating(true);
-
-    // Create loading bar element
-    const loadingBar = document.createElement("div");
-    loadingBar.className = "nav-loading";
-    document.body.appendChild(loadingBar);
-
-    // Navigate after short delay
-    setTimeout(() => {
       router.push(href);
-      // Remove loading bar after animation
-      setTimeout(() => {
-        if (document.body.contains(loadingBar)) {
-          document.body.removeChild(loadingBar);
-        }
-      }, 800);
-    }, 50);
   };
 
   const changeLanguage = (lng: string) => {
-    console.log("[change langauge]", lng);
     i18n.changeLanguage(lng);
     setCurrentLang(lng);
     setLangOpen(false);
@@ -84,7 +64,6 @@ export default function Header() {
   // Close mobile menu when route changes
   useEffect(() => {
     setMobileMenuOpen(false);
-    setIsNavigating(false);
   }, [pathname]);
 
   // Handle click outside to close user menu

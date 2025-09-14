@@ -1,7 +1,7 @@
 import constants from "@/config/constants";
 import { responses } from "@/config/strings";
 import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import { Log } from "@/lib/logger";
 import DomainModel from "@/models/Domain";
 import InvoiceModel from "@/models/Invoice";

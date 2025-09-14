@@ -6,7 +6,7 @@ export async function deleteMedia(mediaId: string | Media): Promise<boolean> {
   const usedMediaId = typeof mediaId === "string" ? mediaId : mediaId.mediaId;
   const medialitServer = "";
   let response: any = await fetch(
-    `${medialitServer}/media/delete/${usedMediaId}`,
+    `${medialitServer}/api/services/media/${usedMediaId}`,
     {
       method: "DELETE",
       headers: {

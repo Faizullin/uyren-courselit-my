@@ -405,6 +405,22 @@ export default function AssignmentSettings() {
                   </FormItem>
                 )}
               />
+              {/* {
+                form.watch("assignmentType") === "project" && (
+                  <FormField
+                    control={form.control}
+                    name="projectType"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Project Type</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter project type" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )
+              } */}
             </CardContent>
           </Card>
         </div>

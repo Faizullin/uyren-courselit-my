@@ -51,11 +51,6 @@ export const authOptions: NextAuthOptions = {
           
           const decoded = await adminAuth.verifyIdToken(idToken);
 
-          console.log("decoded", decoded);
-
-          if (!decoded.email_verified) {
-            throw new Error("Email is not verified");
-          }
           const sanitizedEmail = decoded.email;
           if (!sanitizedEmail) {
             throw new Error("Email is required in ID Token");
@@ -183,10 +178,8 @@ export const authOptions: NextAuthOptions = {
           const firebaseAuth = getFirebaseAuth();
           if (firebaseAuth.currentUser) {
             await firebaseAuth.signOut();
-            console.log("Firebase user signed out successfully");
           }
         } catch (error) {
-          console.log("Firebase not initialized, skipping sign out");
         }
       } catch (error) {
         console.error("Error signing out from Firebase:", error);

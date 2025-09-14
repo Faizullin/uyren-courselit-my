@@ -14,7 +14,7 @@ import { activateMembership } from "../helpers";
 import { getPaymentMethodFromSettings } from "@/server/services/payment";
 import { Log } from "@/lib/logger";
 import Payment from "@/server/services/payment/types";
-import { getDomainHeaders } from "@/lib/domain";
+import { getDomainHeaders } from "@/server/lib/domain";
 
 export async function POST(req: NextRequest) {
   try {

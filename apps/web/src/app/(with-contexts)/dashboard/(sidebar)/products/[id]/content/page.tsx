@@ -70,6 +70,7 @@ import {
   ChevronRight,
   Droplets,
   Edit,
+  Eye,
   FileText,
   HelpCircle,
   MoreHorizontal,
@@ -732,6 +733,12 @@ const CollapsibleSection = ({
               <span className="text-sm font-medium">{lesson.title}</span>
             </div>
             <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200" onClick={(e) => {
+                e.stopPropagation();
+                window.open(`/courses/${product.courseId}/lessons/${lesson.lessonId}`, "_blank");
+              }}>
+                <Eye className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

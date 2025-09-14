@@ -1,9 +1,9 @@
 import DomainModel, { type Domain } from "@/models/Domain";
 import { connectToDatabase } from "@workspace/common-logic";
 import { headers } from "next/headers";
-import { redis } from "../server/lib/redis";
+import { redis } from "./redis";
 import { parseHost } from "./domain-utils";
-import { Log } from "./logger";
+import { Log } from "@/lib/logger";
 
 export {
   analyzeDomain,

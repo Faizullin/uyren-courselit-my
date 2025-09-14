@@ -1,4 +1,4 @@
-import { cleanHost, getBackendAddress } from "@/lib/domain-utils";
+import { cleanHost, getBackendAddress } from "@/server/lib/domain-utils";
 import type {
   CommunityMemberStatus,
   CommunityReportStatus,

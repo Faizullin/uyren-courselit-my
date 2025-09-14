@@ -132,12 +132,8 @@ export const assignmentRouter = router({
       Object.keys(input.data).forEach((key) => {
         (assignment as any)[key] = (input.data as any)[key];
       });
-      const json = (await assignment.save()).toObject() as any;
-      return {
-        ...json,
-        id: json._id.toString(),
-        _id: undefined,
-      };
+      const saved = await assignment.save();
+      return saved.toObject();
     }),
 
   archive: protectedProcedure

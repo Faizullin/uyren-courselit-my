@@ -8,6 +8,7 @@ import UserModel from "@/models/User";
 import {
   ConflictException,
   NotFoundException,
+  AuthorizationException,
 } from "@/server/api/core/exceptions";
 import { checkOwnershipWithoutModel } from "@/server/api/core/permissions";
 import {
@@ -45,7 +46,9 @@ import mongoose, { RootFilterQuery } from "mongoose";
 import { ActivityType } from "node_modules/@workspace/common-models/src/constants";
 import { z } from "zod";
 import { getActivities } from "../../activity/helpers";
-import { getPlans } from "../../community/helpers";
+import { getPlans, getInternalPaymentPlan } from "../../community/helpers";
+import { activateMembership } from "../../payment/helpers";
+import { recordActivity } from "@/lib/record-activity";
 import {
   deleteAllLessons,
   getCourseOrThrow,
@@ -247,43 +250,6 @@ const updateGroup = async ({
     $set["groups.$.collapsed"] = collapsed;
   }
 
-  // if (drip) {
-  //   if (drip.status) {
-  //     $set["groups.$.drip.status"] = drip.status;
-  //   }
-  //   if (drip.type) {
-  //     $set["groups.$.drip.type"] = drip.type;
-  //   }
-  //   if (drip.type === Constants.dripType[0]) {
-  //     if (drip.delayInMillis) {
-  //       $set["groups.$.drip.delayInMillis"] =
-  //         drip.delayInMillis * 86400000;
-  //     }
-  //     $set["groups.$.drip.dateInUTC"] = drip.dateInUTC;
-  //   }
-  //   if (drip.type === Constants.dripType[1]) {
-  //     $set["groups.$.drip.delayInMillis"] = null;
-  //     if (drip.dateInUTC) {
-  //       $set["groups.$.drip.dateInUTC"] = drip.dateInUTC;
-  //     }
-  //   }
-  //   if (drip.email) {
-  //     if (!drip.email.content || !drip.email.subject) {
-  //       throw new ValidationException(responses.invalid_drip_email);
-  //     }
-  //     const parsedContent: Email = JSON.parse(drip.email.content);
-  //     verifyMandatoryTags(parsedContent.content);
-
-  //     $set["groups.$.drip.email"] = {
-  //       content: parsedContent,
-  //       subject: drip.email.subject,
-  //       published: true,
-  //       delayInMillis: 0,
-  //     };
-  //   } else {
-  //     $set["groups.$.drip.email"] = null;
-  //   }
-  // }
 
   return await CourseModel.findOneAndUpdate(
     {
@@ -316,7 +282,6 @@ const setupCourse = async ({
     type: type,
     duration: 0,
     level: "beginner",
-    // pageId: page.pageId,
   });
   await addGroup({
     courseId: course.courseId,
@@ -324,9 +289,6 @@ const setupCourse = async ({
     collapsed: false,
     ctx,
   });
-  // page.entityId = course.courseId;
-  // page.layout = getInitialLayout(type);
-  // await page.save();
 
   return course;
 };
@@ -469,20 +431,6 @@ export const courseRouter = router({
       if (!course.published) {
         throw new NotFoundException("Course", String(input.courseId));
       }
-      // if (
-      //     [constants.course, constants.download].includes(
-      //         course.type as
-      //             | typeof constants.course
-      //             | typeof constants.download,
-      //     )
-      // ) {
-      //     const { nextLesson } = await getPrevNextCursor(
-      //         course.courseId,
-      //         ctx.domainData.domainObj._id,
-      //     );
-      //     (course as any).firstLesson = nextLesson;
-      // }
-      // course.groups = accessibleGroups;
       return await formatCourse(course.courseId, ctx);
     }),
 
@@ -620,10 +568,12 @@ export const courseRouter = router({
               (purchase) => purchase.courseId === course.courseId,
             );
             return {
+              membershipId: member.membershipId,
               userId: member.userId,
               status: member.status,
               subscriptionMethod: member.subscriptionMethod,
               subscriptionId: member.subscriptionId,
+              joiningReason: member.joiningReason,
               completedLessons: purchase?.completedLessons,
               createdAt: purchase?.createdAt,
               updatedAt: purchase?.updatedAt,
@@ -636,19 +586,128 @@ export const courseRouter = router({
                     avatar: user.avatar,
                   }
                 : undefined,
-              // status: member.status,
-              // subscriptionMethod: member.subscriptionMethod,
-              // subscriptionId: member.subscriptionId,
-              // completedLessons: purchase?.completedLessons,
-              // createdAt: purchase?.createdAt,
-              // updatedAt: purchase?.updatedAt,
-              // downloaded: purchase?.downloaded,
             };
           }),
         ),
         total,
         meta: paginationMeta,
       };
+    }),
+
+  approveMember: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([
+        UIConstants.permissions.manageCourse,
+        UIConstants.permissions.manageAnyCourse,
+      ]),
+    )
+    .input(
+      getFormDataSchema({
+        courseId: z.string(),
+        userId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const course = await getCourseOrThrow(
+        undefined,
+        ctx,
+        input.data.courseId,
+      );
+      const membership = await MembershipModel.findOne({
+        domain: ctx.domainData.domainObj._id,
+        entityId: course.courseId,
+        entityType: Constants.MembershipEntityType.COURSE,
+        userId: input.data.userId,
+      });
+      if (!membership) {
+        throw new NotFoundException("Membership", input.data.userId);
+      }
+      if (membership.status === Constants.MembershipStatus.ACTIVE) {
+        return { ok: true };
+      }
+      const paymentPlan = await getInternalPaymentPlan(
+        ctx.domainData.domainObj._id.toString(),
+      );
+      await activateMembership(
+        ctx.domainData.domainObj,
+        membership as any,
+        paymentPlan || null,
+      );
+      return { ok: true };
+    }),
+
+  removeMember: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([
+        UIConstants.permissions.manageCourse,
+        UIConstants.permissions.manageAnyCourse,
+      ]),
+    )
+    .input(
+      getFormDataSchema({
+        courseId: z.string(),
+        userId: z.string(),
+        reason: z.string().optional(),
+        forDelete: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const course = await getCourseOrThrow(
+        undefined,
+        ctx,
+        input.data.courseId,
+      );
+      const membership = await MembershipModel.findOne({
+        domain: ctx.domainData.domainObj._id,
+        entityId: course.courseId,
+        entityType: Constants.MembershipEntityType.COURSE,
+        userId: input.data.userId,
+      });
+      if (!membership) {
+        throw new NotFoundException("Membership", input.data.userId);
+      }
+
+      if (input.data.forDelete) {
+        const hasElevated = checkPermission(ctx.user.permissions, [
+          UIConstants.permissions.manageAnyCourse,
+        ]);
+        if (!hasElevated) {
+          throw new AuthorizationException();
+        }
+        await MembershipModel.deleteOne({ _id: (membership as any)._id });
+      } else {
+        membership.status = Constants.MembershipStatus.REJECTED;
+        if (input.data.reason) {
+          membership.rejectionReason = input.data.reason;
+        }
+        await membership.save();
+      }
+
+      await UserModel.updateOne(
+        {
+          domain: ctx.domainData.domainObj._id,
+          userId: input.data.userId,
+        },
+        {
+          $pull: { purchases: { courseId: course.courseId } },
+        },
+      );
+
+      await recordActivity({
+        domain: ctx.domainData.domainObj._id,
+        userId: ctx.user.userId,
+        type: Constants.ActivityType.COURSE_ACCESS_REVOKED as any,
+        entityId: course.courseId,
+        metadata: {
+          targetUserId: input.data.userId,
+          reason: input.data.reason,
+          forDelete: !!input.data.forDelete,
+        },
+      });
+
+      return { ok: true };
     }),
 
   create: protectedProcedure
@@ -687,6 +746,7 @@ export const courseRouter = router({
         description: textEditorContentValidator().optional(),
         featuredImage: mediaWrappedFieldValidator().nullable().optional(),
         themeId: z.string().nullish(),
+        allowEnrollment: z.boolean().optional(),
       }).extend({
         courseId: z.string(),
       }),
@@ -694,29 +754,12 @@ export const courseRouter = router({
     .mutation(async ({ ctx, input }) => {
       const course = await getCourseOrThrow(undefined, ctx, input.courseId);
       checkOwnershipWithoutModel(course, ctx as any);
-
-      const updateData: any = {};
-      if (input.data.title !== undefined) updateData.title = input.data.title;
-      if (input.data.published !== undefined)
-        updateData.published = input.data.published;
-      if (input.data.privacy !== undefined)
-        updateData.privacy = input.data.privacy;
-      if (input.data.description !== undefined)
-        updateData.description = input.data.description;
-      if (input.data.featuredImage !== undefined)
-        updateData.featuredImage = input.data.featuredImage;
-      if (input.data.themeId !== undefined) {
-        updateData.themeId = input.data.themeId;
-      }
-      if (input.data.shortDescription !== undefined)
-        updateData.shortDescription = input.data.shortDescription;
-
+      const updateData = input.data;
       const updatedCourse = await CourseModel.findOneAndUpdate(
         { courseId: input.courseId },
         { $set: updateData },
         { new: true },
       );
-
       return updatedCourse;
     }),
 
@@ -739,10 +782,6 @@ export const courseRouter = router({
           });
         }
       }
-      // await PageModel.deleteOne({
-      //   entityId: course.courseId,
-      //   domain: ctx.domainData.domainObj._id,
-      // });
       await CourseModel.deleteOne({
         domain: ctx.domainData.domainObj._id,
         courseId: course.courseId,
@@ -778,13 +817,6 @@ export const courseRouter = router({
         rank: z.number().optional(),
         collapsed: z.boolean().optional(),
         lessonsOrder: z.array(z.string()).optional(),
-        // drip: z.object({
-        //   type: z.nativeEnum(Constants.dripType),
-        //   status: z.boolean().optional(),
-        //   delayInMillis: z.number().optional(),
-        //   dateInUTC: z.number().optional(),
-        //   email: z.object({
-        // }).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -795,7 +827,6 @@ export const courseRouter = router({
         rank: input.data.rank,
         collapsed: input.data.collapsed,
         lessonsOrder: input.data.lessonsOrder,
-        drip: (input.data as any).drip,
         ctx: ctx as any,
       });
     }),
@@ -854,10 +885,9 @@ export const courseRouter = router({
         type: course.type,
         level: course.level,
         duration: course.duration,
-        // lessons: course.lessons,
         cost: course.cost,
         costType: course.costType,
-        featuredImage: formatMedia(course.featuredImage),
+        featuredImage: course.featuredImage ? formatMedia(course.featuredImage) : null,
         published: course.published,
         isFeatured: course.isFeatured,
         tags: course.tags,
@@ -866,13 +896,14 @@ export const courseRouter = router({
         creatorName: course.creatorName,
         slug: course.slug,
         privacy: course.privacy,
-        themeId: course.themeId,
+        themeId: course.themeId?.toString(),
         defaultPaymentPlan: course.defaultPaymentPlan,
         attachedPaymentPlans: paymentPlans.map(formatPaymentPlan),
         attachedLessons: course.attachedLessons.map(formatLesson),
         createdAt: course.createdAt,
         groups: course.groups,
         customers: course.customers,
+        allowEnrollment: course.allowEnrollment,
       };
     }),
 });

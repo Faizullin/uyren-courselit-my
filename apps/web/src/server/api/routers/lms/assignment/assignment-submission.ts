@@ -92,6 +92,67 @@ export const assignmentSubmissionRouter = router({
       };
     }),
 
+  listMine: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      ListInputSchema.extend({
+        filter: z
+          .object({
+            status: z.enum(["submitted", "graded", "late", "overdue"]).optional(),
+          })
+          .optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const hasAccess = checkPermission(ctx.user.permissions, [
+        permissions.enrollInCourse,
+      ]);
+      if (!hasAccess) throw new AuthorizationException("No access");
+
+      const query: RootFilterQuery<typeof AssignmentSubmissionModel> = {
+        domain: ctx.domainData.domainObj._id,
+        userId: ctx.user.userId,
+        ...(input.filter?.status ? { status: input.filter.status } : {}),
+      } as any;
+
+      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const [items, total] = await Promise.all([
+        AssignmentSubmissionModel.find(query)
+          .populate<{ assignment: { _id: string; title: string; totalPoints: number } }>(
+            "assignment",
+            "_id title totalPoints",
+          )
+          .skip(input.pagination?.skip || 0)
+          .limit(input.pagination?.take || 20)
+          .sort(
+            input.orderBy
+              ? {
+                  [input.orderBy.field]:
+                    input.orderBy.direction === "asc" ? 1 : -1,
+                }
+              : { submittedAt: -1 },
+          )
+          .lean(),
+        includeCount
+          ? AssignmentSubmissionModel.countDocuments(query)
+          : Promise.resolve(0),
+      ]);
+
+      return {
+        items: items.map((item) => ({
+          ...item,
+          id: (item as any)._id.toString(),
+          _id: undefined,
+        })),
+        total,
+        meta: {
+          includePaginationCount: input.pagination?.includePaginationCount,
+          skip: input.pagination?.skip || 0,
+          take: input.pagination?.take || 20,
+        },
+      };
+    }),
+
   getSubmissionById: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(

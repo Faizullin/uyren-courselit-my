@@ -1,6 +1,9 @@
 "use client";
 
 export default function NoSubdomainPage() {
+  const handleGoToRoot = () => {
+    window.location.href = "https://uyrenai.kz"
+  };
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-16">
@@ -57,12 +60,12 @@ export default function NoSubdomainPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/"
+            <button
+              onClick={handleGoToRoot}
               className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-3 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 inline-flex items-center justify-center"
             >
               Go to Main Site
-            </a>
+            </button>
             <button
               onClick={() => window.history.back()}
               className="border-2 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white px-8 py-3 text-lg font-semibold rounded-full transition-all duration-300 bg-transparent"

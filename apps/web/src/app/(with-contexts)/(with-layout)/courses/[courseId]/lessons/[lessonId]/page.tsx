@@ -1,5 +1,4 @@
 import { Metadata, ResolvingMetadata } from "next";
-import { Suspense } from "react";
 import LessonView from "../../_components/lesson-view";
 
 export async function generateMetadata(
@@ -13,9 +12,5 @@ export async function generateMetadata(
 }
 
 export default function LessonDetailsPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LessonView />
-    </Suspense>
-  );
+  return <LessonView />;
 }

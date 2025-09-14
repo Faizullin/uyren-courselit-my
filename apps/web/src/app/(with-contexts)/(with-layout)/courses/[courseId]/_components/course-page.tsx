@@ -19,7 +19,7 @@ interface CoursePageProps {
 
 export default function CoursePage({ course }: CoursePageProps) {
   return (
-    <main className="bg-background min-h-screen m-course-details-page">
+    <main className="bg-background min-h-screen m--course-details-page">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
@@ -66,7 +66,7 @@ const CourseBreadcrumbs = ({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 text-sm text-muted-foreground m-breadcrumbs",
+        "flex items-center gap-2 text-sm text-muted-foreground m--breadcrumbs",
         className,
       )}
     >

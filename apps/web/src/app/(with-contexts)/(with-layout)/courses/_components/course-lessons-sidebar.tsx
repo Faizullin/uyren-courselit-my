@@ -185,6 +185,25 @@ export default function CourseLessonsSidebar({
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="text-center">
+              {!hasAccess && !isMembershipLoading && (
+                <div className="flex flex-col items-center justify-center gap-2 mb-2 text-muted-foreground">
+                  <Lock
+                    className="h-10 w-10 text-[rgb(var(--brand-primary))]"
+                    aria-label={t("access_restricted")}
+                  />
+                  <span className="text-sm">
+                    {isFree
+                      ? !isAuthenticated
+                        ? t("sign_in_to_enroll")
+                        : course.allowEnrollment
+                          ? t("self_enroll_available")
+                          : t("self_enroll_moderated")
+                      : isAuthenticated
+                        ? t("purchase_to_start")
+                        : t("sign_in_or_purchase")}
+                  </span>
+                </div>
+              )}
                 {isAuthenticated && isMembershipLoading ? (
                   <div className="space-y-3">
                     <Skeleton className="h-8 w-32 mx-auto" />
@@ -297,9 +316,10 @@ export default function CourseLessonsSidebar({
                     className="bg-[rgb(var(--brand-primary))] hover:bg-[rgb(var(--brand-primary-hover))] text-white"
                     onClick={handlePurchase}
                   >
-                    {defaultPlan?.type === Constants.PaymentPlanType.FREE
-                      ? "Get Free Course"
-                      : "Purchase Course"}
+                    {defaultPlan?.type === Constants.PaymentPlanType.FREE ? profile?.userId
+                      ? (isPending ? t("enrollment_pending") : t("get_free_course"))
+                     : t("sign_in_to_enroll")
+                     : t("purchase_course")}
                   </Button>
                 )}
               </div>

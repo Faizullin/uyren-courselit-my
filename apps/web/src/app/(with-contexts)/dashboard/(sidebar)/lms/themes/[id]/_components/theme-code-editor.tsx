@@ -75,7 +75,7 @@ const defaultLayout = [20, 32, 48];
 type AssetType = {
   _id: string;
   assetType: "stylesheet" | "font" | "script" | "image";
-  url: string;
+  url?: string;
   content?: string;
   preload?: boolean;
   async?: boolean;
@@ -93,7 +93,7 @@ type AssetType = {
 const assetSchema = z.object({
   name: z.string().min(1, "Name is required"),
   assetType: z.enum(["stylesheet", "font", "script", "image"]),
-  url: z.string().min(1, "URL is required"),
+  url: z.string(),
   content: z.string().optional(),
   preload: z.boolean().optional(),
   async: z.boolean().optional(),

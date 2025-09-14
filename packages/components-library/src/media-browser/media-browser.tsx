@@ -9,15 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
-import { Input } from "@workspace/ui/components/input";
 import { Progress } from "@workspace/ui/components/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
 import {
   Tabs,
   TabsContent,
@@ -25,37 +17,12 @@ import {
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
 import {
-  File,
-  FileImage,
-  FileText,
-  Music,
-  Search,
   Upload,
-  Video,
-  X,
+  X
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Image } from "../image";
 import NiceModal, { NiceModalHocProps } from "../nice-modal";
-
-// Utility functions
-const getMimeTypeIcon = (mimeType: string) => {
-  if (mimeType.startsWith("image/")) return FileImage;
-  if (mimeType.startsWith("video/")) return Video;
-  if (mimeType.startsWith("audio/")) return Music;
-  if (mimeType.includes("pdf") || mimeType.includes("document"))
-    return FileText;
-  return File;
-};
-
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
+import MediaComponents from "./media-components";
 // Main MediaBrowser component (merged into MediaDialog)
 const MediaBrowserContent: React.FC<{
   onSelect: (media: Media) => void;
@@ -69,11 +36,14 @@ const MediaBrowserContent: React.FC<{
   const [selectedFileType, setSelectedFileType] = useState<string>(
     initialFileType ?? "all",
   );
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [media, setMedia] = useState<Media[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const PER_PAGE = 20;
 
   // Debounce search term to limit API requests while typing
   useEffect(() => {
@@ -81,28 +51,35 @@ const MediaBrowserContent: React.FC<{
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
+  const mapTypeToMime = (type: string) => {
+    if (type === "image") return "image/";
+    if (type === "video") return "video/";
+    if (type === "audio") return "audio/";
+    if (type === "document") return "application/";
+    if (type === "json") return "application/json";
+    return "";
+  };
+
   const loadMedia = useCallback(
     async (page: number, reset: boolean = false) => {
       try {
         setLoading(true);
+        setError(null);
         const query: any = {
           q: debouncedSearchTerm || "",
-          skip: (page * 20).toString(),
-          take: "20",
+          skip: (page * PER_PAGE).toString(),
+          take: String(PER_PAGE),
         };
         if (selectedFileType !== "all") {
-          query.mimeType = selectedFileType;
+          const mapped = mapTypeToMime(selectedFileType);
+          if (mapped) query.mimeType = mapped;
         }
         const url = "/api/services/media?" + new URLSearchParams(query);
         const response = await fetch(url);
         const result = await response.json();
 
-        if (reset) {
-          setMedia(result.items);
-          setCurrentPage(0);
-        } else {
-          setMedia((prev) => [...prev, ...result.items]);
-        }
+        setMedia(result.items);
+        if (reset) setCurrentPage(page);
 
         setTotal(result.total);
         // Support both result.hasMore and result.meta?.hasMore
@@ -111,6 +88,7 @@ const MediaBrowserContent: React.FC<{
         onTotalChange?.(result.total);
       } catch (error) {
         console.error("Failed to fetch media:", error);
+        setError("Failed to load media");
       } finally {
         setLoading(false);
       }
@@ -129,130 +107,63 @@ const MediaBrowserContent: React.FC<{
     loadMedia(0, true);
   }, [debouncedSearchTerm, selectedFileType]);
 
-  const handleLoadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      loadMedia(currentPage + 1, false);
-      setCurrentPage((prev) => prev + 1);
-    }
-  }, [loading, hasMore, currentPage, loadMedia]);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      if (!loading) {
+        loadMedia(page, true);
+      }
+    },
+    [loading, loadMedia],
+  );
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
   }, []);
 
-  const handleMimeTypeFilterChange = useCallback((mimeType: string) => {
-    setSelectedFileType(mimeType);
+  const handleMimeTypeFilterChange = useCallback((type: string) => {
+    setSelectedFileType(type);
   }, []);
 
   return (
-    <div className="space-y-4">
-      {/* Search and Filter Controls */}
-      <div className="mb-4 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="Search media files..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleSearchChange(e.target.value)
-              }
-              className="pl-10"
-            />
-          </div>
-          <Select
-            value={selectedFileType}
-            onValueChange={handleMimeTypeFilterChange}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="image/">Images</SelectItem>
-              <SelectItem value="video/">Videos</SelectItem>
-              <SelectItem value="audio/">Audio</SelectItem>
-              <SelectItem value="application/pdf">PDFs</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="flex flex-col h-full">
+      <MediaComponents.MediaFilters
+        typeValue={selectedFileType}
+        setTypeValue={handleMimeTypeFilterChange}
+        searchTermValue={searchTerm}
+        setSearchTermValue={handleSearchChange}
+        viewModeValue={viewMode}
+        setViewModeValue={setViewMode as any}
+        showFilters
+        showViewToggle
+      />
 
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">
-            {total} file{total !== 1 ? "s" : ""}
-          </span>
-        </div>
+      {viewMode === "grid" ? (
+        <MediaComponents.MediaGrid
+          items={media}
+          isLoading={loading}
+          isError={!!error}
+          errorText={error || undefined}
+          onRetry={() => loadMedia(currentPage, true)}
+          onSelect={onSelect}
+          compact={false}
+        />
+      ) : (
+        <MediaComponents.MediaList
+          items={media}
+          onSelect={onSelect}
+          compact={false}
+        />
+      )}
+
+      <div className="mt-auto px-4 pb-4">
+        <MediaComponents.PaginationBar
+          page={currentPage}
+          total={total}
+          perPage={PER_PAGE}
+          onChange={handlePageChange}
+          disabled={loading}
+        />
       </div>
-
-      {/* Loading State */}
-      {loading && media.length === 0 && (
-        <div className="flex justify-center py-12">
-          <div className="text-gray-500">Loading media files...</div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && media.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <FileImage className="h-12 w-12 mb-4" />
-          <p>No media files found</p>
-          {searchTerm && (
-            <p className="text-sm">Try adjusting your search or filters</p>
-          )}
-        </div>
-      )}
-
-      {/* Media Grid */}
-      {media.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {media.map((item) => {
-            const Icon = getMimeTypeIcon(item.mimeType);
-            const isImage = item.mimeType.startsWith("image/");
-
-            return (
-              <div
-                key={item.mediaId}
-                className="border border-gray-200 rounded-lg p-3 cursor-pointer transition-all hover:shadow-md hover:border-blue-300"
-                onClick={() => onSelect(item)}
-              >
-                <div className="aspect-square mb-2 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {isImage ? (
-                    <Image
-                      src={item.thumbnail || item.file || ""}
-                      alt={item.caption || item.originalFileName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Icon className="h-8 w-8 text-gray-400" />
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium truncate">
-                    {item.originalFileName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(item.size)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Load More Button */}
-      {hasMore && (
-        <div className="flex justify-center mt-6">
-          <Button
-            onClick={handleLoadMore}
-            disabled={loading}
-            variant="secondary"
-          >
-            {loading ? "Loading..." : "Load More"}
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

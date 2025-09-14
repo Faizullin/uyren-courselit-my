@@ -70,7 +70,6 @@ export const lessonValidator = (lessonData: LessonValidatorProps) => {
   if (lessonData.content) {
     validateTextContent(lessonData);
   }
-  // validateMediaContent(lessonData);
 };
 function validateTextContent(lessonData: LessonValidatorProps) {
   const content = lessonData.content;
@@ -83,18 +82,10 @@ function validateTextContent(lessonData: LessonValidatorProps) {
     ) {
       return;
     }
-    // if (lessonData.type === constants.embed && content && content.value) {
-    //   return;
-    // }
 
     throw new ValidationException(responses.content_cannot_be_null);
   }
 
-  //   if (lessonData.type === quiz) {
-  //       if (content && content.questions) {
-  //           validateQuizContent(content.questions);
-  //       }
-  //   }
 }
 const updateLesson = async ({
   lessonData,
@@ -247,9 +238,6 @@ export const lessonRouter = router({
       course.lessons = Array.from(new Set(newLessonIds));
       await course.save();
 
-      // if (lesson.media?.mediaId) {
-      //   await deleteMedia(lesson.media.mediaId);
-      // }
 
       await LessonModel.deleteOne({
         _id: lesson._id,

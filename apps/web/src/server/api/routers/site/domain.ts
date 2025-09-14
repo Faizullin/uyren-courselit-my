@@ -1,5 +1,5 @@
-import { parseHost } from "@/lib/domain";
-import DomainManager from "@/lib/domain";
+import { parseHost } from "@/server/lib/domain";
+import DomainManager from "@/server/lib/domain";
 import DomainModel from "@/models/Domain";
 import UserModel from "@/models/User";
 
@@ -216,7 +216,6 @@ export const domainRouter = router({
         await ensureUniqueCustomDomain(input.data.customDomain, input.id);
       }
 
-      // Remove cache for both previous and current domain data
       await DomainManager.removeFromCache(existing.toObject());
 
       const updated = await DomainModel.findByIdAndUpdate(
@@ -229,13 +228,9 @@ export const domainRouter = router({
 
       const updatedObj = updated!.toObject();
 
-      // Ensure domain has at least one user (the current user)
       await ensureDomainHasUser(updatedObj._id.toString(), ctx.user);
 
-      // Remove cache for updated domain data
       await DomainManager.removeFromCache(updatedObj);
-
-      // Cache the updated domain data
       await DomainManager.setDomainCache(updatedObj);
 
       return updatedObj;

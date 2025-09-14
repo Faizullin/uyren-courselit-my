@@ -17,6 +17,7 @@ import { memo, useRef } from "react";
 import { Editor } from "@tiptap/react";
 import { useProfile } from "@/components/contexts/profile-context";
 import { Constants } from "@workspace/common-models";
+import { useCourseData } from "./course-provider";
 
 const LessonContentEditor = dynamic(
   () =>
@@ -64,6 +65,9 @@ export default function LessonView() {
   const lessonId = params.lessonId as string;
   const program = searchParams.get("program") || "primary";
 
+  // Get course data from server-side layout
+  const course = useCourseData();
+
   // Load lesson data using tRPC
   const {
     data: lesson,
@@ -76,20 +80,6 @@ export default function LessonView() {
     },
     {
       enabled: !!(courseId && lessonId),
-    },
-  );
-
-  // Load course data to get lesson groups and navigation
-  const {
-    data: course,
-    isLoading: courseLoading,
-    error: courseError,
-  } = trpc.lmsModule.courseModule.course.publicGetByCourseId.useQuery(
-    {
-      courseId,
-    },
-    {
-      enabled: !!courseId,
     },
   );
 
@@ -109,8 +99,8 @@ export default function LessonView() {
       )
     : null;
 
-  const isLoading = lessonLoading || courseLoading || isMembershipLoading;
-  const error = lessonError || courseError;
+  const isLoading = lessonLoading || isMembershipLoading;
+  const error = lessonError;
 
   if (isLoading) {
     return (

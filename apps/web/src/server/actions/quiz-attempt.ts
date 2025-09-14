@@ -1,7 +1,7 @@
 "use server";
 
 import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import { Domain } from "@/models/Domain";
 import { QuestionModel, QuizAttemptModel, QuizModel } from "@/models/lms";
 import { IQuestion } from "@/models/lms/Question";

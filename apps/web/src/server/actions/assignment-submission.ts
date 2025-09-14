@@ -5,7 +5,7 @@ import { connectToDatabase } from "@workspace/common-logic";
 import { BASIC_PUBLICATION_STATUS_TYPE } from "@workspace/common-models";
 import { getServerSession, User } from "next-auth";
 import { AuthenticationException, NotFoundException } from "../api/core/exceptions";
-import { getDomainData } from "@/lib/domain";
+import { getDomainData } from "@/server/lib/domain";
 import { authOptions } from "@/lib/auth/options";
 import { Domain } from "@/models/Domain";
 

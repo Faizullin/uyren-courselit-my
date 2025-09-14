@@ -85,7 +85,7 @@ export default function QuizSettings() {
         title: "Success",
         description: "Quiz created successfully",
       });
-      router.push(`/dashboard/lms/quizzes/${response.id}`);
+      router.push(`/dashboard/lms/quizzes/${response._id}`);
     },
     onError: (error) => {
       toast({

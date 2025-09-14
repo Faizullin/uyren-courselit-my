@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import { Media, Constants } from "@workspace/common-models";
 import { generateUniqueId } from "@workspace/utils";
+import { Domain } from "@/models/Domain";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -26,7 +27,7 @@ export interface CloudinaryUploadResult {
 }
 
 export class CloudinaryService {
-  static async uploadFile(options: CloudinaryUploadOptions): Promise<Media> {
+  static async uploadFile(options: CloudinaryUploadOptions, domain: Domain): Promise<Media> {
     const { file, userId, type, caption, access } = options;
 
     if (!file) {
@@ -48,7 +49,7 @@ export class CloudinaryService {
             .upload_stream(
               {
                 resource_type: "auto",
-                folder: `courselit/${type}`,
+                folder: `courselit/${domain.name}-${domain._id}/${type}`,
                 transformation: [{ quality: "auto", fetch_format: "auto" }],
               },
               (error, result) => {

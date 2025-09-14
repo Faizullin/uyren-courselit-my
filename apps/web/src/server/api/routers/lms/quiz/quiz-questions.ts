@@ -79,9 +79,7 @@ export const quizQuestionsRouter = router({
         includeCount ? QuestionModel.countDocuments(query) : Promise.resolve(0),
       ]);
       return {
-        items: items.map((item) => ({
-          ...item,
-        })),
+        items,
         total,
         meta: {
           includePaginationCount: input.pagination?.includePaginationCount,
@@ -131,9 +129,7 @@ export const quizQuestionsRouter = router({
         includeCount ? QuestionModel.countDocuments(query) : Promise.resolve(0),
       ]);
       return {
-        items: items.map((item) => ({
-          ...item,
-        })),
+        items,
         total,
         meta: {
           includePaginationCount: input.pagination?.includePaginationCount,

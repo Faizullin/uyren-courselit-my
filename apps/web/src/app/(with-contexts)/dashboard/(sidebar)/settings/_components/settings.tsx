@@ -69,9 +69,9 @@ export default function Settings({ selectedTab }: SettingsProps) {
         onValueChange={(tab: string) => {
           router.replace(`/dashboard/settings?tab=${tab}`);
         }}
-        className="w-full"
+        className="w-full gap-4 md:gap-8"
       >
-        <TabsList className="flex flex-wrap gap-2 w-full h-auto justify-start">
+        <TabsList className="flex flex-wrap gap-2 w-fit h-auto justify-start">
           {items.map((item) => (
             <TabsTrigger key={item} value={item} className="flex-none">
               {item}

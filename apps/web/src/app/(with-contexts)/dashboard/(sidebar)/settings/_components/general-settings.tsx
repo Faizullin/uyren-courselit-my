@@ -138,7 +138,7 @@ export default function GeneralSettings() {
               </FormItem>
             )}
           />
-
+{/* 
           <FormField
             control={form.control}
             name="hideCourseLitBranding"
@@ -163,7 +163,7 @@ export default function GeneralSettings() {
                 </div>
               </FormItem>
             )}
-          />
+          /> */}
 
           <Button
             type="submit"
@@ -172,7 +172,7 @@ export default function GeneralSettings() {
           >
             {isSaving || isSubmitting ? "Saving..." : BUTTON_SAVE}
           </Button>
-        </form>
+        </form> 
       </Form>
 
       <div className="space-y-4">

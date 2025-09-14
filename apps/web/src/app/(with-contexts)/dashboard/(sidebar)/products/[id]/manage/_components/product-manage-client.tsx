@@ -129,6 +129,11 @@ export default function ProductManageClient({
     entityType: MembershipEntityType.COURSE,
   });
 
+
+  const hasFreePlan = (product.attachedPaymentPlans || []).some(
+    (p) => p.type === Constants.PaymentPlanType.FREE,
+    );    
+  const [allowEnrollment, setAllowEnrollment] = useState<boolean>(product?.allowEnrollment || false);
   const form = useForm<ProductFormDataType>({
     resolver: zodResolver(ProductSchema),
     defaultValues: {
@@ -196,6 +201,17 @@ export default function ProductManageClient({
         });
       },
     });
+
+  const updateAllowEnrollment = async (checked: boolean) => {
+    try {
+      await updateCourseMutation.mutateAsync({
+        courseId: product.courseId,
+        data: { allowEnrollment: checked },
+      });
+    } catch (error) {
+      console.error("Error updating allowEnrollment:", error);
+    }
+  };
 
   // Initialize payment plans and default plan
   useEffect(() => {
@@ -557,6 +573,25 @@ export default function ProductManageClient({
               disabled={!published}
             />
           </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className={`text-base font-semibold ${!published ? "text-muted-foreground" : ""}`}>
+              Allow enrollment
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Automatically activate access when enrolling for free
+            </p>
+          </div>
+          <Switch
+            checked={allowEnrollment}
+            onCheckedChange={async (checked) => {
+              setAllowEnrollment(checked);
+              await updateAllowEnrollment(checked);
+            }}
+            disabled={!published}
+          />
         </div>
 
         <Separator />

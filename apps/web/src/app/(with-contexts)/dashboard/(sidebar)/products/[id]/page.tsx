@@ -172,8 +172,8 @@ export default function ProductPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[140px]">
+            <Select value={timeRange} onValueChange={setTimeRange} >
+              <SelectTrigger className="w-[140px]" size="sm">
                 <SelectValue placeholder="Select time range" />
               </SelectTrigger>
               <SelectContent>
@@ -189,9 +189,9 @@ export default function ProductPage() {
                 {EDIT_CONTENT_MENU_ITEM}
               </Link>
             </Button>
-            <DropdownMenu>
+            <DropdownMenu >
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" size="sm">
                   Actions
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
@@ -219,19 +219,6 @@ export default function ProductPage() {
                   >
                     <Eye className="mr-2 h-4 w-4" />
                     View Customers
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/products/${product.courseId}/page`}>
-                    <GraduationCap className="mr-2 h-4 w-4" />
-                    {EDIT_PAGE_MENU_ITEM}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/products/${product.courseId}/page`}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    {VIEW_PAGE_MENU_ITEM}
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>

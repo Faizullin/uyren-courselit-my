@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NoSubdomainPage from "./_components/no-subdomain-page";
 import { getT } from "./i18n/server";
+import NextTopLoader from "nextjs-toploader";
 
 import "@/lib/global-client";
 // import "@workspace/components-library/styles.css";
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <html lang={i18n.language} suppressHydrationWarning>
         <head>{/* <style>{themeStyles}</style> */}</head>
         <body className={cls}>
+          <NextTopLoader showSpinner={false} />
           <TRPCReactProvider>
             <NoSubdomainPage />
           </TRPCReactProvider>
@@ -84,6 +86,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     <html lang={i18n.language} suppressHydrationWarning>
       <head>{/* <style>{themeStyles}</style> */}</head>
       <body className={cls}>
+        <NextTopLoader showSpinner={false} />
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>

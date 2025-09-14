@@ -79,12 +79,12 @@ export function Footer() {
               >
                 {t("nav_grants")}
               </Link>
-              <Link
+              {/* <Link
                 href="/community"
                 className="block text-gray-300 hover:text-brand-primary transition-colors duration-300 hover:translate-x-1 transform"
               >
                 {t("nav_community")}
-              </Link>
+              </Link> */}
               <Link
                 href="/sponsorship"
                 className="block text-gray-300 hover:text-brand-primary transition-colors duration-300 hover:translate-x-1 transform"

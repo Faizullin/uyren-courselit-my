@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { TextEditorContent } from "@workspace/common-models";
+import {
+  MediaBrowserNiceDialog,
+  NiceModal,
+} from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
@@ -13,20 +17,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
-import {
-  ImageIcon,
-  VideoIcon,
-  FileTextIcon,
-  Plus,
-  Volume2,
-} from "lucide-react";
-import { useToolbar } from "./toolbar-provider";
 import { cn } from "@workspace/ui/lib/utils";
 import {
-  MediaBrowserNiceDialog,
-  NiceModal,
-} from "@workspace/components-library";
-import { TextEditorContent } from "@workspace/common-models";
+  FileTextIcon,
+  ImageIcon,
+  Plus,
+  VideoIcon,
+  Volume2,
+} from "lucide-react";
+import { useCallback, useState } from "react";
+import { useToolbar } from "./toolbar-provider";
 
 type AssetType = TextEditorContent["assets"][number];
 

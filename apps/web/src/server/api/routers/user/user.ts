@@ -53,19 +53,6 @@ const removeAdminFieldsFromUserObject = (user: User) => ({
 const validateUserProperties = (user: User) => {
   checkForInvalidPermissions(user.permissions);
 };
-const updateCoursesForCreatorName = async (
-  creatorId: string,
-  creatorName: string,
-) => {
-  await CourseModel.updateMany(
-    {
-      creatorId,
-    },
-    {
-      creatorName,
-    },
-  );
-};
 async function getUserContentInternal(ctx: MainContextType, user: User) {
   const memberships = await MembershipModel.find({
     domain: ctx.domainData.domainObj._id,
@@ -124,7 +111,7 @@ async function getUserContentInternal(ctx: MainContextType, user: User) {
 
 const updateUser = async (
   userData: {
-    id: mongoose.Types.ObjectId;
+    userId: string;
     tags?: string[];
     name?: string;
     email?: string;
@@ -135,14 +122,11 @@ const updateUser = async (
   ctx: MainContextType,
 ) => {
   const keys = Object.keys(userData);
-
   const hasPermissionToManageUser = checkPermission(ctx.user.permissions, [
     permissions.manageUsers,
   ]);
-  const isModifyingSelf = userData.id === ctx.user._id;
-  console.log(isModifyingSelf, userData.id, ctx.user._id);
+  const isModifyingSelf = userData.userId === ctx.user.userId;
   const restrictedKeys = ["permissions", "active"];
-
   if (
     (isModifyingSelf && keys.some((key) => restrictedKeys.includes(key))) ||
     (!isModifyingSelf && !hasPermissionToManageUser)
@@ -151,7 +135,7 @@ const updateUser = async (
   }
 
   let user = await UserModel.findOne({
-    _id: userData.id,
+    userId: userData.userId,
     domain: ctx.domainData.domainObj._id,
   });
   if (!user) throw new NotFoundException("User not found");
@@ -167,11 +151,16 @@ const updateUser = async (
   validateUserProperties(user);
 
   user = await user.save();
-
   if (userData.name) {
-    await updateCoursesForCreatorName(user.userId || user.id, user.name || "");
+    await CourseModel.updateMany(
+      {
+        creatorId: user.userId,
+      },
+      {
+        creatorName: user.name || "",
+      },
+    );
   }
-
   return user;
 };
 export const getMembership = async ({
@@ -405,9 +394,9 @@ export const userRouter = router({
       return await updateUser(
         {
           ...input.data,
-          id: ctx.user._id,
+          userId: input.userId,
         },
-        ctx as any,
+        ctx,
       );
     }),
 
@@ -451,7 +440,7 @@ export const userRouter = router({
       if (input.data.tags.length) {
         user = await updateUser(
           {
-            id: user._id,
+            userId: user.userId,
             tags: Array.from(
               new Set([...(user.tags || []), ...input.data.tags]),
             ),

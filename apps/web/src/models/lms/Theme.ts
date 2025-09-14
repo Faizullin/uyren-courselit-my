@@ -18,7 +18,7 @@ export interface ITheme {
 
 export interface ThemeAsset {
   assetType: "stylesheet" | "font" | "script" | "image";
-  url: string;
+  url?: string;
   content?: string;
   preload?: boolean;
   async?: boolean;
@@ -39,7 +39,7 @@ const ThemeAssetSchema = new Schema<ThemeAsset>({
     required: true,
     enum: ["stylesheet", "font", "script", "image"],
   },
-  url: { type: String, required: true },
+  url: { type: String, required: false },
   content: { type: String },
   preload: { type: Boolean, default: false },
   async: { type: Boolean, default: false },

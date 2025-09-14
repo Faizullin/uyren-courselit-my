@@ -1,32 +1,24 @@
 "use client";
 
 import DashboardContent from "@/components/admin/dashboard-content";
-import { useSiteInfo } from "@/components/contexts/site-info-context";
+import { ProductCard, ProductSkeletonCard } from "@/components/products/product-card";
 import Resources from "@/components/resources";
-import { SkeletonCard } from "@/components/skeleton-card";
 import { useDialogControl } from "@/hooks/use-dialog-control";
-import { useProducts } from "@/hooks/use-products";
 import {
   BTN_NEW_PRODUCT,
   MANAGE_COURSES_PAGE_HEADING,
 } from "@/lib/ui/config/strings";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InternalCourse } from "@workspace/common-logic";
 import { Constants, CourseType, UIConstants } from "@workspace/common-models";
 import {
-  ContentCard,
-  ContentCardContent,
-  ContentCardHeader,
-  ContentCardImage,
-  getSymbolFromCurrency,
-  useToast,
+  useToast
 } from "@workspace/components-library";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -47,23 +39,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
 import { capitalize } from "@workspace/utils";
 import {
-  BookOpen,
-  CheckCircle,
-  CircleDashed,
-  Download,
-  Eye,
-  EyeOff,
-  Plus,
-  Users,
+  Plus
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -74,7 +54,6 @@ const ITEMS_PER_PAGE = 9;
 const { permissions } = UIConstants;
 
 const breadcrumbs = [{ label: MANAGE_COURSES_PAGE_HEADING, href: "#" }];
-
 const ProductSchema = z.object({
   title: z
     .string()
@@ -82,91 +61,7 @@ const ProductSchema = z.object({
     .max(255, "Title must be less than 255 characters"),
   type: z.enum([Constants.CourseType.COURSE, Constants.CourseType.DOWNLOAD]),
 });
-
 type ProductFormDataType = z.infer<typeof ProductSchema>;
-
-function ProductCard({ product }: { product: InternalCourse }) {
-  const { siteInfo } = useSiteInfo();
-  return (
-    <ContentCard href={`/dashboard/products/${product.courseId}`}>
-      <ContentCardImage
-        src={product.featuredImage?.url || "/courselit_backdrop_square.webp"}
-        alt={product.title}
-      />
-      <ContentCardContent>
-        <ContentCardHeader>{product.title}</ContentCardHeader>
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <Badge variant="outline">
-            {product.type.toLowerCase() === Constants.CourseType.COURSE ? (
-              <BookOpen className="h-4 w-4 mr-1" />
-            ) : (
-              <Download className="h-4 w-4 mr-1" />
-            )}
-            {capitalize(product.type)}
-          </Badge>
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  {product.privacy?.toLowerCase() ===
-                  Constants.ProductAccessType.PUBLIC ? (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </TooltipTrigger>
-                <TooltipContent>
-                  {product.privacy?.toLowerCase() ===
-                  Constants.ProductAccessType.PUBLIC
-                    ? "Public"
-                    : "Hidden"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  {product.published ? (
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <CircleDashed className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </TooltipTrigger>
-                <TooltipContent>
-                  {product.published ? "Published" : "Draft"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-2 text-sm">
-          <div className="flex items-center text-muted-foreground">
-            <span>
-              <span className="text-base">
-                {getSymbolFromCurrency(siteInfo.currencyISOCode || "USD")}{" "}
-              </span>
-              {product.sales.toLocaleString()} sales
-            </span>
-          </div>
-          <div className="flex items-center text-muted-foreground">
-            <Users className="h-4 w-4 mr-2" />
-            <span>{product.customers.toLocaleString()} customers</span>
-          </div>
-        </div>
-      </ContentCardContent>
-    </ContentCard>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[...Array(6)].map((_, index) => (
-        <SkeletonCard key={index} />
-      ))}
-    </div>
-  );
-}
 
 function CreateProductDialog() {
   const { toast } = useToast();
@@ -230,6 +125,7 @@ function CreateProductDialog() {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Product</DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -321,35 +217,27 @@ export default function Page() {
     [filter],
   );
 
-  const { products, loading, totalPages } = useProducts(
-    page,
-    ITEMS_PER_PAGE,
-    filterArray,
-  );
+  const listQuery = trpc.lmsModule.product.list.useQuery({
+    pagination: {
+      take: ITEMS_PER_PAGE,
+      skip: (page - 1) * ITEMS_PER_PAGE,
+    },
+    filter: {
+      filterBy: filterArray as any,
+      publicView: false,
+    },
+  });
+  const totalPages = useMemo(() => {
+    if (!listQuery.data?.total || !ITEMS_PER_PAGE) return 1;
+    return Math.ceil(listQuery.data.total / ITEMS_PER_PAGE);
+  }, [listQuery.data, ITEMS_PER_PAGE]);
+  const products = useMemo(() => listQuery.data?.items || [], [listQuery.data]);
 
   const handleFilterChange = useCallback((value: "all" | CourseType) => {
     router.push(
       `/dashboard/products?${value !== "all" ? `filter=${value}` : ""}`,
     );
   }, []);
-
-  const handlePageChange = useCallback(
-    (value: number) => {
-      router.push(
-        `/dashboard/products?page=${value}${filter !== "all" ? `&filter=${filter}` : ""}`,
-      );
-    },
-    [filter],
-  );
-
-  // if (
-  //     !checkPermission(profile.permissions!, [
-  //         permissions.manageAnyCourse,
-  //         permissions.manageCourse,
-  //     ])
-  // ) {
-  //     return <LoadingScreen />;
-  // }
 
   return (
     <DashboardContent
@@ -384,27 +272,27 @@ export default function Page() {
           </Select>
         </div>
       )}
-      {loading ? (
-        <SkeletonGrid />
-      ) : (
-        <>
-          {totalPages > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.courseId} product={product as any} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-      {/* {totalPages > 0 && (
-        <PaginationControls
-          currentPage={page}
-          totalPages={Math.ceil(totalPages / ITEMS_PER_PAGE)}
-          onPageChange={handlePageChange}
-        />
-      )} */}
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {listQuery.isLoading ? (
+          <>
+            {[...Array(6)].map((_, index) => (
+              <ProductSkeletonCard key={index} />
+            ))}
+          </>
+        ) : (
+          <>
+            {totalPages > 0 && (
+              <>
+                {products.map((product, index) => (
+                  <Link key={index} href={`/dashboard/products/${product.courseId}`}>
+                    <ProductCard product={product as any} />
+                  </Link>
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </div>
       <Resources
         links={[
           {

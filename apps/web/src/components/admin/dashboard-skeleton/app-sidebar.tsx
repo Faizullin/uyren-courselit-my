@@ -167,16 +167,6 @@ function getSidebarItems(
         items: [],
       });
     }
-    if (profile.permissions!.includes(permissions.manageSite)) {
-      navMainItems.push({
-        title: SIDEBAR_MENU_PAGES,
-        url: "/dashboard/pages",
-        icon: Globe,
-        isActive:
-          path === "/dashboard/pages" || path.startsWith("/dashboard/page"),
-        items: [],
-      });
-    }
     if (profile.permissions!.includes(permissions.manageUsers)) {
       navMainItems.push({
         title: SIDEBAR_MENU_USERS,
@@ -191,28 +181,28 @@ function getSidebarItems(
           },
         ],
       });
-      navMainItems.push({
-        title: SIDEBAR_MENU_MAILS,
-        beta: true,
-        url: "#",
-        icon: Mail,
-        isActive:
-          path.startsWith("/dashboard/mails") ||
-          path.startsWith("/dashboard/mail"),
-        items: [
-          {
-            title: "Broadcasts",
-            url: "/dashboard/mails?tab=Broadcasts",
-            isActive:
-              `${path}?tab=${tab}` === "/dashboard/mails?tab=Broadcasts",
-          },
-          {
-            title: "Sequences",
-            url: "/dashboard/mails?tab=Sequences",
-            isActive: `${path}?tab=${tab}` === "/dashboard/mails?tab=Sequences",
-          },
-        ],
-      });
+      // navMainItems.push({
+      //   title: SIDEBAR_MENU_MAILS,
+      //   beta: true,
+      //   url: "#",
+      //   icon: Mail,
+      //   isActive:
+      //     path.startsWith("/dashboard/mails") ||
+      //     path.startsWith("/dashboard/mail"),
+      //   items: [
+      //     {
+      //       title: "Broadcasts",
+      //       url: "/dashboard/mails?tab=Broadcasts",
+      //       isActive:
+      //         `${path}?tab=${tab}` === "/dashboard/mails?tab=Broadcasts",
+      //     },
+      //     {
+      //       title: "Sequences",
+      //       url: "/dashboard/mails?tab=Sequences",
+      //       isActive: `${path}?tab=${tab}` === "/dashboard/mails?tab=Sequences",
+      //     },
+      //   ],
+      // });
     }
     if (profile.permissions!.includes(permissions.manageSettings)) {
       const items = [
@@ -282,6 +272,16 @@ function getSidebarItems(
       icon: LibraryBig,
       isActive: path === "/dashboard/my-content",
     },
+    ...(profile?.permissions?.includes(permissions.enrollInCourse)
+      ? [
+          {
+            name: "My Progress",
+            url: "/dashboard/my-progress",
+            icon: Target,
+            isActive: path === "/dashboard/my-progress",
+          } as any,
+        ]
+      : []),
   ];
 
   return { navMainItems, navSecondaryItems, navProjectItems };

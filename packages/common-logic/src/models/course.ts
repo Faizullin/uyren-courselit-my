@@ -95,6 +95,8 @@ export const CourseSchema = new mongoose.Schema<InternalCourse>(
       required: false,
       default: null,
     },
+
+    allowEnrollment: { type: Boolean, required: true, default: false },
   },
   {
     timestamps: true,

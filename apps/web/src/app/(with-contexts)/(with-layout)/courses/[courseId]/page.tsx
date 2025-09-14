@@ -3,19 +3,15 @@
 import Footer from "@/components/layout/footer";
 import Header from "@/components/layout/header";
 import { ScrollAnimation } from "@/components/public/scroll-animation";
-import { trpc } from "@/utils/trpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent } from "@workspace/ui/components/card";
-import { Skeleton } from "@workspace/ui/components/skeleton";
 import { BookOpen, Clock } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import CourseLessonsSidebar from "../_components/course-lessons-sidebar";
+import { useCourseData } from "./_components/course-provider";
 
 const DescriptionEditor = dynamic(
   () =>
@@ -29,85 +25,9 @@ const DescriptionEditor = dynamic(
 
 function CourseDetailsContent() {
   const { t, i18n } = useTranslation("common");
-  const params = useParams();
-  const courseId = params.courseId as string;
+  const course = useCourseData();
 
-  // Load course data using tRPC
-  const {
-    data: course,
-    isLoading,
-    error,
-  } = trpc.lmsModule.courseModule.course.publicGetByCourseId.useQuery(
-    {
-      courseId,
-    },
-    {
-      enabled: !!courseId,
-    },
-  );
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              {/* Breadcrumb skeleton */}
-              <div className="flex items-center gap-2 mb-6">
-                <Skeleton className="h-4 w-12" />
-                <span>/</span>
-                <Skeleton className="h-4 w-16" />
-                <span>/</span>
-                <Skeleton className="h-4 w-32" />
-              </div>
-
-              {/* Header skeleton */}
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-3/4" />
-                <div className="flex flex-wrap items-center gap-4">
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-5 w-20" />
-                  <Skeleton className="h-5 w-16" />
-                  <Skeleton className="h-6 w-20" />
-                </div>
-              </div>
-
-              {/* Content skeleton */}
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="h-6 w-48 mb-4" />
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6" />
-                    <Skeleton className="h-4 w-4/5" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar skeleton */}
-            <div className="space-y-6">
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="h-8 w-32 mx-auto mb-4" />
-                  <Skeleton className="h-10 w-full mb-4" />
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-5/6" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error || !course) {
+  if (!course) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -205,7 +125,7 @@ function CourseDetailsContent() {
                   {/* Course Tags */}
                   {course.tags && course.tags.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 mt-3">
-                      {course.tags.map((tag, index) => (
+                      {course.tags.map((tag: string, index: number) => (
                         <Badge
                           key={index}
                           variant="outline"
@@ -272,10 +192,5 @@ function CourseDetailsContent() {
 }
 
 export default function CourseDetailsPage() {
-  const { t } = useTranslation("common");
-  return (
-    <Suspense fallback={<div>{t("loading")}</div>}>
-      <CourseDetailsContent />
-    </Suspense>
-  );
+  return <CourseDetailsContent />;
 }

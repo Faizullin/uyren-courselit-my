@@ -13,6 +13,7 @@ import { ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { UIConstants } from "@workspace/common-models";
+import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
@@ -152,13 +153,6 @@ export const quizAttemptRouter = router({
               email: string;
             };
           }>("user", "userId name email")
-          // .populate<{
-          //   quiz: {
-          //     quizId: string;
-          //     title: string;
-          //     totalPoints: number;
-          //   };
-          // }>('quiz', 'quizId title totalPoints')
           .skip(input.pagination?.skip || 0)
           .limit(input.pagination?.take || 20)
           .sort(
@@ -176,9 +170,69 @@ export const quizAttemptRouter = router({
       ]);
 
       return {
-        items: items.map((item) => ({
-          ...item,
-        })),
+        items,
+        total,
+        meta: {
+          includePaginationCount: input.pagination?.includePaginationCount,
+          skip: input.pagination?.skip || 0,
+          take: input.pagination?.take || 20,
+        },
+      };
+    }),
+  listMine: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      ListInputSchema.extend({
+        filter: z
+          .object({
+            status: z
+              .enum(["in_progress", "completed", "abandoned", "graded"]) 
+              .optional(),
+            passed: z.boolean().optional(),
+          })
+          .optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const hasAccess = checkPermission(ctx.user.permissions, [
+        permissions.enrollInCourse,
+      ]);
+      if (!hasAccess) throw new AuthorizationException("No access");
+
+      const query: RootFilterQuery<typeof QuizAttemptModel> = {
+        domain: ctx.domainData.domainObj._id,
+        userId: ctx.user.userId,
+        ...(input.filter?.status ? { status: input.filter.status } : {}),
+        ...(typeof input.filter?.passed !== "undefined"
+          ? { passed: input.filter?.passed }
+          : {}),
+      } as any;
+
+      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const [items, total] = await Promise.all([
+        QuizAttemptModel.find(query)
+          .populate<{ quiz: { quizId: string; title: string; totalPoints: number } }>(
+            "quiz",
+            "quizId title totalPoints",
+          )
+          .skip(input.pagination?.skip || 0)
+          .limit(input.pagination?.take || 20)
+          .sort(
+            input.orderBy
+              ? {
+                  [input.orderBy.field]:
+                    input.orderBy.direction === "asc" ? 1 : -1,
+                }
+              : { createdAt: -1 },
+          )
+          .lean(),
+        includeCount
+          ? QuizAttemptModel.countDocuments(query)
+          : Promise.resolve(0),
+      ]);
+
+      return {
+        items,
         total,
         meta: {
           includePaginationCount: input.pagination?.includePaginationCount,

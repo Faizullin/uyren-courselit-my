@@ -9,6 +9,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -494,7 +495,7 @@ function EditQuestionDialog({
   const currentType = form.watch("type");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] h-[600px] flex flex-col">
+      <DialogContent className="sm:max-w-2xl h-[85vh] max-h-[600px] flex flex-col">
         <ScrollArea className="w-full h-full px-3">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>
@@ -506,13 +507,12 @@ function EditQuestionDialog({
                 : "Create a new question for this quiz. Type-specific options can be configured after creation."}
             </DialogDescription>
           </DialogHeader>
-
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
               className="flex flex-col flex-1"
             >
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 border-t border-b border-border/50">
+              <div className="flex-1 px-6 py-4 space-y-6 border-t border-b border-border/50">
                 <FormField
                   control={form.control}
                   name="text"
@@ -626,20 +626,12 @@ function EditQuestionDialog({
               </div>
 
               <DialogFooter className="pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    createQuestionMutation.isPending ||
-                    updateQuestionMutation.isPending
-                  }
-                >
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" disabled={createQuestionMutation.isPending ||updateQuestionMutation.isPending }>
                   {isEdit ? "Update Question" : "Add Question"}
                 </Button>
               </DialogFooter>

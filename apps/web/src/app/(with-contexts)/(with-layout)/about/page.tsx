@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Footer from "@/components/layout/footer";
-import { Button } from "@workspace/ui/components/button";
-import { Target, Rocket } from "lucide-react";
-import { Trans, useTranslation } from "react-i18next";
+import Header from "@/components/layout/header";
 import {
   ScrollAnimation,
   ScrollGroup,
 } from "@/components/public/scroll-animation";
-import Header from "@/components/layout/header";
+import { Rocket, Target } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import Image from "next/image";
 
 export default function AboutPage() {
   const { t } = useTranslation("common");
@@ -23,7 +23,7 @@ export default function AboutPage() {
       title: t("timeline_team_formation_title"),
       description: t("timeline_team_formation_desc"),
       image:
-        "img/courselit_backdrop.webp?height=250&width=350&text=Team+Formation+July+2025",
+        "/courselit_backdrop.webp?height=250&width=350&text=Team+Formation+July+2025",
       colorClass: "bg-orange-600",
       side: "left",
     },
@@ -32,7 +32,7 @@ export default function AboutPage() {
       title: t("timeline_nuris_title"),
       description: t("timeline_nuris_desc"),
       image:
-        "img/courselit_backdrop.webp?height=250&width=350&text=NURIS+Incubation+August+2025",
+        "/courselit_backdrop.webp?height=250&width=350&text=NURIS+Incubation+August+2025",
       colorClass: "bg-blue-600",
       side: "right",
     },
@@ -41,7 +41,7 @@ export default function AboutPage() {
       title: t("timeline_partnerships_title"),
       description: t("timeline_partnerships_desc"),
       image:
-        "img/courselit_backdrop.webp?height=250&width=350&text=School+Partnerships+Late+2025",
+        "/courselit_backdrop.webp?height=250&width=350&text=School+Partnerships+Late+2025",
       colorClass: "bg-green-600",
       side: "left",
     },
@@ -50,7 +50,7 @@ export default function AboutPage() {
       title: t("timeline_scaling_title"),
       description: t("timeline_scaling_desc"),
       image:
-        "img/courselit_backdrop.webp?height=250&width=350&text=Scaling+2026",
+        "/courselit_backdrop.webp?height=250&width=350&text=Scaling+2026",
       colorClass: "bg-purple-600",
       side: "right",
     },
@@ -59,7 +59,7 @@ export default function AboutPage() {
       title: t("timeline_future_title"),
       description: t("timeline_future_desc"),
       image:
-        "img/courselit_backdrop.webp?height=250&width=350&text=Future+Growth",
+        "/courselit_backdrop.webp?height=250&width=350&text=Future+Growth",
       colorClass: "bg-indigo-600",
       side: "left",
     },
@@ -218,10 +218,12 @@ export default function AboutPage() {
                             }`}
                           >
                             <div className="relative overflow-hidden rounded-lg shadow-lg group">
-                              <img
-                                src={`/${item.image}`}
+                              <Image
+                                src={item.image}
                                 alt={item.title}
                                 className="w-full h-auto transition-transform duration-700 group-hover:scale-110"
+                                width={350}
+                                height={250}
                               />
                             </div>
                           </div>

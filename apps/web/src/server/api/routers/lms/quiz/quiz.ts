@@ -45,6 +45,7 @@ export const quizRouter = router({
         ...input.data,
         domain: ctx.domainData.domainObj._id,
         ownerId: ctx.user._id,
+        status: BASIC_PUBLICATION_STATUS_TYPE.DRAFT,
       });
       return quiz;
     }),
@@ -77,10 +78,7 @@ export const quizRouter = router({
       Object.keys(input.data).forEach((key) => {
         (quiz as any)[key] = (input.data as any)[key];
       });
-      const json = (await quiz.save()).toObject() as any;
-      return {
-        ...json,
-      };
+      return await quiz.save();
     }),
 
   archive: protectedProcedure
@@ -189,9 +187,7 @@ export const quizRouter = router({
         includeCount ? QuizModel.countDocuments(query) : Promise.resolve(0),
       ]);
       return {
-        items: items.map((item) => ({
-          ...item,
-        })),
+        items,
         total,
         meta: {
           includePaginationCount: input.pagination?.includePaginationCount,
@@ -212,7 +208,7 @@ export const quizRouter = router({
       const quiz = await QuizModel.findOne({
         _id: input.quizId,
         domain: ctx.domainData.domainObj._id,
-        status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
+        ...(checkPermission(ctx.user.permissions, [permissions.manageAnyCourse]) ? {} : { status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED }),
       })
         .populate<{
           owner: {

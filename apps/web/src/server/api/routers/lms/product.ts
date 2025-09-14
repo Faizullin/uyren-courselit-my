@@ -144,7 +144,6 @@ export const productRouter = router({
                 domainId: ctx.domainData.domainObj._id,
               })
             : undefined;
-        console.log("paymentPlans", paymentPlans, course.paymentPlans);
         products.push({
           title: course.title,
           slug: course.slug,

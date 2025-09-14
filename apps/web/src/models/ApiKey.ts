@@ -7,6 +7,7 @@ export interface ApiKey {
   keyId: string;
   name: string;
   key: string;
+  purposeKey?: string;
 }
 
 const ApiKeySchema = new mongoose.Schema<ApiKey>(
@@ -15,6 +16,7 @@ const ApiKeySchema = new mongoose.Schema<ApiKey>(
     keyId: { type: String, required: true, default: generateUniqueId },
     name: { type: String, required: true },
     key: { type: String, required: true, default: generateUniqueId },
+    purposeKey: { type: String },
   },
   {
     timestamps: true,

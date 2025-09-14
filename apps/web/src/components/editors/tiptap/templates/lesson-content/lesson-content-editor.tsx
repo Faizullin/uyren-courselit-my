@@ -1,6 +1,8 @@
 "use client";
 
+import { InsertMediaNiceDialog } from "@/components/media/insert-media-dialog";
 import { Editor } from "@tiptap/react";
+import { NiceModal } from "@workspace/components-library";
 import {
   ContentEditor,
   ContentEditorProps,
@@ -24,10 +26,12 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
-import { FileTextIcon, HelpCircleIcon, Plus } from "lucide-react";
+import { FileTextIcon, HelpCircleIcon, ImageIcon, Plus, VideoIcon, Volume2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { AssignmentLinkNodeExtension } from "../../extensions/assignment-link/assignment-link-node-extension";
 
 import "./lesson-content-editor.scss";
+import { TextEditorContent } from "@workspace/common-models";
 
 export const LessonContentEditor = (props: ContentEditorProps) => {
   return (
@@ -83,7 +87,7 @@ const EditorToolbar = ({ editor }: { editor: Editor }) => {
                 <Separator orientation="vertical" className="mx-1 h-7" />
 
                 {/* Media & Styling Group */}
-                <EditorToolbarItems.MediaDropdownToolbar />
+                <CustomMediaInsertDropdown />
                 <EditorToolbarItems.ColorHighlightToolbar />
                 <Separator orientation="vertical" className="mx-1 h-7" />
                 <InsertAssignmentToolbar />
@@ -153,3 +157,85 @@ const InsertAssignmentToolbar = () => {
     </DropdownMenu>
   );
 };
+
+type AssetType = TextEditorContent["assets"][number];
+
+const CustomMediaInsertDropdown = () => {
+  const { editor } = useToolbar();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openMediaDialog = useCallback(
+    async (fileType: string) => {
+      try {
+        const result = await NiceModal.show(InsertMediaNiceDialog, {
+          selectMode: true,
+          selectedMedia: null,
+          initialFileType: fileType,
+        });
+
+        if (result.reason === "submit" && editor) {
+          const asset: AssetType = {
+            url: result.data.url,
+            caption: result.data.caption || result.data.originalFileName || "",
+            media: result.data,
+          };
+          editor.chain().focus().setMediaView(asset).run();
+        }
+
+        setIsOpen(false);
+        return result;
+      } catch (error) {
+        console.error("Failed to open media dialog:", error);
+        setIsOpen(false);
+        return null;
+      }
+    },
+    [editor],
+  );
+
+  if (!editor) return null;
+
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8 p-0 sm:h-9 sm:w-9",
+                editor?.isActive("mediaView") && "bg-accent",
+              )}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <span>Insert Media</span>
+        </TooltipContent>
+      </Tooltip>
+
+      <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuItem onClick={() => openMediaDialog("image/")}>
+          <ImageIcon className="h-4 w-4 mr-2" />
+          Image
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openMediaDialog("video/")}>
+          <VideoIcon className="h-4 w-4 mr-2" />
+          Video
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openMediaDialog("audio/")}>
+          <Volume2 className="h-4 w-4 mr-2" />
+          Audio
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openMediaDialog("application/pdf")}>
+          <FileTextIcon className="h-4 w-4 mr-2" />
+          PDF
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+    

@@ -7,6 +7,7 @@ import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
   protectedProcedure,
+  publicProcedure,
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
@@ -40,7 +41,7 @@ export const themeRouter = router({
           .array(
             z.object({
               assetType: z.enum(["stylesheet", "font", "script", "image"]),
-              url: z.string().url(),
+              url: z.string().url().optional(),
               content: z.string().optional(),
               preload: z.boolean().optional(),
               async: z.boolean().optional(),
@@ -85,7 +86,7 @@ export const themeRouter = router({
           .array(
             z.object({
               assetType: z.enum(["stylesheet", "font", "script", "image"]),
-              url: z.string(),
+              url: z.string().optional(),
               content: z.string().optional(),
               preload: z.boolean().optional(),
               async: z.boolean().optional(),
@@ -130,7 +131,6 @@ export const themeRouter = router({
         domain: ctx.domainData.domainObj._id,
       });
       if (!theme) throw new NotFoundException("Theme not found");
-
       await ThemeModel.findByIdAndDelete(input);
       return { success: true };
     }),
@@ -202,7 +202,6 @@ export const themeRouter = router({
         domain: ctx.domainData.domainObj._id,
       };
       if (input.filter?.status) query.status = input.filter.status;
-
       const includeCount = input.pagination?.includePaginationCount ?? true;
       const [items, total] = await Promise.all([
         ThemeModel.find(query)
@@ -211,9 +210,9 @@ export const themeRouter = router({
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { createdAt: -1 },
           )
           .lean(),
@@ -230,5 +229,17 @@ export const themeRouter = router({
           take: input.pagination?.take || 20,
         },
       };
+    }),
+
+  publicGetThemeAndAssets: publicProcedure
+    .input(z.object({
+      id: documentIdValidator(),
+    }))
+    .query(async ({ input }) => {
+      const theme = await ThemeModel.findOne({
+        _id: input.id,
+      }).lean();
+      if (!theme) throw new NotFoundException("Theme not found");
+      return theme;
     }),
 });

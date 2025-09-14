@@ -1,8 +1,11 @@
 "use client";
 
 import { Address, Media, Profile } from "@workspace/common-models";
+import { Button } from "@workspace/ui/components/button";
 import {
+  Form,
   FormControl,
+  FormField,
   FormItem,
   FormLabel,
   FormMessage,
@@ -21,7 +24,9 @@ import Dialog2 from "../dialog2";
 import { useToast } from "../hooks/use-toast";
 import { Image } from "../image";
 import Access from "./access";
-import { Button } from "@workspace/ui/components/button";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface Strings {
   buttonCaption?: string;
@@ -71,6 +76,12 @@ interface MediaSelectorProps {
   disabled?: boolean;
 }
 
+const mediaSelectorSchema = z.object({
+  file: z.any().optional(),
+  caption: z.string().optional(),
+});
+type MediaSelectorFormData = z.infer<typeof mediaSelectorSchema>;
+
 const MediaSelector = (props: MediaSelectorProps) => {
   const [dialogOpened, setDialogOpened] = useState(false);
   const [error, setError] = useState("");
@@ -102,6 +113,13 @@ const MediaSelector = (props: MediaSelectorProps) => {
       });
     },
   } = props;
+  const form = useForm<MediaSelectorFormData>({
+    resolver: zodResolver(mediaSelectorSchema),
+    defaultValues: {
+      file: undefined,
+      caption: "",
+    },
+  });
 
   const onSelection = (media: Media) => {
     props.onSelection(media);
@@ -115,13 +133,9 @@ const MediaSelector = (props: MediaSelectorProps) => {
     }
   }, [dialogOpened]);
 
-  const uploadToCloudinary = async (): Promise<Media> => {
-    if (!selectedFile) {
-      throw new Error("No file selected for upload");
-    }
-
+  const uploadToCloudinary = async (file: File, caption: string): Promise<Media> => {
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append("file", file);
     formData.append("caption", caption);
     formData.append("access", uploadData.public ? "public" : "private");
     formData.append("type", props.type);
@@ -169,9 +183,8 @@ const MediaSelector = (props: MediaSelectorProps) => {
     });
   };
 
-  const uploadFile = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const file = selectedFile;
+  const uploadFile = async (data: MediaSelectorFormData) => {
+    const file = data.file;
 
     if (!file) {
       setError("File is required");
@@ -181,7 +194,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
     try {
       setUploading(true);
       setUploadProgress(0);
-      const media = await uploadToCloudinary();
+      const media = await uploadToCloudinary(file, data.caption || "");
       onSelection(media);
       toast({
         title: "Success",
@@ -278,8 +291,9 @@ const MediaSelector = (props: MediaSelectorProps) => {
               onOpenChange={setDialogOpened}
               okButton={
                 <Button
-                  onClick={uploadFile as any}
-                  disabled={!selectedFile || uploading}
+                  type="submit"
+                  form="media-upload-form"
+                  disabled={uploading}
                 >
                   {uploading
                     ? strings.uploading || "Uploading"
@@ -288,68 +302,82 @@ const MediaSelector = (props: MediaSelectorProps) => {
               }
             >
               {error && <div>{error}</div>}
-              <form
-                encType="multipart/form-data"
-                className="flex flex-col gap-4"
-                onSubmit={uploadFile}
-              >
-                <FormItem>
-                  <FormLabel>File</FormLabel>
-                  <FormControl>
-                    <Input
-                      ref={fileInput}
-                      name="file"
-                      type="file"
-                      accept={props.mimeTypesToShow?.join(",")}
-                      onChange={(e: any) => setSelectedFile(e.target.files[0])}
-                      disabled={!!selectedFile && uploading}
-                      className="mt-2"
-                      required
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-
-                {selectedFile && (
-                  <div className="p-3 bg-gray-50 rounded-lg border">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Upload className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm font-medium">
-                        {selectedFile.name}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
-                    </div>
-
-                    {uploading && (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs text-gray-600">
-                          <span>Uploading...</span>
-                          <span>{uploadProgress}%</span>
-                        </div>
-                        <Progress value={uploadProgress} className="h-2" />
-                      </div>
+              <Form {...form}>
+                <form
+                  id="media-upload-form"
+                  encType="multipart/form-data"
+                  className="flex flex-col gap-4"
+                  onSubmit={form.handleSubmit((data) => uploadFile(data))}
+                >
+                  <FormField
+                    control={form.control}
+                    name="file"
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <FormItem>
+                        <FormLabel>File</FormLabel>
+                        <FormControl>
+                          <Input
+                            ref={fileInput}
+                            type="file"
+                            accept={props.mimeTypesToShow?.join(",")}
+                            onChange={(e: any) => {
+                              const file = e.target.files?.[0];
+                              setSelectedFile(file);
+                              onChange(file);
+                            }}
+                            disabled={uploading}
+                            className="mt-2"
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                )}
+                  />
 
-                <FormItem>
-                  <FormLabel>Caption</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      name="caption"
-                      value={caption}
-                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                        setCaption(e.target.value)
-                      }
-                      rows={5}
-                      disabled={!!selectedFile && uploading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              </form>
+                  {selectedFile && (
+                    <div className="p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Upload className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium">
+                          {selectedFile.name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+
+                      {uploading && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>Uploading...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <Progress value={uploadProgress} className="h-2" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <FormField
+                    control={form.control}
+                    name="caption"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Caption</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            rows={5}
+                            disabled={uploading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
             </Dialog2>
           </div>
         )}
