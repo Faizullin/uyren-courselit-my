@@ -99,6 +99,7 @@ export default function ApiKeysSettings() {
           <TableRow>
             <TableHead>{APIKEY_EXISTING_TABLE_HEADER_NAME}</TableHead>
             <TableHead>{APIKEY_EXISTING_TABLE_HEADER_CREATED}</TableHead>
+            <TableHead>Purpose Key</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -109,6 +110,7 @@ export default function ApiKeysSettings() {
               <TableCell>
                 {new Date(item.createdAt).toLocaleDateString()}
               </TableCell>
+              <TableCell>{item.purposeKey}</TableCell>
               <TableCell className="text-right">
                 <Button 
                   variant="outline"
