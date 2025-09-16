@@ -33,7 +33,7 @@ services:
       - .env.prod
     depends_on:
       - redis
-      - mongodb
+      # - mongodb
     restart: unless-stopped
     networks:
       - courselit-prod-network
@@ -72,27 +72,27 @@ services:
     networks:
       - courselit-prod-network
 
-  mongodb:
-    image: mongo
-    container_name: courselit-mongo-prod
-    ports:
-      - "${MONGO_PORT:-27017}:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-courselit}
-    env_file:
-      - .env.prod
-    volumes:
-      - mongo_data:/data/db
-    restart: unless-stopped
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/${MONGO_DATABASE:-courselit} --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - courselit-prod-network
+  # mongodb:
+  #   image: mongo
+  #   container_name: courselit-mongo-prod
+  #   ports:
+  #     - "${MONGO_PORT:-27017}:27017"
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
+  #     MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-courselit}
+  #   env_file:
+  #     - .env.prod
+  #   volumes:
+  #     - mongo_data:/data/db
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/${MONGO_DATABASE:-courselit} --quiet
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - courselit-prod-network
 
 volumes:
   redis_data:

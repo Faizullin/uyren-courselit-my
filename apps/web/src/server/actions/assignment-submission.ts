@@ -253,3 +253,63 @@ export async function calculateSubmissionStatistics(
     gradeDistribution,
   };
 }
+
+export async function uploadFileAction(formData: FormData) {
+  const ctx = await getActionContext();
+  const file = formData.get("file") as File;
+  
+  if (!file) throw new Error("File is required");
+  if (file.size > 15 * 1024 * 1024) throw new Error("File too large");
+  
+  const allowed = ["image/", "video/", "audio/", "application/pdf", "application/zip", "text/"];
+  const ok = allowed.some(t => file.type.startsWith(t));
+  if (!ok) throw new Error("Unsupported file type");
+
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("caption", file.name);
+  fd.append("access", "private");
+
+  const headersList = await (await import("next/headers")).headers();
+  const proto = headersList.get("x-forwarded-proto") || "http";
+  const host = headersList.get("host") || "localhost:3000";
+  
+  const res = await fetch(`${proto}://${host}/api/services/media/upload?storageType=cloudinary`, {
+    method: "POST",
+    body: fd,
+  });
+  
+  if (!res.ok) throw new Error("Upload failed");
+  const json = await res.json();
+  const url = json?.url || json?.media?.url;
+  if (!url) throw new Error("Upload response invalid");
+  
+  return { success: true, url };
+}
+
+export async function submitAssignmentAction(formData: FormData) {
+  const ctx = await getActionContext();
+  await connectToDatabase();
+
+  const assignmentId = String(formData.get("assignmentId") || "");
+  if (!assignmentId) throw new Error("assignmentId is required");
+
+  const assignment = await validateAssignment(assignmentId, ctx);
+
+  const content = String(formData.get("content") || "");
+  const attachments = formData.getAll("attachments").filter(Boolean).map(String);
+
+
+  const submission = await AssignmentSubmissionModel.create({
+    assignmentId,
+    userId: ctx.user.userId,
+    domain: ctx.domainData.domainObj._id,
+    status: "submitted",
+    submittedAt: new Date(),
+    content,
+    attachments,
+    resubmissionCount: 0,
+  });
+
+  return { success: true, id: submission._id.toString() };
+}

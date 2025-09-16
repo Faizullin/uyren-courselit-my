@@ -1,7 +1,5 @@
-import { Metadata, ResolvingMetadata } from "next";
-import { notFound } from "next/navigation";
-import { trpcCaller } from "@/server/api/caller";
 import { getQuizAttempt } from "@/server/actions/quiz-attempt";
+import { trpcCaller } from "@/server/api/caller";
 import {
   Card,
   CardContent,
@@ -9,13 +7,21 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { ArrowLeft } from "lucide-react";
+import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
-import { Button } from "@workspace/ui/components/button";
+import { notFound } from "next/navigation";
+import { cache } from "react";
 import QuizInterface from "../../_components/quiz-interface";
 
 interface QuizAttemptPageProps {
   params: Promise<{ id: string; attemptId: string }>;
 }
+
+const getCachedData = cache(async (quizId: string) => {
+  return await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizIdWithQuestions({
+    quizId,
+  });
+});
 
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string; attemptId: string }> },
@@ -24,15 +30,7 @@ export async function generateMetadata(
   const { id, attemptId } = await params;
 
   try {
-    const quiz = await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizId({
-      quizId: id,
-    });
-    if (!quiz) {
-      return {
-        title: `Quiz Not Found | Quizzes | LMS | ${(await parent)?.title?.absolute}`,
-      };
-    }
-
+    const quiz = await getCachedData(id);
     return {
       title: `${quiz.title} - Attempt ${attemptId} | Quizzes | LMS | ${(await parent)?.title?.absolute}`,
       description: `Take the ${quiz.title} quiz`,
@@ -50,16 +48,7 @@ export default async function QuizAttemptPage({
   const { id, attemptId } = await params;
 
   try {
-    // Fetch quiz data
-    const quiz =
-      await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizIdWithQuestions(
-        { quizId: id },
-      );
-    if (!quiz) {
-      notFound();
-    }
-
-    // Fetch attempt data
+    const quiz = await getCachedData(id);
     const attempt = await getQuizAttempt(attemptId);
     if (!attempt) {
       notFound();

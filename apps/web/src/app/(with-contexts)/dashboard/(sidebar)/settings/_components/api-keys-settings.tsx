@@ -127,14 +127,14 @@ export default function ApiKeysSettings() {
         </TableBody>
       </Table>
 
-      <Resources
+      {/* <Resources
         links={[
           {
             href: "https://docs.courselit.app/en/developers/introduction",
             text: SETTINGS_RESOURCE_API,
           },
         ]}
-      />
+      /> */}
     </div>
   );
 }

@@ -293,7 +293,7 @@ export default function Page() {
           </>
         )}
       </div>
-      <Resources
+      {/* <Resources
         links={[
           {
             href: "https://docs.courselit.app/en/courses/introduction/",
@@ -304,7 +304,7 @@ export default function Page() {
             text: "Create a digital download",
           },
         ]}
-      />
+      /> */}
     </DashboardContent>
   );
 }

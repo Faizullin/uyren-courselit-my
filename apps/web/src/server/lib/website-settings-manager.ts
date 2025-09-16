@@ -1,14 +1,13 @@
-import WebsiteSettingsModel from "@/models/WebsiteSettings";
-import { WebsiteSettings } from "@workspace/common-models";
-import { connectToDatabase } from "@workspace/common-logic";
-import { redis } from "./redis";
 import { Log } from "@/lib/logger";
+import WebsiteSettingsModel from "@/models/WebsiteSettings";
+import { connectToDatabase } from "@workspace/common-logic";
+import { WebsiteSettings } from "@workspace/common-models";
+import { BaseCacheManager, RedisNotUsedError } from "./redis";
 
-const useRedis = process.env.USE_REDIS === "true";
-
-export class WebsiteSettingsManager {
+export class WebsiteSettingsManager extends BaseCacheManager {
     private static readonly CACHE_TTL = 3600; // 1 hour
     private static readonly CACHE_PREFIX = "website_settings:";
+    private static readonly MANAGER_NAME = "WebsiteSettingsManager";
 
     /**
      * Get website settings with automatic Redis/database fallback
@@ -16,49 +15,43 @@ export class WebsiteSettingsManager {
     static async get(domainId: string): Promise<WebsiteSettings | null> {
         const cacheKey = `${this.CACHE_PREFIX}domain:${domainId}`;
 
-        // Try Redis cache first
-        if (useRedis) {
-            try {
-                const cached = await redis.get(cacheKey);
+        return await this.handleRedisOperation(
+            async () => {
+                const cached = await this.getFromCache<WebsiteSettings>(cacheKey, this.MANAGER_NAME);
                 if (cached) {
-                    const parsed = JSON.parse(cached) as WebsiteSettings;
-                    return parsed;
+                    return cached;
                 }
-            } catch (error) {
-                Log.error("[WebsiteSettingsManager.get] Redis cache read failed:", error as Error);
-            }
-        }
+                throw new RedisNotUsedError(this.MANAGER_NAME);
+            },
+            async () => {
+                await connectToDatabase();
+                const tmp = await WebsiteSettingsModel.findOne({
+                    domain: domainId,
+                }).lean();
+                const settings = JSON.parse(JSON.stringify(tmp));
 
-        // Fallback to database
-        try {
-            await connectToDatabase();
-            const settings = await WebsiteSettingsModel.findOne({
-                domain: domainId,
-            }).lean();
+                if (settings) {
+                    // Cache the result
+                    await this.cache(domainId, settings);
+                    return settings;
+                }
 
-            if (settings) {
-                // Cache the result
-                await this.cache(domainId, settings);
-                return settings;
-            }
-
-            return null;
-        } catch (error) {
-            Log.error("[WebsiteSettingsManager.get] Database query failed:", error as Error);
-            return null;
-        }
+                return null;
+            },
+            this.MANAGER_NAME
+        );
     }
 
     /**
      * Get or create website settings (returns existing or creates default)
      */
-    static async getOrCreate(domainId: string): Promise<WebsiteSettings> {
+    static async getOrCreate(domainId: string) {
         let settings = await this.get(domainId);
-        
+
         if (!settings) {
             settings = await this.createDefault(domainId);
         }
-        
+
         return settings;
     }
 
@@ -85,11 +78,9 @@ export class WebsiteSettingsManager {
         try {
             await connectToDatabase();
             const created = await WebsiteSettingsModel.create(defaultSettings);
-            const createdJson = created.toJSON();
-            
-            // Cache the result
+            const tmp = created.toJSON();
+            const createdJson = JSON.parse(JSON.stringify(tmp));
             await this.cache(domainId, createdJson);
-            
             return createdJson;
         } catch (error) {
             Log.error("[WebsiteSettingsManager.createDefault] Database operation failed:", error as Error);
@@ -108,13 +99,16 @@ export class WebsiteSettingsManager {
      * Remove website settings from Redis cache
      */
     static async remove(domainId: string): Promise<void> {
-        if (!useRedis) return;
+        const cacheKey = `${this.CACHE_PREFIX}domain:${domainId}`;
 
         try {
-            const cacheKey = `${this.CACHE_PREFIX}domain:${domainId}`;
-            await redis.del(cacheKey);
+            await this.deleteFromCache([cacheKey], this.MANAGER_NAME);
         } catch (error) {
-            Log.error("[WebsiteSettingsManager.remove] Cache removal failed:", error as Error);
+            if (error instanceof RedisNotUsedError) {
+                ;
+                return;
+            }
+            Log.error(`[${this.MANAGER_NAME}] Cache removal failed:`, error as Error);
         }
     }
 
@@ -122,15 +116,15 @@ export class WebsiteSettingsManager {
      * Cache website settings in Redis
      */
     private static async cache(domainId: string, settings: WebsiteSettings): Promise<void> {
-        if (!useRedis) return;
+        const cacheKey = `${this.CACHE_PREFIX}domain:${domainId}`;
 
         try {
-            const cacheKey = `${this.CACHE_PREFIX}domain:${domainId}`;
-            const settingsJson = JSON.stringify(settings);
-
-            await redis.setex(cacheKey, this.CACHE_TTL, settingsJson);
+            await this.setCache(cacheKey, settings, this.CACHE_TTL, this.MANAGER_NAME);
         } catch (error) {
-            Log.error("[WebsiteSettingsManager.cache] Redis caching failed:", error as Error);
+            if (error instanceof RedisNotUsedError) {
+                return;
+            }
+            Log.error(`[${this.MANAGER_NAME}] Redis caching failed:`, error as Error);
         }
     }
 

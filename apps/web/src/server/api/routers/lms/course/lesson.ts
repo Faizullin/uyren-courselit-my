@@ -33,7 +33,7 @@ import {
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
-import { getPrevNextCursor } from "./helpers";
+import { getPrevNextCursor, syncCourseLessons } from "./helpers";
 
 const { permissions } = UIConstants;
 
@@ -170,16 +170,8 @@ export const lessonRouter = router({
         groupId: input.data.groupId,
         requiresEnrollment: input.data.requiresEnrollment,
       });
-      const newLessonIds = Array.from(
-        new Set([...course.lessons, lesson.lessonId]),
-      );
-      course.lessons = newLessonIds;
-      const newLessonsOrder = Array.from(
-        new Set([...group.lessonsOrder, lesson.lessonId]),
-      );
-      group.lessonsOrder = newLessonsOrder;
-      await course.save();
-
+      
+      await syncCourseLessons(course.courseId, ctx as any);
       return lesson;
     }),
   update: protectedProcedure
@@ -226,23 +218,12 @@ export const lessonRouter = router({
         throw new NotFoundException("Course", lesson.courseId);
       }
 
-      const newLessonIds = course.lessons.filter(
-        (item) => item !== lesson.lessonId,
-      );
-      course.groups = course.groups.map((group) => ({
-        ...group,
-        lessonsOrder: group.lessonsOrder.filter(
-          (item) => item !== lesson.lessonId,
-        ),
-      }));
-      course.lessons = Array.from(new Set(newLessonIds));
-      await course.save();
-
-
       await LessonModel.deleteOne({
         _id: lesson._id,
         domain: ctx.domainData.domainObj._id,
       });
+
+      await syncCourseLessons(lesson.courseId, ctx as any);
       return true;
     }),
 

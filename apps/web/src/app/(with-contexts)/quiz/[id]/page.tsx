@@ -17,24 +17,25 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import QuizActions from "./_components/quiz-actions";
 import { NotFoundException } from "@/server/api/core/exceptions";
+import { cache } from "react";
 
 interface QuizPageProps {
   params: Promise<{ id: string }>;
 }
 
-const fetchQuizDetails = async (id: string) => {
-  const quiz = await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizId({
-    quizId: id,
+const getCachedData = cache(async (quizId: string) => {
+  return await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizId({
+    quizId,
   });
-  return quiz;
-};
+});
 
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> },
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { id } = await params;
-  const quiz = await fetchQuizDetails(id);
+  
+  const quiz = await getCachedData(id);
 
   if (!quiz) {
     return {
@@ -52,7 +53,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
   const { id } = await params;
 
   try {
-    const quiz = await fetchQuizDetails(id);
+    const quiz = await getCachedData(id);
 
     let attemptStats = null;
     let userAttempts: any[] = [];

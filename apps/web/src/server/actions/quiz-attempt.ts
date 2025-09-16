@@ -444,7 +444,6 @@ export async function navigateQuizQuestion(params: {
   targetQuestionIndex: number;
   saveAnswer?: boolean;
 }) {
-  console.log("navigateQuizQuestion", params);
   try {
     await connectToDatabase();
     const ctx = await getActionContext();

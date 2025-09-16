@@ -67,9 +67,9 @@ type CourseSelectItemType = {
 
 export default function AssignmentSettings() {
   const { assignment, mode } = useAssignmentContext();
-
   const router = useRouter();
   const { toast } = useToast();
+  const trpcUtils = trpc.useUtils();
   const form = useForm<AssignmentSettingsFormDataType>({
     resolver: zodResolver(AssignmentSettingsSchema),
     defaultValues: {
@@ -121,12 +121,10 @@ export default function AssignmentSettings() {
 
   const handleSubmit = useCallback(
     async (data: AssignmentSettingsFormDataType) => {
-      // Transform the data to match the API expectations
       const transformedData = {
         ...data,
         courseId: data.course?.key || "", // Extract just the key for API
         course: undefined,
-        // Add any additional transformations needed
       };
 
       if (mode === "create") {
@@ -141,6 +139,27 @@ export default function AssignmentSettings() {
       }
     },
     [mode, assignment, createMutation, updateMutation],
+  );
+  
+  const fetchCourses = useCallback(
+    async (search: string) => {
+      const response = await trpcUtils.lmsModule.courseModule.course.list.fetch(
+        {
+          pagination: {
+            take: 15,
+            skip: 0,
+          },
+          search: {
+            q: search,
+          },
+        },
+      );
+      return response.items.map((course) => ({
+        key: course.courseId,
+        title: course.title,
+      }));
+    },
+    [trpcUtils],
   );
 
   useEffect(() => {
@@ -163,27 +182,10 @@ export default function AssignmentSettings() {
     }
   }, [assignment, form.reset, mode]);
 
-  const trpcUtils = trpc.useUtils();
-  const fetchCourses = useCallback(
-    async (search: string) => {
-      const response = await trpcUtils.lmsModule.courseModule.course.list.fetch(
-        {
-          pagination: {
-            take: 15,
-            skip: 0,
-          },
-          search: {
-            q: search,
-          },
-        },
-      );
-      return response.items.map((course) => ({
-        key: course.courseId,
-        title: course.title,
-      }));
-    },
-    [trpcUtils],
-  );
+  const handleCheckProject = useCallback(() => {
+    const url = `${process.env.NEXT_PUBLIC_TUTOR_IDE_URL}/projects/init?externalAssignmentId=${assignment?._id}`;
+    window.open(url, "_blank");
+  }, [assignment?._id]);
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const isSubmitting = form.formState.isSubmitting;
@@ -348,41 +350,46 @@ export default function AssignmentSettings() {
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="assignmentType"
-                render={({ field }) => {
-                  return (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="assignmentType"
+                  render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Assignment Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="essay">Essay</SelectItem>
-                          <SelectItem value="project">Project</SelectItem>
-                          <SelectItem value="presentation">
-                            Presentation
-                          </SelectItem>
-                          <SelectItem value="file_upload">
-                            File Upload
-                          </SelectItem>
-                          <SelectItem value="peer_review">
-                            Peer Review
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select assignment type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="essay">Essay</SelectItem>
+                            <SelectItem value="project">Project</SelectItem>
+                            <SelectItem value="presentation">Presentation</SelectItem>
+                            <SelectItem value="file_upload">File Upload</SelectItem>
+                            <SelectItem value="peer_review">Peer Review</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
-                  );
-                }}
-              />
+                  )}
+                />
+                <div className="flex flex-col">
+                  {
+                    form.watch("assignmentType") === "project" && (
+                      <Button variant="outline" className="w-full" size="sm" onClick={handleCheckProject}>
+                        Check Project
+                      </Button>
+                    )
+                  }
+                </div>
+              </div>
               <FormField
                 control={form.control}
                 name="allowLateSubmission"
@@ -405,22 +412,6 @@ export default function AssignmentSettings() {
                   </FormItem>
                 )}
               />
-              {/* {
-                form.watch("assignmentType") === "project" && (
-                  <FormField
-                    control={form.control}
-                    name="projectType"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Project Type</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter project type" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                )
-              } */}
             </CardContent>
           </Card>
         </div>

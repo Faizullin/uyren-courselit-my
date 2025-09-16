@@ -345,14 +345,14 @@ export default function PaymentSettings() {
         </CardContent>
       </Card>
 
-      <Resources
+      {/* <Resources
         links={[
           {
             href: "https://docs.courselit.app/en/schools/set-up-payments/",
             text: SETTINGS_RESOURCE_PAYMENT,
           },
         ]}
-      />
+      /> */}
     </div>
   );
 }

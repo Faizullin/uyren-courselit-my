@@ -44,14 +44,14 @@ export default function Page() {
         </div>
       </div>
       <CommunitiesList />
-      <Resources
+      {/* <Resources
         links={[
           {
             href: "https://docs.courselit.app/en/communities/introduction/",
             text: "Create a community",
           },
         ]}
-      />
+      /> */}
     </DashboardContent>
   );
 }

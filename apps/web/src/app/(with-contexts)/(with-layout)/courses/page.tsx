@@ -6,6 +6,7 @@ import {
   ScrollAnimation,
   ScrollGroup,
 } from "@/components/public/scroll-animation";
+import { trpc } from "@/utils/trpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -25,11 +26,10 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
-import { Trans, useTranslation } from "react-i18next";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { trpc } from "@/utils/trpc";
+import { Suspense, useEffect, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 
 type Level = "Beginner" | "Intermediate" | "Advanced";
 type LevelFilter = "all" | Level;
@@ -195,16 +195,6 @@ function CoursesContent() {
       {/* Courses grid */}
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4">
-          {!isLoading && (
-            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto text-center mb-8">
-              {i18n.language === "ru"
-                ? getRussianCourseText(courses.length)
-                : `${courses.length} ${courses.length === 1 ? t("course") : t("courses_available_plural")}`}
-              {(searchTerm || levelFilter !== "all") &&
-                ` ${t("matching_criteria")}`}
-            </p>
-          )}
-
           {isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {[...Array(6)].map((_, index) => (

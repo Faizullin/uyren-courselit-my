@@ -1,17 +1,5 @@
 "use client";
 
-import {
-  Box,
-  Globe,
-  LibraryBig,
-  LifeBuoy,
-  Mail,
-  MessageCircleHeart,
-  Settings,
-  Target,
-  Users,
-} from "lucide-react";
-
 import { NavMain } from "@/components/admin/dashboard-skeleton/nav-main";
 import { NavProjects } from "@/components/admin/dashboard-skeleton/nav-projects";
 import { NavUser } from "@/components/admin/dashboard-skeleton/nav-user";
@@ -19,10 +7,8 @@ import { useProfile } from "@/components/contexts/profile-context";
 import { useSiteInfo } from "@/components/contexts/site-info-context";
 import {
   MY_CONTENT_HEADER,
-  SIDEBAR_MENU_MAILS,
-  SIDEBAR_MENU_PAGES,
   SIDEBAR_MENU_SETTINGS,
-  SIDEBAR_MENU_USERS,
+  SIDEBAR_MENU_USERS
 } from "@/lib/ui/config/strings";
 import { UIConstants } from "@workspace/common-models";
 import { Image } from "@workspace/components-library";
@@ -37,6 +23,18 @@ import {
   SidebarRail,
 } from "@workspace/ui/components/sidebar";
 import { checkPermission } from "@workspace/utils";
+import {
+  Box,
+  Database,
+  Globe,
+  LibraryBig,
+  LifeBuoy,
+  Mail,
+  MessageCircleHeart,
+  Settings,
+  Target,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ComponentProps } from "react";
@@ -167,6 +165,7 @@ function getSidebarItems(
         items: [],
       });
     }
+
     if (profile.permissions!.includes(permissions.manageUsers)) {
       navMainItems.push({
         title: SIDEBAR_MENU_USERS,
@@ -274,15 +273,32 @@ function getSidebarItems(
     },
     ...(profile?.permissions?.includes(permissions.enrollInCourse)
       ? [
-          {
-            name: "My Progress",
-            url: "/dashboard/my-progress",
-            icon: Target,
-            isActive: path === "/dashboard/my-progress",
-          } as any,
-        ]
+        {
+          name: "My Progress",
+          url: "/dashboard/my-progress",
+          icon: Target,
+          isActive: path === "/dashboard/my-progress",
+        } as any,
+      ]
       : []),
   ];
 
-  return { navMainItems, navSecondaryItems, navProjectItems };
+
+
+  // Add Studio section for admin users only
+  if (profile.roles && profile.roles.includes("admin")) {
+    navMainItems.push({
+      title: "Studio",
+      url: "/dashboard/studio",
+      icon: Database,
+      isActive: path.startsWith("/dashboard/studio"),
+      items: [],
+    });
+  }
+
+  return {
+    navMainItems,
+    navProjectItems,
+    navSecondaryItems,
+  };
 }

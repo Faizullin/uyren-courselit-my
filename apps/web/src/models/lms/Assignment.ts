@@ -11,7 +11,6 @@ export interface IAssignment {
   courseId: string;
   ownerId: string;
   domain: mongoose.Types.ObjectId;
-  externalAssignmentId?: string;
   assignmentType:
     | "essay"
     | "project"

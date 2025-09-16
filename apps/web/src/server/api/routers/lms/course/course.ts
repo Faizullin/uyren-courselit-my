@@ -53,6 +53,7 @@ import {
   deleteAllLessons,
   getCourseOrThrow,
   getPrevNextCursor,
+  syncCourseLessons,
 } from "./helpers";
 
 const { permissions } = UIConstants;
@@ -175,7 +176,6 @@ const removeGroup = async (
     throw new ConflictException(responses.group_not_empty);
   }
 
-  // pull group
   course.groups = course.groups.filter((group) => group.groupId !== id);
 
   await course.save();
@@ -194,6 +194,7 @@ const removeGroup = async (
     },
   );
 
+  await syncCourseLessons(course.courseId, ctx);
   return await formatCourse(course.courseId, ctx);
 };
 
@@ -233,17 +234,9 @@ const updateGroup = async ({
   if (rank) {
     $set["groups.$.rank"] = rank;
   }
-
-  if (
-    lessonsOrder &&
-    lessonsOrder.every((lessonId) => course.lessons?.includes(lessonId)) &&
-    lessonsOrder.every((lessonId) =>
-      course.groups
-        ?.find((group) => group.groupId === groupId)
-        ?.lessonsOrder.includes(lessonId),
-    )
-  ) {
-    $set["groups.$.lessonsOrder"] = lessonsOrder;
+  
+  if (lessonsOrder) {
+    $set["groups.$.lessonsOrder"] = Array.from(new Set(lessonsOrder));
   }
 
   if (typeof collapsed === "boolean") {
@@ -251,7 +244,7 @@ const updateGroup = async ({
   }
 
 
-  return await CourseModel.findOneAndUpdate(
+  const updatedCourse = await CourseModel.findOneAndUpdate(
     {
       domain: ctx.domainData.domainObj._id,
       courseId: course.courseId,
@@ -260,6 +253,12 @@ const updateGroup = async ({
     { $set },
     { new: true },
   );
+
+  if (updatedCourse) {
+    await syncCourseLessons(updatedCourse.courseId, ctx);
+  }
+
+  return updatedCourse;
 };
 const setupCourse = async ({
   title,
@@ -772,7 +771,7 @@ export const courseRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const course = await getCourseOrThrow(undefined, ctx, input.courseId);
-      await deleteAllLessons(course.courseId, ctx as any);
+      await deleteAllLessons(course.courseId, ctx);
       if (course.featuredImage) {
         try {
           await deleteMedia(course.featuredImage.mediaId);

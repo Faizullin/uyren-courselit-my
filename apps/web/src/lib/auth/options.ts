@@ -43,12 +43,13 @@ export const authOptions: NextAuthOptions = {
         try {
           // Connect to database
           //   await connectToDatabase();
-          
+
           // Check if Firebase Admin is initialized (skip during build time)
           if (!adminAuth) {
             throw new Error("Firebase Admin is not initialized during build time");
           }
-          
+
+          let created = false;
           const decoded = await adminAuth.verifyIdToken(idToken);
 
           const sanitizedEmail = decoded.email;
@@ -74,18 +75,19 @@ export const authOptions: NextAuthOptions = {
                 name: decoded.name || "",
               },
             });
+            created = true;
             user.avatar = decoded.picture
               ? {
-                  url: decoded.picture,
-                  mediaId: `google_${decoded.uid}`,
-                  originalFileName: "google_profile_picture",
-                  mimeType: "image/jpeg",
-                  size: 0,
-                  access: "public",
-                  thumbnail: decoded.picture,
-                  caption: "Google profile picture",
-                  storageProvider: "custom",
-                }
+                url: decoded.picture,
+                mediaId: `google_${decoded.uid}`,
+                originalFileName: "google_profile_picture",
+                mimeType: "image/jpeg",
+                size: 0,
+                access: "public",
+                thumbnail: decoded.picture,
+                caption: "Google profile picture",
+                storageProvider: "custom",
+              }
               : undefined;
             await user.save();
           }
@@ -95,17 +97,17 @@ export const authOptions: NextAuthOptions = {
           }
           const media: Media | undefined = user.avatar
             ? {
-                storageProvider: "custom",
-                url: user.avatar.url,
-                mediaId: user.avatar.mediaId,
-                originalFileName: user.avatar.originalFileName,
-                mimeType: user.avatar.mimeType,
-                size: user.avatar.size,
-                access: user.avatar.access,
-                thumbnail: user.avatar.thumbnail,
-                caption: user.avatar.caption,
-                file: user.avatar.file,
-              }
+              storageProvider: "custom",
+              url: user.avatar.url,
+              mediaId: user.avatar.mediaId,
+              originalFileName: user.avatar.originalFileName,
+              mimeType: user.avatar.mimeType,
+              size: user.avatar.size,
+              access: user.avatar.access,
+              thumbnail: user.avatar.thumbnail,
+              caption: user.avatar.caption,
+              file: user.avatar.file,
+            }
             : undefined;
           return {
             id: user.userId,
@@ -122,15 +124,12 @@ export const authOptions: NextAuthOptions = {
             tags: user.tags || [],
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
+
           };
         } catch (error) {
           if (error instanceof Error) {
             Log.error("Firebase ID Token verification failed", error);
-            console.error("Auth error details:", {
-              message: error.message,
-              stack: error.stack,
-              timestamp: new Date().toISOString(),
-            });
+
           }
           return null;
         }

@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
 import { GeneralRouterOutputs } from "@/server/api/types";
+import { createContext, ReactNode, useContext } from "react";
 
-export type CourseData = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["publicGetByCourseId"];
+type CourseData = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["publicGetByCourseId"];
 
 interface CourseContextType {
   courseData: CourseData;

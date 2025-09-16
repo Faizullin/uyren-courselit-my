@@ -160,7 +160,7 @@ export default function CheckoutSuccessPage() {
                     <div>
                       <p className="text-sm text-gray-500">Duration</p>
                       <p className="font-medium">
-                        {course.duration || "Self-paced"} weeks
+                        {course.duration || "~"} t("weeks")
                       </p>
                     </div>
                   </div>

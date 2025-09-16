@@ -44,6 +44,7 @@ export default async function EditAssignmentPage(props: {
   const initialAssignmentData = assignmentId
     ? await getAssignmentData(params.id)
     : null;
+
   return (
     <AssignmentClientWrapper
       initialMode={initialMode}

@@ -216,3 +216,31 @@ export const getCourseOrThrow = async (
 
   return course;
 };
+
+export const syncCourseLessons = async (courseId: string, ctx: MainContextType) => {
+  const course = await getCourseOrThrow(undefined, ctx, courseId);
+  const existingLessons = await LessonModel.find({
+    courseId,
+    domain: ctx.domainData.domainObj._id,
+  }).select('lessonId groupId');
+
+  const allLessonIds = existingLessons.map(lesson => lesson.lessonId);
+  course.lessons = Array.from(new Set(allLessonIds));
+  
+  course.groups = course.groups.map(group => {
+    const groupLessons = existingLessons
+      .filter(lesson => lesson.groupId === group.groupId)
+      .map(lesson => lesson.lessonId);
+    
+    const existingOrderedLessons = group.lessonsOrder.filter(id => groupLessons.includes(id));
+    const newLessons = groupLessons.filter(id => !group.lessonsOrder.includes(id));
+    
+    return {
+      ...group,
+      lessonsOrder: Array.from(new Set([...existingOrderedLessons, ...newLessons]))
+    };
+  });
+
+  await course.save();
+  return course;
+};

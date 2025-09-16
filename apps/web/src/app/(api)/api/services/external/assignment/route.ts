@@ -2,7 +2,9 @@ import ApikeyModel from "@/models/ApiKey";
 import AssignmentModel from "@/models/lms/Assignment";
 import { getDomainData } from "@/server/lib/domain";
 import { connectToDatabase } from "@workspace/common-logic";
+import { BASIC_PUBLICATION_STATUS_TYPE } from "@workspace/common-models";
 import { NextRequest, NextResponse } from "next/server";
+import z from "zod";
 
 interface AttachRequest {
     assignmentId: string;
@@ -44,7 +46,10 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get("limit") || "10");
         const skip = (page - 1) * limit;
 
-        const assignments = await AssignmentModel.find({ domain: validation.domain })
+        const assignments = await AssignmentModel.find({
+            domain: validation.domain,
+            status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED
+        })
             .skip(skip)
             .limit(limit)
             .select("_id title description courseId assignmentType status externalAssignmentId createdAt")
@@ -60,7 +65,6 @@ export async function GET(request: NextRequest) {
                 courseId: a.courseId,
                 assignmentType: a.assignmentType,
                 status: a.status,
-                externalAssignmentId: a.externalAssignmentId,
                 createdAt: a.createdAt.toISOString(),
             })),
             pagination: { page, limit, total, pages: Math.ceil(total / limit) },
@@ -79,6 +83,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
+
+const submitSchema = z.object({
+    assignmentId: z.string(),
+    externalAssignmentId: z.string(),
+    title: z.string(),
+    description: z.string(),
+});
 
 export async function POST(request: NextRequest) {
     const apiKey = request.headers.get("x-api-key");
@@ -102,7 +113,7 @@ export async function POST(request: NextRequest) {
 
         const assignment = await AssignmentModel.findOneAndUpdate(
             { _id: assignmentId, domain: validation.domain },
-            { 
+            {
                 externalAssignmentId,
                 ...(title && { title }),
                 ...(description && { description })
@@ -119,10 +130,22 @@ export async function POST(request: NextRequest) {
             assignment: {
                 id: assignment._id.toString(),
                 title: assignment.title,
-                externalAssignmentId: assignment.externalAssignmentId,
                 updatedAt: assignment.updatedAt.toISOString(),
             },
         });
+    } else if (action === "submit") {
+        const body = await request.json();
+        const { error, data } = submitSchema.safeParse(body);
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        const assignment = await AssignmentModel.findOne({ _id: data.assignmentId, domain: validation.domain });
+        if (!assignment) return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+        throw new Error("Not implemented");
+        // const submission = await AssignmentSubmissionModel.create({
+        //     assignmentId,
+        //     externalAssignmentId,
+        //     title,
+        //     description,
+        // });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

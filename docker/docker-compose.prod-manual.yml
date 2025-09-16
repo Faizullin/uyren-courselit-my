@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: courselit-nginx-prod-manual
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    env_file:
+      - .env.prod-manual
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - courselit-prod-manual-network
+
+  web:
+    image: ${DOCKER_USERNAME}/${DOCKER_IMAGE_NAME}-web:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+      args:
+        - BUILD_MODE=production
+        - FIREBASE_CLIENT_EMAIL=${FIREBASE_CLIENT_EMAIL}
+        - FIREBASE_PRIVATE_KEY=${FIREBASE_PRIVATE_KEY}
+        - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+        - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+        - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+        - NEXT_PUBLIC_APP_DOMAIN=${NEXT_PUBLIC_APP_DOMAIN}
+        - NEXT_PUBLIC_SERVER_DOMAIN=${NEXT_PUBLIC_SERVER_DOMAIN}
+        - NEXT_PUBLIC_FB_API_KEY=${NEXT_PUBLIC_FB_API_KEY}
+        - NEXT_PUBLIC_FB_AUTH_DOMAIN=${NEXT_PUBLIC_FB_AUTH_DOMAIN}
+        - NEXT_PUBLIC_FB_PROJECT_ID=${NEXT_PUBLIC_FB_PROJECT_ID}
+        - NEXT_PUBLIC_FB_STORAGE_BUCKET=${NEXT_PUBLIC_FB_STORAGE_BUCKET}
+        - NEXT_PUBLIC_FB_MESSAGING_SENDER_ID=${NEXT_PUBLIC_FB_MESSAGING_SENDER_ID}
+        - NEXT_PUBLIC_FB_APP_ID=${NEXT_PUBLIC_FB_APP_ID}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXTAUTH_URL=${NEXTAUTH_URL}
+        - NEXT_FOR_DOCKER=1
+    container_name: courselit-web-prod-manual
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.prod-manual
+    depends_on:
+      - redis
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - courselit-prod-manual-network
+
+  # queue:
+  #   image: ${DOCKER_USERNAME}/${DOCKER_IMAGE_NAME}-queue:${IMAGE_TAG:-latest}
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile.queue
+  #     args:
+  #       - NODE_ENV=production
+  #       - HOST=${HOST:-0.0.0.0}
+  #       - PORT=${QUEUE_PORT:-3001}
+  #       - MONGODB_URI=${MONGODB_URI}
+  #       - REDIS_HOST=${REDIS_HOST}
+  #       - REDIS_PORT=${REDIS_PORT:-6379}
+  #       - TRANSPORT_JWT_SECRET=${TRANSPORT_JWT_SECRET}
+  #       - SMTP_HOST=${SMTP_HOST}
+  #       - SMTP_PORT=${SMTP_PORT}
+  #       - EMAIL_FROM=${EMAIL_FROM}
+  #   container_name: courselit-queue-prod-manual
+  #   ports:
+  #     - "${QUEUE_PORT:-3001}:3001"
+  #   environment:
+  #     - NODE_ENV=production
+  #   env_file:
+  #     - .env.prod-manual
+  #   depends_on:
+  #     - redis
+  #     - mongodb
+  #   restart: unless-stopped
+  #   networks:
+  #     - courselit-prod-manual-network
+
+  redis:
+    image: redis
+    container_name: courselit-redis-prod-manual
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courselit-prod-manual-network
+
+  mongodb:
+    image: mongo
+    container_name: courselit-mongo-prod-manual
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-courselit}
+    env_file:
+      - .env.prod-manual
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/${MONGO_DATABASE:-courselit} --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - courselit-prod-manual-network
+
+volumes:
+  redis_data:
+    driver: local
+  mongo_data:
+    driver: local
+
+networks:
+  courselit-prod-manual-network:
+    name: courselit-prod-manual-network
+    driver: bridge

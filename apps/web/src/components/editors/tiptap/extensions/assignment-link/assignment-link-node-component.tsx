@@ -16,7 +16,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Edit } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export interface AssignmentLinkAttrs {
   label: string;
@@ -37,8 +37,6 @@ export function AssignmentLinkNodeComponent({
 }) {
   const { label, obj, link } = node.attrs as AssignmentLinkAttrs;
 
-  console.log("obj", obj, typeof obj);
-
   const handleSelectDialog = useCallback(() => {
     NiceModal.show(AssignmentSelectNiceDialog, {
       args: {
@@ -49,7 +47,7 @@ export function AssignmentLinkNodeComponent({
         const selectedItem = response.data as SelectItemType;
         let link = "";
         if (selectedItem.type === "assignment") {
-          link = `/assignment/${selectedItem.key}`;
+          link = `/assignments/${selectedItem.key}`;
         } else if (selectedItem.type === "quiz") {
           link = `/quiz/${selectedItem.key}`;
         }
@@ -65,13 +63,22 @@ export function AssignmentLinkNodeComponent({
       }
     });
   }, [updateAttributes]);
+  const acutalLink = useMemo(() => {
+    if (!obj) return "#";
+    else if (obj.type === "assignment") {
+      return `/assignments/${obj.id}`;
+    } else if (obj.type === "quiz") {
+      return `/quiz/${obj.id}`;
+    }
+    return `#unknown-type=${obj.type}`;
+  }, [obj]);
   return (
     <NodeViewWrapper
       as="div"
       className="entity-card border rounded p-3 bg-white shadow"
     >
       <div className="flex items-center justify-between">
-        <Link href={link || "#"} target="_blank">
+        <Link href={acutalLink} target="_blank">
           {label}
         </Link>
         {editor.isEditable ? (
@@ -148,10 +155,10 @@ const AssignmentSelectNiceDialog = NiceModal.create<
     setSelectedOptions(
       args.obj
         ? {
-            key: args.obj.id,
-            title: args.obj.title,
-            type: args.obj.type,
-          }
+          key: args.obj.id,
+          title: args.obj.title,
+          type: args.obj.type,
+        }
         : null,
     );
   }, [args.obj]);

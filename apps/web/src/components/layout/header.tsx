@@ -46,7 +46,7 @@ export default function Header() {
   const languages = [
     { code: "en-US", label: "EN" },
     { code: "ru", label: "RU" },
-    { code: "kz", label: "KZ" },
+    // { code: "kz", label: "KZ" },
   ];
 
   const handleNavigation = (href: string, e: React.MouseEvent) => {

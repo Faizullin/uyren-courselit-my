@@ -268,7 +268,7 @@ export default function ProductPage() {
 
       <SalesCard data={salesData} loading={salesLoading} />
 
-      <Resources
+      {/* <Resources
         links={[
           {
             href: "https://docs.courselit.app/en/products/overview",
@@ -279,7 +279,7 @@ export default function ProductPage() {
             text: "Content Management",
           },
         ]}
-      />
+      /> */}
     </DashboardContent>
   );
 }

@@ -32,7 +32,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 type CourseType =
@@ -72,10 +72,29 @@ export default function CourseLessonsSidebar({
   const handlePurchase = useCallback(() => {
     window.location.href = `/checkout?type=course&id=${course.courseId}`;
   }, [course.courseId]);
-
-  const allLessons =
-    course.groups?.flatMap((group) => group.lessonsOrder || []) || [];
+  
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
+  // Smart group expansion logic
+  useEffect(() => {
+    if (!course.groups?.length) return;
+
+    if (currentLessonId) {
+      // Find group containing current lesson and expand it
+      const currentLessonGroup = course.groups.find(group =>
+        group.lessonsOrder.includes(currentLessonId)
+      );
+      if (currentLessonGroup && !expandedGroups.includes(currentLessonGroup.groupId)) {
+        setExpandedGroups(prev => Array.from(new Set([...prev, currentLessonGroup.groupId])));
+      }
+    } else {
+      // No current lesson (course detail page) - expand first group
+      const firstGroup = course.groups[0];
+      if (firstGroup && !expandedGroups.includes(firstGroup.groupId)) {
+        setExpandedGroups(prev => Array.from(new Set([...prev, firstGroup.groupId])));
+      }
+    }
+  }, [currentLessonId, course.groups?.length]); // Removed expandedGroups from deps to prevent loops
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
@@ -411,6 +430,7 @@ export default function CourseLessonsSidebar({
                           >
                             <Link
                               href={`/courses/${course.courseId}/lessons/${lessonId}`}
+                              scroll={false}
                               className={`block p-3 pl-6 text-left hover:bg-muted/50 transition-colors border-l-2 hover:border-brand-primary ${
                                 isCurrentLesson
                                   ? "bg-brand-primary/5 border-brand-primary"

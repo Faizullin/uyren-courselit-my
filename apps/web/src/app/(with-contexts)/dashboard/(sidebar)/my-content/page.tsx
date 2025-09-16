@@ -52,21 +52,21 @@ export default function Page() {
               <EmptyStateMessage type="course" />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {
-                isLoading ? (
-                  <>
-                    {[...Array(6)].map((_, index) => (
-                      <SkeletonCard key={index} />
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    {courses.map((item) => (
-                      <MyContentCard key={item.entity.id} item={item} />
-                    ))}
-                  </>
-                )
-              }
+                {
+                  isLoading ? (
+                    <>
+                      {[...Array(6)].map((_, index) => (
+                        <SkeletonCard key={index} />
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {courses.map((item) => (
+                        <MyContentCard key={item.entity.id} item={item} />
+                      ))}
+                    </>
+                  )
+                }
               </div>
             )
           }
@@ -79,7 +79,7 @@ export default function Page() {
               <EmptyStateMessage type="community" />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                { isLoading ? (
+                {isLoading ? (
                   <>
                     {[...Array(6)].map((_, index) => (
                       <SkeletonCard key={index} />
@@ -92,7 +92,7 @@ export default function Page() {
                     ))}
                   </>
                 )
-              }
+                }
               </div>
             )
           }
@@ -155,8 +155,8 @@ interface ContentItem {
       thumbnail: string;
     };
     type:
-      | typeof Constants.CourseType.COURSE
-      | typeof Constants.CourseType.DOWNLOAD;
+    | typeof Constants.CourseType.COURSE
+    | typeof Constants.CourseType.DOWNLOAD;
   };
   entityType: "community" | "course";
 }
@@ -174,40 +174,43 @@ function MyContentCard({ item }: ContentCardProps) {
 
   const isCourse =
     entityType.toLowerCase() === Constants.MembershipEntityType.COURSE;
+  const href = isCourse ? `/courses/${entity.id}` : `/communities/${entity.id}`;
 
   return (
-    <ProductCardContent.Card
-      key={item.entity.id}
-    >
-      <ProductCardContent.CardImage
-        src={item.entity.featuredImage?.file}
-        alt={item.entity.title}
-      />
-      <ProductCardContent.CardContent>
-        <ProductCardContent.CardHeader>{item.entity.title}</ProductCardContent.CardHeader>
-        <>
-          <Badge variant="secondary">
-            {entity.type === Constants.CourseType.COURSE ? (
-              <BookOpen className="h-4 w-4 mr-1" />
-            ) : (
-              <Download className="h-4 w-4 mr-1" />
-            )}
-            {capitalize(entity.type)}
-          </Badge>
-        </>
-        {isCourse && entity.totalLessons ? (
-          <div className="space-y-2 mt-4">
-            <ProgressBar value={progress} />
-            <p className="text-sm text-muted-foreground flex justify-between">
-              <span>{`${entity.completedLessonsCount} of ${entity.totalLessons} lessons completed`}</span>
-              <span>{`${Math.round(progress)}%`}</span>
-            </p>
-          </div>
-        ) : (
-          <></>
-        )}
-      </ProductCardContent.CardContent>
-    </ProductCardContent.Card>
+    <Link href={href} className="cursor-pointer">
+      <ProductCardContent.Card
+        key={item.entity.id}
+      >
+        <ProductCardContent.CardImage
+          src={item.entity.featuredImage?.file}
+          alt={item.entity.title}
+        />
+        <ProductCardContent.CardContent>
+          <ProductCardContent.CardHeader>{item.entity.title}</ProductCardContent.CardHeader>
+          <>
+            <Badge variant="secondary">
+              {entity.type === Constants.CourseType.COURSE ? (
+                <BookOpen className="h-4 w-4 mr-1" />
+              ) : (
+                <Download className="h-4 w-4 mr-1" />
+              )}
+              {capitalize(entity.type)}
+            </Badge>
+          </>
+          {isCourse && entity.totalLessons ? (
+            <div className="space-y-2 mt-4">
+              <ProgressBar value={progress} />
+              <p className="text-sm text-muted-foreground flex justify-between">
+                <span>{`${entity.completedLessonsCount} of ${entity.totalLessons} lessons completed`}</span>
+                <span>{`${Math.round(progress)}%`}</span>
+              </p>
+            </div>
+          ) : (
+            <></>
+          )}
+        </ProductCardContent.CardContent>
+      </ProductCardContent.Card>
+    </Link>
   );
 }
 
