@@ -1,5 +1,5 @@
 {
-    "auth": {
+  "auth": {
     "signin": {
       "welcome_back": "Қайта оралуыңызбен",
       "title": "Жүйеге кіру",
@@ -42,13 +42,13 @@
       "signing_up": "Есептік жазба жасалуда...",
       "google_signing_up": "Google арқылы тіркелуде..."
     },
-      "error": {
-        "invalid_email": "Жарамсыз электрондық пошта мекенжайы",
-        "user_not_found": "Есептік жазба табылмады",
-        "wrong_password": "Қате құпия сөз",
-        "invalid_credential": "Жарамсыз деректер",
-        "email_already_in_use": "Электрондық пошта қолданыста",
-        "weak_password": "Әлсіз құпия сөз",
+    "error": {
+      "invalid_email": "Жарамсыз электрондық пошта мекенжайы",
+      "user_not_found": "Есептік жазба табылмады",
+      "wrong_password": "Қате құпия сөз",
+      "invalid_credential": "Жарамсыз деректер",
+      "email_already_in_use": "Электрондық пошта қолданыста",
+      "weak_password": "Әлсіз құпия сөз",
       "too_many_requests": "Тым көп әрекет",
       "network_error": "Желі қатесі",
       "popup_blocked": "Қалқыма терезе бұғатталған",
@@ -56,6 +56,6 @@
       "passwords_dont_match": "Құпия сөздер сәйкес келмейді",
       "name_required": "Аты-жөні міндетті",
       "password_too_short": "Құпия сөз кемінде 6 таңбадан тұруы керек"
-      }
     }
   }
+}

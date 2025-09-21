@@ -108,7 +108,4 @@ const formatInitialSiteInfo = (siteInfo?: SiteInfo) => {
 //   hideCourseLitBranding:
 //     siteinfo?.hideCourseLitBranding ||
 //     defaultState.siteinfo.hideCourseLitBranding,
-//   razorpayKey: siteinfo?.razorpayKey || defaultState.siteinfo.razorpayKey,
-//   lemonsqueezyKey:
-//     siteinfo?.lemonsqueezyKey || defaultState.siteinfo.lemonsqueezyKey,
 // });

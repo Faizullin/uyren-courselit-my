@@ -32,6 +32,7 @@ const getProductsQuery = (
   tags?: string[],
   ids?: string[],
   publicView: boolean = false,
+  level?: "beginner" | "intermediate" | "advanced",
 ) => {
   const query: RootFilterQuery<typeof CourseModel> = {
     domain: ctx.domainData.domainObj._id,
@@ -69,6 +70,10 @@ const getProductsQuery = (
     query.courseId = {
       $in: ids,
     };
+  }
+
+  if (level) {
+    query.level = level;
   }
 
   return query;
@@ -207,6 +212,7 @@ export const productRouter = router({
             type: z.array(z.nativeEnum(Constants.CourseType)).optional(),
             tags: z.array(z.string()).optional(),
             ids: z.array(z.string()).optional(),
+            level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
           })
           .optional()
           .default({}),
@@ -219,6 +225,7 @@ export const productRouter = router({
         input.filter.tags,
         input.filter.ids,
         true,
+        input.filter.level,
       );
 
       if (input.search?.q) {

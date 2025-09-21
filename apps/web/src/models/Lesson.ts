@@ -1,5 +1,5 @@
 import { createModel } from "@workspace/common-logic";
-import { Media, Quiz, TextEditorContent } from "@workspace/common-models";
+import { Media, TextEditorContent } from "@workspace/common-models";
 import { generateUniqueId } from "@workspace/utils";
 import mongoose from "mongoose";
 import constants from "../config/constants";
@@ -16,13 +16,13 @@ export interface Lesson {
   lessonId: string;
   title: string;
   type:
-    | typeof text
-    | typeof video
-    | typeof audio
-    | typeof pdf
-    | typeof quiz
-    | typeof file
-    | typeof embed;
+  | typeof text
+  | typeof video
+  | typeof audio
+  | typeof pdf
+  | typeof quiz
+  | typeof file
+  | typeof embed;
   content: TextEditorContent | EmbedUrlContent;
   media?: Media;
   downloadable: boolean;

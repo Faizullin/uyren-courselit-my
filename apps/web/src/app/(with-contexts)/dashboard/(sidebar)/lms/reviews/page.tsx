@@ -28,6 +28,7 @@ import { Input } from "@workspace/ui/components/input";
 import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { Archive, Edit, MoreHorizontal, Plus, Star, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ReviewFormDialog } from "./_components/review-form-dialog";
 
 const breadcrumbs = [
@@ -42,6 +43,7 @@ type QueryParams = Parameters<
 >[0];
 
 export default function Page() {
+  const { t } = useTranslation("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [parsedData, setParsedData] = useState<Array<ItemType>>([]);
@@ -91,7 +93,7 @@ export default function Page() {
     return [
       {
         accessorKey: "title",
-        header: "Review Title",
+        header: t("table.title"),
         cell: ({ row }) => {
           const review = row.original;
           return (
@@ -120,7 +122,7 @@ export default function Page() {
       },
       {
         accessorKey: "rating",
-        header: "Rating",
+        header: t("table.rating"),
         cell: ({ row }) => {
           const rating = row.original.rating;
           return (
@@ -133,7 +135,7 @@ export default function Page() {
       },
       {
         accessorKey: "targetType",
-        header: "Target Type",
+        header: t("table.target_type"),
         cell: ({ row }) => {
           const targetType = row.original.targetType;
           return (
@@ -143,7 +145,7 @@ export default function Page() {
           );
         },
         meta: {
-          label: "Target Type",
+          label: t("table.target_type"),
           variant: "select",
           options: [
             { label: "Website", value: "website" },
@@ -156,38 +158,38 @@ export default function Page() {
       },
       {
         accessorKey: "published",
-        header: "Status",
+        header: t("table.status"),
         cell: ({ row }) => {
           const published = row.original.published;
           const isFeatured = row.original.isFeatured;
 
           if (isFeatured) {
-            return <Badge variant="default">Featured</Badge>;
+            return <Badge variant="default">{t("table.featured")}</Badge>;
           }
 
           return (
             <Badge variant={published ? "default" : "secondary"}>
-              {published ? "Published" : "Draft"}
+              {published ? t("table.published") : t("table.draft")}
             </Badge>
           );
         },
         meta: {
-          label: "Status",
+          label: t("table.status"),
           variant: "select",
           options: [
-            { label: "Published", value: "true" },
-            { label: "Draft", value: "false" },
+            { label: t("table.published"), value: "true" },
+            { label: t("table.draft"), value: "false" },
           ],
         },
         enableColumnFilter: true,
       },
       {
         accessorKey: "authorId",
-        header: "Linked User",
+        header: t("table.linked_user"),
         cell: ({ row }) => {
           const authorId = row.original.authorId;
           if (!authorId) {
-            return <span className="text-muted-foreground">Not linked</span>;
+            return <span className="text-muted-foreground">{t("table.not_linked")}</span>;
           }
           return (
             <div className="flex items-center gap-2">
@@ -199,11 +201,11 @@ export default function Page() {
       },
       {
         accessorKey: "tags",
-        header: "Tags",
+        header: t("table.tags"),
         cell: ({ row }) => {
           const tags = row.original.tags || [];
           if (tags.length === 0) {
-            return <span className="text-muted-foreground">No tags</span>;
+            return <span className="text-muted-foreground">{t("table.no_tags")}</span>;
           }
           return (
             <div className="flex flex-wrap gap-1">
@@ -223,7 +225,7 @@ export default function Page() {
       },
       {
         accessorKey: "createdAt",
-        header: "Created",
+        header: t("table.created"),
         cell: ({ row }) => {
           const date = row.getValue("createdAt") as string;
           return (
@@ -233,13 +235,13 @@ export default function Page() {
           );
         },
         meta: {
-          label: "Created Date",
+          label: t("table.created"),
           variant: "date",
         },
       },
       {
         id: "actions",
-        header: "Actions",
+        header: t("table.actions"),
         cell: ({ row }) => {
           const review = row.original;
           return (
@@ -253,14 +255,14 @@ export default function Page() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleEditReview(review)}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Review
+                  {t("table.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDelete(review)}
                   className="text-red-600"
                 >
                   <Archive className="h-4 w-4 mr-2" />
-                  Delete Review
+                  {t("table.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -352,8 +354,8 @@ export default function Page() {
       <div className="flex flex-col gap-4">
         <HeaderTopbar
           header={{
-            title: "Reviews",
-            subtitle: "Manage customer reviews and testimonials",
+            title: t("lms.modules.reviews.title"),
+            subtitle: t("lms.modules.reviews.description"),
           }}
           rightAction={
             <Button
@@ -369,7 +371,7 @@ export default function Page() {
           <CardContent>
             <div className="flex flex-col gap-2">
               <Input
-                placeholder="Search reviews..."
+                placeholder={t("table.search_placeholder")}
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className="h-8 w-40 lg:w-56"

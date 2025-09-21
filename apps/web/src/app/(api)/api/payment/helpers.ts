@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import CommunityModel from "@/models/Community";
+import CommunityModel from "@/models/community/Community";
 import CourseModel from "@/models/Course";
 import PaymentPlanModel from "@/models/PaymentPlan";
 import User from "@/models/User";

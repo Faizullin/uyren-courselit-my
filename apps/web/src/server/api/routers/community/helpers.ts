@@ -1,7 +1,7 @@
-import CommunityModel from "@/models/Community";
-import CommunityCommentModel from "@/models/CommunityComment";
-import CommunityPostModel from "@/models/CommunityPost";
-import CommunityPostSubscriberModel from "@/models/CommunityPostSubscriber";
+import CommunityModel from "@/models/community/Community";
+import CommunityCommentModel from "@/models/community/CommunityComment";
+import CommunityPostModel from "@/models/community/CommunityPost";
+import CommunityPostSubscriberModel from "@/models/community/CommunityPostSubscriber";
 import CourseModel from "@/models/Course";
 import MembershipModel from "@/models/Membership";
 import PaymentPlanModel, { InternalPaymentPlan } from "@/models/PaymentPlan";

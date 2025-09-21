@@ -50,7 +50,7 @@ function CourseMainContent({ course }: { course: any }) {
 
       {/* Course Card with Image, Overview and Description */}
       <ScrollAnimation variant="fadeUp">
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm m--course-overview">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm m--course-overview">
           {/* Featured Image */}
           {course.featuredImage && (
             <div className="relative w-full h-64 md:h-80 rounded-t-lg overflow-hidden">
@@ -70,7 +70,7 @@ function CourseMainContent({ course }: { course: any }) {
 
           {/* Course Title */}
           <div className="p-6 pb-0">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 m--course-title">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 m--course-title">
               {course.title}
             </h1>
 
@@ -81,7 +81,7 @@ function CourseMainContent({ course }: { course: any }) {
                   <Badge
                     key={index}
                     variant="outline"
-                    className="bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 transition-colors"
+                    className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                   >
                     {tag}
                   </Badge>
@@ -90,16 +90,16 @@ function CourseMainContent({ course }: { course: any }) {
             )}
           </div>
 
-          <div className="border-b border-gray-100 p-6 m--overview-header">
+          <div className="border-b border-gray-100 dark:border-gray-700 p-6 m--overview-header">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-brand-primary to-orange-600 rounded-lg flex items-center justify-center">
                 <BookOpen className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {t("course_overview")}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("course_overview_desc")}
                 </p>
               </div>
@@ -108,9 +108,6 @@ function CourseMainContent({ course }: { course: any }) {
 
           <div className="p-6 space-y-6 m--overview-content">
             <div className="space-y-3 m--description-block">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                📖 {t("about_course")}
-              </h3>
               {course.description && (
                 <DescriptionEditor
                   editable={false}

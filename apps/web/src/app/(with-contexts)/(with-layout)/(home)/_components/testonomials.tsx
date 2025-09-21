@@ -74,11 +74,12 @@ export function TestimonialsSection(props: {
       })
       .slice(0, 5);
   }, [props.testimonials]);
+  if (testimonials.length === 0) return null;
   return (
     <section
       className={cn(
         "testonomials-section",
-        "py-20 bg-white relative overflow-hidden",
+        "py-20 bg-white dark:bg-gray-900 relative overflow-hidden",
       )}
     >
       <div className="container mx-auto px-4">

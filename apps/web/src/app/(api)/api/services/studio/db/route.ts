@@ -1,7 +1,7 @@
 import { authOptions } from "@/lib/auth/options";
 import ActivityModel from "@/models/Activity";
 import ApiKeyModel from "@/models/ApiKey";
-import CommunityModel from "@/models/Community";
+import CommunityModel from "@/models/community/Community";
 import CourseModel from "@/models/Course";
 import DomainModel from "@/models/Domain";
 import LessonModel from "@/models/Lesson";
@@ -9,8 +9,6 @@ import AssignmentModel from "@/models/lms/Assignment";
 import QuizModel from "@/models/lms/Quiz";
 import MediaModel from "@/models/Media";
 import MembershipModel from "@/models/Membership";
-import PageModel from "@/models/Page";
-import ProgressModel from "@/models/Progress";
 import UserModel from "@/models/User";
 import { ListInputSchema } from "@/server/api/core/schema";
 import { connectToDatabase } from "@workspace/common-logic";
@@ -29,8 +27,6 @@ const MODEL_REGISTRY = {
     domains: DomainModel,
     activities: ActivityModel,
     apikeys: ApiKeyModel,
-    pages: PageModel,
-    progress: ProgressModel,
     memberships: MembershipModel,
 } as const;
 
@@ -57,7 +53,7 @@ async function getActionContext(req: NextRequest) {
         return { error: "User not found", status: 404 };
     }
 
-    const isAdmin = user.roles?.includes("admin") || user.permissions?.includes("manageAnyCourse");
+    const isAdmin = user.roles?.includes("admin");
     if (!isAdmin) {
         return { error: "Admin access required", status: 403 };
     }

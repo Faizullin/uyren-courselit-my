@@ -31,19 +31,11 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-type Level = "Beginner" | "Intermediate" | "Advanced";
+type Level = "beginner" | "intermediate" | "advanced";
 type LevelFilter = "all" | Level;
 
 const COURSES_PER_PAGE = 9;
 
-function getRussianCourseText(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${count} курс доступен`;
-  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14))
-    return `${count} курса доступны`;
-  return `${count} курсов доступны`;
-}
 
 function CoursesContent() {
   const { t, i18n } = useTranslation("common");
@@ -52,7 +44,7 @@ function CoursesContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Load courses using tRPC
+  // Load courses using tRPC with server-side filtering
   const {
     data: coursesData,
     isLoading,
@@ -66,6 +58,7 @@ function CoursesContent() {
       },
       filter: {
         type: ["course"], // Only get actual courses, not downloads or blogs
+        level: levelFilter === "all" ? undefined : levelFilter,
       },
       search: debouncedSearchTerm ? { q: debouncedSearchTerm } : undefined,
     },
@@ -117,12 +110,15 @@ function CoursesContent() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white dark:bg-gray-900">
       <Header />
 
       {/* Header */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+        <div className="absolute top-10 md:top-20 left-10 md:left-20 w-32 md:w-64 h-32 md:h-64 bg-brand-primary rounded-full opacity-10"></div>
+        <div className="absolute bottom-10 right-10 md:right-20 w-40 md:w-80 h-40 md:h-80 bg-brand-primary rounded-full opacity-10"></div>
+        <div className="absolute top-20 md:top-40 right-20 md:right-40 w-20 md:w-40 h-20 md:h-40 bg-brand-primary rounded-full opacity-10"></div>
         <div className="container mx-auto px-4 relative z-10">
           <ScrollAnimation
             variant="fadeUp"
@@ -145,11 +141,11 @@ function CoursesContent() {
       </section>
 
       {/* Filters */}
-      <section className="py-8 bg-gray-50 border-b">
+      <section className="py-8 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
               <Input
                 placeholder={t("search_placeholder")}
                 value={searchTerm}
@@ -167,13 +163,13 @@ function CoursesContent() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("all_levels")}</SelectItem>
-                  <SelectItem value="Beginner">
+                  <SelectItem value="beginner">
                     {t("level_beginner")}
                   </SelectItem>
-                  <SelectItem value="Intermediate">
+                  <SelectItem value="intermediate">
                     {t("level_intermediate")}
                   </SelectItem>
-                  <SelectItem value="Advanced">
+                  <SelectItem value="advanced">
                     {t("level_advanced")}
                   </SelectItem>
                 </SelectContent>
@@ -215,11 +211,11 @@ function CoursesContent() {
             </div>
           ) : courses.length === 0 ? (
             <div className="text-center py-12">
-              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              <BookOpen className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
                 {t("no_courses")}
               </h3>
-              <p className="text-gray-500 mb-4">{t("no_courses_desc")}</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">{t("no_courses_desc")}</p>
               <Button onClick={clearFilters} variant="outline">
                 {t("clear_filters")}
               </Button>
@@ -263,13 +259,13 @@ function CoursesContent() {
                             <div className="w-10 h-10 bg-brand-primary/10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-brand-primary/20 transition-colors">
                               <BookOpen className="h-5 w-5 text-brand-primary" />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-brand-primary transition-colors">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-brand-primary transition-colors">
                               {course.title}
                             </h3>
-                            <p className="text-gray-600 mb-3 text-sm line-clamp-2">
+                            <p className="text-gray-600 dark:text-gray-300 mb-3 text-sm line-clamp-2">
                               {course.shortDescription}
                             </p>
-                            <div className="flex items-center text-sm text-gray-500 mb-3">
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
                               <BookOpen className="h-4 w-4 mr-2" />
                               <span>
                                 {course.lessonsCount} {t("lessons")} •{" "}

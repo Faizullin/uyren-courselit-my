@@ -20,6 +20,7 @@ import PythonIcon from "@/../public/img/python.svg";
 import ChartLineUpIcon from "@/../public/img/chart-line-up.svg";
 import SupportIcon from "@/../public/img/support.svg";
 import { WebsiteSettings } from "@workspace/common-models";
+import { useSiteInfo } from "@/components/contexts/site-info-context";
 import "../home.css";
 
 interface HomePageClientProps {
@@ -28,6 +29,7 @@ interface HomePageClientProps {
 
 export default function HomePageClient({ websiteSettings }: HomePageClientProps) {
   const { t } = useTranslation("common");
+  const { siteInfo } = useSiteInfo();
 
   const features = [
     {
@@ -277,11 +279,11 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                         <div className="p-4 space-y-2">
                           <div className="flex items-center gap-2 mb-2">
                             <Image
-                              src="/img/logo.svg"
-                              alt="logo"
+                              src={siteInfo?.logo?.url || "/img/logo.svg"}
+                              alt={siteInfo?.logo?.caption || siteInfo?.title || "Logo"}
                               width={16}
                               height={16}
-                              className="w-4 h-4 p-0.5 border border-muted-foreground rounded"
+                              className="w-4 h-4 object-contain"
                             />
                             <p className="text-xs text-muted-foreground">
                               {t("courses_provider")}
@@ -373,7 +375,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                   <Button
                     variant="outline"
                     size="lg"
-                    className="border-2 border-white text-white hover:bg-white hover:text-black px-8 py-4 text-lg font-bold rounded-full transition-all duration-300 bg-transparent"
+                    className="border-2 border-white text-white hover:bg-white hover:text-black dark:border-gray-300 dark:text-gray-300 dark:hover:bg-gray-300 dark:hover:text-black px-8 py-4 text-lg font-bold rounded-full transition-all duration-300 bg-transparent"
                   >
                     {t("cta_contact_us")}
                   </Button>

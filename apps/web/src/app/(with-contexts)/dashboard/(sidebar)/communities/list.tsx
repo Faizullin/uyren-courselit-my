@@ -6,7 +6,6 @@ import {
 } from "@/lib/ui/config/strings";
 import { trpc } from "@/utils/trpc";
 import {
-  PaginatedTable,
   Table,
   TableBody,
   TableHead,
@@ -52,11 +51,6 @@ export default function List() {
           </Link>
         </div>
       </div>
-      <PaginatedTable
-        page={page}
-        totalPages={Math.ceil(total / communitiesResultsLimit)}
-        onPageChange={setPage}
-      >
         <Table aria-label="Communities" className="mb-4 w-full">
           <TableHead className="border-0 border-b border-slate-200">
             <td>Name</td>
@@ -120,7 +114,6 @@ export default function List() {
             )}
           </TableBody>
         </Table>
-      </PaginatedTable>
     </div>
   );
 }

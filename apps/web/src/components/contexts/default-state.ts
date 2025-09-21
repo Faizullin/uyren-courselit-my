@@ -25,11 +25,6 @@ export const defaultState: {
     codeInjectionBody: "",
     mailingAddress: "",
     hideCourseLitBranding: false,
-    razorpayKey: "",
-    lemonsqueezyStoreId: "",
-    lemonsqueezyOneTimeVariantId: "",
-    lemonsqueezySubscriptionMonthlyVariantId: "",
-    lemonsqueezySubscriptionYearlyVariantId: "",
   },
   networkAction: false,
   profile: {

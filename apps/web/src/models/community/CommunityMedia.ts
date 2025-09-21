@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { MediaSchema } from "./Media";
+import { MediaSchema } from "../Media";
 import { CommunityMedia } from "@workspace/common-models";
 
 const CommunityMediaSchema = new mongoose.Schema<CommunityMedia>({

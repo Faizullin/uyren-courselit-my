@@ -1,6 +1,6 @@
-import CommunityModel from "@/models/Community";
-import CommunityCommentModel from "@/models/CommunityComment";
-import CommunityPostModel from "@/models/CommunityPost";
+import CommunityModel from "@/models/community/Community";
+import CommunityCommentModel from "@/models/community/CommunityComment";
+import CommunityPostModel from "@/models/community/CommunityPost";
 import NotificationModel from "@/models/Notification";
 import UserModel from "@/models/User";
 import { TRPCError } from "@trpc/server";

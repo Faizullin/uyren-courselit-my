@@ -2,16 +2,6 @@
 
 import DashboardContent from "@/components/admin/dashboard-content";
 import HeaderTopbar from "@/components/admin/layout/header-topbar";
-import { useAddress } from "@/components/contexts/address-context";
-import { useProfile } from "@/components/contexts/profile-context";
-import {
-  BUTTON_NEW_LESSON_TEXT,
-  COURSE_CONTENT_HEADER,
-  EDIT_LESSON_TEXT,
-  MANAGE_COURSES_PAGE_HEADING,
-  TOAST_TITLE_ERROR,
-  TOAST_TITLE_SUCCESS,
-} from "@/lib/ui/config/strings";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -39,12 +29,13 @@ import {
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Switch } from "@workspace/ui/components/switch";
 import { truncate } from "@workspace/utils";
-import { File, FileText, HelpCircle, Video } from "lucide-react";
+import { Eye, File, FileText, HelpCircle, Video } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import * as z from "zod";
 
 const LessonContentEditor = dynamic(() =>
@@ -64,23 +55,21 @@ const lessonFormSchema = z.object({
 
 type LessonFormData = z.infer<typeof lessonFormSchema>;
 
-const lessonTypes = [
-  { value: Constants.LessonType.TEXT, label: "Text", icon: FileText },
-  { value: Constants.LessonType.VIDEO, label: "Video", icon: Video },
-  { value: Constants.LessonType.QUIZ, label: "Quiz", icon: HelpCircle },
-  { value: Constants.LessonType.FILE, label: "File", icon: File },
+const getLessonTypes = (t: (key: string) => string) => [
+  { value: Constants.LessonType.TEXT, label: t("lesson.types.text"), icon: FileText },
+  { value: Constants.LessonType.VIDEO, label: t("lesson.types.video"), icon: Video },
+  { value: Constants.LessonType.QUIZ, label: t("lesson.types.quiz"), icon: HelpCircle },
+  { value: Constants.LessonType.FILE, label: t("lesson.types.file"), icon: File },
 ];
 
 export default function LessonPage() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const { id: productId, section: sectionId } = params;
   const lessonId = searchParams.get("id");
   const isEditing = !!lessonId;
-
-  const { profile } = useProfile();
-  const { address } = useAddress();
   const { toast } = useToast();
 
   const { data: product, isLoading: productLoading } =
@@ -114,21 +103,21 @@ export default function LessonPage() {
 
   const breadcrumbs = useMemo(
     () => [
-      { label: MANAGE_COURSES_PAGE_HEADING, href: "/dashboard/products" },
+      { label: t("sidebar.products"), href: "/dashboard/products" },
       {
         label: product ? truncate(product.title || "", 20) || "..." : "...",
         href: `/dashboard/products/${productId}`,
       },
       {
-        label: COURSE_CONTENT_HEADER,
+        label: t("lesson.content"),
         href: `/dashboard/products/${productId}/content`,
       },
       {
-        label: isEditing ? EDIT_LESSON_TEXT : BUTTON_NEW_LESSON_TEXT,
+        label: isEditing ? t("lesson.edit_lesson") : t("lesson.new_lesson"),
         href: "#",
       },
     ],
-    [product, productId, isEditing],
+    [product, productId, isEditing, t],
   );
   const editorRef = useRef<ContentEditorRef>(null);
   const [editorContent, setEditorContent] = useState<TextEditorContent>({
@@ -173,14 +162,14 @@ export default function LessonPage() {
     trpc.lmsModule.courseModule.lesson.update.useMutation({
       onSuccess: () => {
         toast({
-          title: TOAST_TITLE_SUCCESS,
-          description: "Lesson updated successfully",
+          title: t("common:dashboard.success"),
+          description: t("lesson.updated_successfully"),
         });
         router.push(`/dashboard/products/${productId}/content`);
       },
       onError: (error) => {
         toast({
-          title: TOAST_TITLE_ERROR,
+          title: t("common:dashboard.error"),
           description: error.message,
           variant: "destructive",
         });
@@ -191,14 +180,14 @@ export default function LessonPage() {
     trpc.lmsModule.courseModule.lesson.create.useMutation({
       onSuccess: () => {
         toast({
-          title: TOAST_TITLE_SUCCESS,
-          description: "Lesson created successfully",
+          title: t("common:dashboard.success"),
+          description: t("lesson.created_successfully"),
         });
         router.push(`/dashboard/products/${productId}/content`);
       },
       onError: (error) => {
         toast({
-          title: TOAST_TITLE_ERROR,
+          title: t("common:dashboard.error"),
           description: error.message,
           variant: "destructive",
         });
@@ -257,7 +246,7 @@ export default function LessonPage() {
     return (
       <DashboardContent breadcrumbs={breadcrumbs}>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Product not found</p>
+          <p className="text-muted-foreground">{t("lesson.product_not_found")}</p>
         </div>
       </DashboardContent>
     );
@@ -268,7 +257,7 @@ export default function LessonPage() {
     return (
       <DashboardContent breadcrumbs={breadcrumbs}>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Section not found</p>
+          <p className="text-muted-foreground">{t("lesson.section_not_found")}</p>
         </div>
       </DashboardContent>
     );
@@ -280,11 +269,29 @@ export default function LessonPage() {
         <HeaderTopbar
           backLink={true}
           header={{
-            title: isEditing ? EDIT_LESSON_TEXT : BUTTON_NEW_LESSON_TEXT,
+            title: isEditing ? t("lesson.edit_lesson") : t("lesson.new_lesson"),
             subtitle: isEditing
-              ? "Edit lesson details"
-              : "Create a new lesson for this section",
+              ? t("lesson.edit_subtitle")
+              : t("lesson.create_subtitle"),
           }}
+          rightAction={
+            isEditing && lesson ? (
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link
+                  href={`/courses/${product.courseId}/lessons/${lesson.lessonId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  {t("lesson.view_lesson")}
+                </Link>
+              </Button>
+            ) : undefined
+          }
         />
 
         <Form {...form}>
@@ -294,9 +301,9 @@ export default function LessonPage() {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lesson Title</FormLabel>
+                  <FormLabel>{t("lesson.title")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter lesson title" {...field} />
+                    <Input placeholder={t("lesson.title_placeholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -308,14 +315,14 @@ export default function LessonPage() {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lesson Type</FormLabel>
+                  <FormLabel>{t("lesson.type")}</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       className="grid grid-cols-2 gap-4"
                     >
-                      {lessonTypes.map((type) => {
+                      {getLessonTypes(t).map((type) => {
                         const Icon = type.icon;
                         return (
                           <div key={type.value}>
@@ -347,7 +354,7 @@ export default function LessonPage() {
                   editorRef.current!.commands.focus("end");
                 }}
               >
-                Lesson Content
+                {t("lesson.content")}
               </FormLabel>
               <LessonContentEditor
                 onEditor={(editor, meta) => {
@@ -373,10 +380,10 @@ export default function LessonPage() {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Requires Enrollment
+                        {t("lesson.requires_enrollment")}
                       </FormLabel>
                       <p className="text-sm text-muted-foreground">
-                        Students must be enrolled to access this lesson
+                        {t("lesson.requires_enrollment_description")}
                       </p>
                     </div>
                     <FormControl>
@@ -395,9 +402,9 @@ export default function LessonPage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">Downloadable</FormLabel>
+                      <FormLabel className="text-base">{t("lesson.downloadable")}</FormLabel>
                       <p className="text-sm text-muted-foreground">
-                        Allow students to download this lesson
+                        {t("lesson.downloadable_description")}
                       </p>
                     </div>
                     <FormControl>
@@ -414,15 +421,15 @@ export default function LessonPage() {
             <div className="flex items-center justify-end gap-4">
               <Button variant="outline" asChild>
                 <Link href={`/dashboard/products/${productId}/content`}>
-                  Cancel
+                  {t("common:dashboard.cancel")}
                 </Link>
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting
-                  ? "Saving..."
+                  ? t("lesson.saving")
                   : isEditing
-                    ? "Update Lesson"
-                    : "Create Lesson"}
+                    ? t("lesson.update_lesson")
+                    : t("lesson.create_lesson")}
               </Button>
             </div>
           </form>

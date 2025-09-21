@@ -1,4 +1,3 @@
-import { Drip } from "./drip";
 
 export default interface Group {
   groupId: string;
@@ -6,5 +5,4 @@ export default interface Group {
   rank: number;
   collapsed: boolean;
   lessonsOrder: string[];
-  drip?: Drip;
 }

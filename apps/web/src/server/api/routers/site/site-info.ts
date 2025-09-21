@@ -2,7 +2,6 @@ import constants from "@/config/constants";
 import { responses } from "@/config/strings";
 import ApikeyModel from "@/models/ApiKey";
 import DomainModel, { Domain } from "@/models/Domain";
-import PageModel from "@/models/Page";
 
 import {
   Constants,
@@ -91,45 +90,13 @@ const checkForInvalidPaymentMethodSettings = (siteInfo: SiteInfo) => {
 
   let failedPaymentMethod: PaymentMethod | undefined = undefined;
 
-  if (
-    siteInfo.paymentMethod === UIConstants.PAYMENT_METHOD_PAYTM &&
-    !siteInfo.paytmSecret
-  ) {
-    failedPaymentMethod = UIConstants.PAYMENT_METHOD_PAYTM;
-  }
 
-  if (
-    siteInfo.paymentMethod === UIConstants.PAYMENT_METHOD_PAYPAL &&
-    !siteInfo.paypalSecret
-  ) {
-    failedPaymentMethod = UIConstants.PAYMENT_METHOD_PAYPAL;
-  }
 
   if (
     siteInfo.paymentMethod === UIConstants.PAYMENT_METHOD_STRIPE &&
     !(siteInfo.stripeSecret && siteInfo.stripeKey)
   ) {
     failedPaymentMethod = UIConstants.PAYMENT_METHOD_STRIPE;
-  }
-
-  if (
-    siteInfo.paymentMethod === UIConstants.PAYMENT_METHOD_RAZORPAY &&
-    !(siteInfo.razorpayKey && siteInfo.razorpaySecret)
-  ) {
-    failedPaymentMethod = UIConstants.PAYMENT_METHOD_RAZORPAY;
-  }
-
-  if (
-    siteInfo.paymentMethod === UIConstants.PAYMENT_METHOD_LEMONSQUEEZY &&
-    !(
-      siteInfo.lemonsqueezyKey &&
-      siteInfo.lemonsqueezyStoreId &&
-      siteInfo.lemonsqueezyOneTimeVariantId &&
-      siteInfo.lemonsqueezySubscriptionMonthlyVariantId &&
-      siteInfo.lemonsqueezySubscriptionYearlyVariantId
-    )
-  ) {
-    failedPaymentMethod = UIConstants.PAYMENT_METHOD_LEMONSQUEEZY;
   }
 
   return failedPaymentMethod;
@@ -179,96 +146,15 @@ export const siteInfoRouter = router({
         lastEditedThemeId: 0,
       };
 
-      // Get page
-      let page: any = null;
-      if (input.pageId) {
-        page = await PageModel.findOne({
-          domain: domainObj._id,
-          pageId: input.pageId,
-          deleted: false,
-        });
-      } else {
-        page = await PageModel.findOne({
-          domain: domainObj._id,
-          deleted: false,
-        }).sort({ createdAt: 1 });
-      }
-
-      if (!page) {
-        const identifier = input.pageId || "default";
-        throw new NotFoundException("Page", identifier);
-      }
-
-      // Prepare theme data with default values
-      const defaultColors = {
-        background: "#ffffff",
-        foreground: "#000000",
-        card: "#ffffff",
-        cardForeground: "#000000",
-        popover: "#ffffff",
-        popoverForeground: "#000000",
-        primary: "#0f172a",
-        primaryForeground: "#f8fafc",
-        secondary: "#f1f5f9",
-        secondaryForeground: "#0f172a",
-        muted: "#f1f5f9",
-        mutedForeground: "#64748b",
-        accent: "#f1f5f9",
-        accentForeground: "#0f172a",
-        destructive: "#ef4444",
-        border: "#e2e8f0",
-        input: "#e2e8f0",
-        ring: "#0f172a",
-        chart1: "#e11d48",
-        chart2: "#f97316",
-        chart3: "#eab308",
-        chart4: "#22c55e",
-        chart5: "#3b82f6",
-        sidebar: "#f8fafc",
-        sidebarForeground: "#0f172a",
-        sidebarPrimary: "#0f172a",
-        sidebarPrimaryForeground: "#f8fafc",
-        sidebarAccent: "#f1f5f9",
-        sidebarAccentForeground: "#0f172a",
-        sidebarBorder: "#e2e8f0",
-        sidebarRing: "#0f172a",
-        shadow2xs: "#0000000d",
-        shadowXs: "#0000001a",
-        shadowSm: "#00000026",
-        shadowMd: "#00000033",
-        shadowLg: "#00000040",
-        shadowXl: "#0000004d",
-        shadow2xl: "#0000005a",
-      };
-
       const theme = {
         id: domainObj.themeId || "default",
         name: "Default Theme",
-        theme: {
-          colors: {
-            light: defaultColors,
-            dark: defaultColors,
-          },
-          typography: {},
-          interactives: {},
-          structure: {},
-        },
       };
 
       // Return combined data
       return {
         settings: domainObj.settings,
         theme,
-        page: {
-          type: page.type,
-          name: page.name,
-          title: page.title,
-          layout: page.layout,
-          pageData: page.layout,
-          description: page.description,
-          socialImage: page.socialImage,
-          robotsAllowed: page.robotsAllowed,
-        },
       };
     }),
 
@@ -432,8 +318,6 @@ export const siteInfoRouter = router({
         paymentMethod: z.enum(Constants.paymentMethods).optional(),
         stripeKey: z.string().min(32).max(255).optional(),
         stripeSecret: z.string().min(32).max(255).optional(),
-        razorpayKey: z.string().min(32).max(255).optional(),
-        razorpaySecret: z.string().min(32).max(255).optional(),
         // razorpayWebhookSecret: $razorpayWebhookSecret,
         // lemonsqueezyKey: $lemonsqueezyKey,
         // lemonsqueezyStoreId: $lemonsqueezyStoreId,

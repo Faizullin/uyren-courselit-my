@@ -1,4 +1,4 @@
-import CommunityModel from "@/models/Community";
+import CommunityModel from "@/models/community/Community";
 import CourseModel from "@/models/Course";
 import MembershipModel from "@/models/Membership";
 import UserModel from "@/models/User";

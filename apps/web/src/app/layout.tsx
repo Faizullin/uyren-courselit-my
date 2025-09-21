@@ -10,7 +10,6 @@ import { getT } from "./i18n/server";
 import NextTopLoader from "nextjs-toploader";
 
 import "@/lib/global-client";
-// import "@workspace/components-library/styles.css";
 import "@/styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"] });

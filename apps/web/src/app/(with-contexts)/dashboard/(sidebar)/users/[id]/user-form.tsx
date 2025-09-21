@@ -1,7 +1,6 @@
 "use client";
 
 import PermissionsEditor from "@/components/admin/users/permissions-editor";
-import { useProfile } from "@/components/contexts/profile-context";
 import {
   SWITCH_ACCOUNT_ACTIVE,
   TOAST_TITLE_ERROR,

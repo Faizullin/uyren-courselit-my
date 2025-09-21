@@ -23,6 +23,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Edit, Eye, Palette, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { BASIC_PUBLICATION_STATUS_TYPE, BasicPublicationStatus } from "@workspace/common-models";
 import { GeneralRouterOutputs } from "@/server/api/types";
 
@@ -38,6 +39,7 @@ type QueryParams = Parameters<
 >[0];
 
 export default function Page() {
+  const { t } = useTranslation("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [parsedData, setParsedData] = useState<Array<ItemType>>([]);
@@ -64,7 +66,7 @@ export default function Page() {
     return [
       {
         accessorKey: "name",
-        header: "Theme Name",
+        header: t("table.title"),
         cell: ({ row }) => {
           const theme = row.original;
           return (
@@ -84,7 +86,7 @@ export default function Page() {
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("table.status"),
         cell: ({ row }) => {
           const status = row.original.status;
           return (
@@ -99,25 +101,25 @@ export default function Page() {
             >
               <div className="flex items-center gap-1">
                 {status === BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED
-                  ? "Published"
+                  ? t("table.published")
                   : status === BASIC_PUBLICATION_STATUS_TYPE.DRAFT
-                    ? "Draft"
-                    : "Archived"}
+                    ? t("table.draft")
+                    : t("table.archived")}
               </div>
             </Badge>
           );
         },
         meta: {
-          label: "Status",
+          label: t("table.status"),
           variant: "select",
           options: [
-            { label: "Draft", value: BASIC_PUBLICATION_STATUS_TYPE.DRAFT },
+            { label: t("table.draft"), value: BASIC_PUBLICATION_STATUS_TYPE.DRAFT },
             {
-              label: "Published",
+              label: t("table.published"),
               value: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
             },
             {
-              label: "Archived",
+              label: t("table.archived"),
               value: BASIC_PUBLICATION_STATUS_TYPE.ARCHIVED,
             },
           ],
@@ -126,7 +128,7 @@ export default function Page() {
       },
       {
         accessorKey: "createdAt",
-        header: "Created",
+        header: t("table.created"),
         cell: ({ row }) => {
           const date = row.getValue("createdAt") as string;
           return (
@@ -136,13 +138,13 @@ export default function Page() {
           );
         },
         meta: {
-          label: "Created Date",
+          label: t("table.created"),
           variant: "date",
         },
       },
       {
         id: "actions",
-        header: "Actions",
+        header: t("table.actions"),
         cell: ({ row }) => {
           const theme = row.original;
           return (
@@ -157,7 +159,7 @@ export default function Page() {
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/themes/${theme._id}`}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Theme
+                    {t("table.edit")}
                   </Link>
                 </DropdownMenuItem>
 
@@ -166,7 +168,7 @@ export default function Page() {
                   className="text-red-600"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Theme
+                  {t("table.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -244,8 +246,8 @@ export default function Page() {
       <div className="flex flex-col gap-4">
         <HeaderTopbar
           header={{
-            title: "Themes",
-            subtitle: "Manage LMS themes and styling",
+            title: t("lms.modules.themes.title"),
+            subtitle: t("lms.modules.themes.description"),
           }}
           rightAction={<CreateButton href="/dashboard/lms/themes/new" />}
         />
@@ -253,7 +255,7 @@ export default function Page() {
           <CardContent>
             <div className="flex flex-col gap-2">
               <Input
-                placeholder={"Search themes..."}
+                placeholder={t("table.search_placeholder")}
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className="h-8 w-40 lg:w-56"

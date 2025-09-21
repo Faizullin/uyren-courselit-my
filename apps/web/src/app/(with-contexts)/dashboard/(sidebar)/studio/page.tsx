@@ -5,7 +5,7 @@ import { useProfile } from "@/components/contexts/profile-context";
 import LoadingScreen from "@/components/admin/loading-screen";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Database, ArrowRightLeft } from "lucide-react";
+import { Database, Server } from "lucide-react";
 import Link from "next/link";
 
 export default function StudioPage() {
@@ -43,16 +43,6 @@ export default function StudioPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Manage and view all database records including users, courses, quizzes, assignments, and more. 
-                Full CRUD operations with JSON editor support.
-              </p>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>• View and search all data models</div>
-                <div>• Create, update, and delete records</div>
-                <div>• JSON editor for advanced operations</div>
-                <div>• Real-time data management</div>
-              </div>
               <div className="mt-6">
                 <Link href="/dashboard/studio/db">
                   <Button className="w-full">
@@ -66,25 +56,17 @@ export default function StudioPage() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ArrowRightLeft className="h-5 w-5 text-secondary" />
-                Migration Tool
+                <Server className="h-5 w-5 text-secondary" />
+                Redis Cache
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">
-                Run database migrations, data transformations, and system updates. 
-                Handle schema changes and data imports/exports safely.
-              </p>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>• Database schema migrations</div>
-                <div>• Data import/export operations</div>
-                <div>• Backup and restore functionality</div>
-                <div>• System maintenance tools</div>
-              </div>
               <div className="mt-6">
-                <Button variant="secondary" className="w-full" disabled>
-                  Coming Soon
-                </Button>
+                <Link href="/dashboard/studio/redis">
+                  <Button variant="secondary" className="w-full">
+                    Open Redis Manager
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -94,8 +76,8 @@ export default function StudioPage() {
           <h3 className="font-medium mb-2">Studio Overview</h3>
           <p className="text-sm text-muted-foreground">
             The Studio provides administrative tools for managing your application's data and performing 
-            system operations. Use the Main Database tool for everyday data management and the Migration 
-            tool for system-level operations and data transformations.
+            system operations. Use the Main Database tool for everyday data management and the Redis Cache 
+            tool for monitoring and managing cached data and performance.
           </p>
         </div>
       </div>

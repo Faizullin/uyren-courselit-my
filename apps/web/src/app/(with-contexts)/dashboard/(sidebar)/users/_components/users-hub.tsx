@@ -4,14 +4,7 @@ import DashboardContent from "@/components/admin/dashboard-content";
 import LoadingScreen from "@/components/admin/loading-screen";
 import { useProfile } from "@/components/contexts/profile-context";
 import {
-  TOAST_TITLE_ERROR,
-  USER_TABLE_HEADER_COMMUNITIES,
-  USER_TABLE_HEADER_JOINED,
-  USER_TABLE_HEADER_LAST_ACTIVE,
-  USER_TABLE_HEADER_NAME,
-  USER_TABLE_HEADER_PRODUCTS,
-  USER_TABLE_HEADER_STATUS,
-  USERS_MANAGER_PAGE_HEADING,
+  TOAST_TITLE_ERROR
 } from "@/lib/ui/config/strings";
 import { formattedLocaleDate } from "@/lib/ui/lib/utils";
 import { GeneralRouterOutputs } from "@/server/api/types";
@@ -36,15 +29,16 @@ import {
 import { checkPermission } from "@workspace/utils";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { permissions } = UIConstants;
-
-const breadcrumbs = [{ label: "Users", href: "#" }];
 
 type UserItemType =
   GeneralRouterOutputs["userModule"]["user"]["list"]["items"][number];
 
 export default function UsersHub() {
+  const { t } = useTranslation(["dashboard", "common"]);
+  const breadcrumbs = [{ label: t("sidebar.users"), href: "#" }];
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [rowsPerPage, _] = useState(10);
@@ -116,13 +110,13 @@ export default function UsersHub() {
     <DashboardContent breadcrumbs={breadcrumbs}>
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-semibold mb-4">
-          {USERS_MANAGER_PAGE_HEADING}
+          {t("sidebar.users")}
         </h1>
       </div>
       <div className="w-full mt-4 space-y-8">
         <div className="mb-4">
           <Input
-            placeholder="Search users by name or email..."
+            placeholder={t("users.search_placeholder")}
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="max-w-sm"
@@ -132,28 +126,28 @@ export default function UsersHub() {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-muted-foreground font-medium">
-                {USER_TABLE_HEADER_NAME}
+                {t("users.table.name")}
               </TableHead>
               <TableHead className="text-muted-foreground font-medium">
-                {USER_TABLE_HEADER_STATUS}
+                {t("users.table.status")}
               </TableHead>
               <TableHead className="text-muted-foreground font-medium">
-                {USER_TABLE_HEADER_PRODUCTS}
+                {t("users.table.products")}
               </TableHead>
               <TableHead className="text-muted-foreground font-medium">
-                {USER_TABLE_HEADER_COMMUNITIES}
+                {t("users.table.communities")}
               </TableHead>
               <TableHead
                 align="right"
                 className="text-muted-foreground font-medium hidden lg:table-cell"
               >
-                {USER_TABLE_HEADER_JOINED}
+                {t("users.table.joined")}
               </TableHead>
               <TableHead
                 align="right"
                 className="text-muted-foreground font-medium hidden lg:table-cell"
               >
-                {USER_TABLE_HEADER_LAST_ACTIVE}
+                {t("users.table.last_active")}
               </TableHead>
             </TableRow>
           </TableHeader>

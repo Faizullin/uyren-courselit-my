@@ -3,11 +3,11 @@ import { Log } from "@/lib/logger";
 import { hasCommunityPermission } from "@/lib/ui/lib/utils";
 import CommunityCommentModel, {
   InternalCommunityComment,
-} from "@/models/CommunityComment";
+} from "@/models/community/CommunityComment";
 import CommunityPostModel, {
   InternalCommunityPost,
-} from "@/models/CommunityPost";
-import CommunityPostSubscriberModel from "@/models/CommunityPostSubscriber";
+} from "@/models/community/CommunityPost";
+import CommunityPostSubscriberModel from "@/models/community/CommunityPostSubscriber";
 import MembershipModel from "@/models/Membership";
 import NotificationModel from "@/models/Notification";
 import UserModel from "@/models/User";

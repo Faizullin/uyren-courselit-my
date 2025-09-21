@@ -106,7 +106,7 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen">
       <Header />
 
       {/* Hero Section */}
@@ -146,16 +146,16 @@ export default function AboutPage() {
       </section>
 
       {/* History Section */}
-      <section className="py-12 md:py-20 bg-white">
+      <section className="py-12 md:py-20 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4">
           <ScrollAnimation
             variant="fadeUp"
             className="text-center mb-12 md:mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               {t("about_history_title")}
             </h2>
-            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               {t("about_history_subtitle")}
             </p>
           </ScrollAnimation>
@@ -164,7 +164,7 @@ export default function AboutPage() {
           <div className="max-w-4xl mx-auto" ref={timelineRef}>
             <div ref={timelineRef} className="relative timeline-container">
               {/* Vertical Line */}
-              <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 top-0 bottom-0 w-1 bg-gray-200">
+              <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 top-0 bottom-0 w-1 bg-gray-200 dark:bg-gray-700">
                 <div className="timeline-line absolute top-0 left-0 w-full bg-gradient-to-b from-brand-primary via-orange-500 to-purple-500 h-0 transition-all duration-[2000ms] ease-out"></div>
               </div>
 
@@ -202,10 +202,10 @@ export default function AboutPage() {
                             >
                               {item.year}
                             </div>
-                            <h4 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
+                            <h4 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                               {item.title}
                             </h4>
-                            <p className="text-gray-600 text-sm md:text-base">
+                            <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base">
                               {item.description}
                             </p>
                           </div>
@@ -258,10 +258,10 @@ export default function AboutPage() {
                             >
                               {item.year}
                             </div>
-                            <h4 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
+                            <h4 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                               {item.title}
                             </h4>
-                            <p className="text-gray-600 text-sm md:text-base">
+                            <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base">
                               {item.description}
                             </p>
                           </div>
@@ -277,33 +277,33 @@ export default function AboutPage() {
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-12 md:py-20 bg-gray-50">
+      <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4">
           <ScrollGroup
             variant="fadeUp"
             staggerDelay={0.3}
             className="grid lg:grid-cols-2 gap-8 md:gap-12"
           >
-            <div className="bg-gradient-to-br from-orange-50 to-red-50 p-6 md:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 p-6 md:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
               <div className="flex items-center space-x-3 mb-4 md:mb-6">
                 <Target className="h-6 md:h-8 w-6 md:w-8 text-brand-primary" />
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                   {t("about_mission_title")}
                 </h2>
               </div>
-              <p className="text-gray-700 text-base md:text-lg leading-relaxed">
+              <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed">
                 {t("about_mission_desc")}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 md:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 md:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
               <div className="flex items-center space-x-3 mb-4 md:mb-6">
                 <Rocket className="h-6 md:h-8 w-6 md:w-8 text-blue-600" />
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                   {t("about_vision_title")}
                 </h2>
               </div>
-              <p className="text-gray-700 text-base md:text-lg leading-relaxed">
+              <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed">
                 {t("about_vision_desc")}
               </p>
             </div>

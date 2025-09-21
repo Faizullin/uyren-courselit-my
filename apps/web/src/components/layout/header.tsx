@@ -6,13 +6,20 @@ import { useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import {
-  ChevronDown,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
+import {
   LogOut,
   Menu,
   Settings,
   UserCircle,
   X,
 } from "lucide-react";
+import ThemeToggle from "./theme-toggle";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,13 +28,12 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function Header() {
-  const { t, i18n } = useTranslation("common");
+  const { t, i18n } = useTranslation(["common", "dashboard"]);
   const { siteInfo } = useSiteInfo();
   const { profile } = useProfile();
   const { data: session, status } = useSession();
   const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -38,15 +44,15 @@ export default function Header() {
     { name: t("nav_home"), href: "/" },
     { name: t("nav_about"), href: "/about" },
     { name: t("nav_courses"), href: "/courses" },
-    { name: t("nav_grants"), href: "/grants" },
+    // { name: t("nav_grants"), href: "/grants" },
     // { name: t("nav_community"), href: "/community" },
-    { name: t("nav_sponsorship"), href: "/sponsorship" },
+    // { name: t("nav_sponsorship"), href: "/sponsorship" },
   ];
 
   const languages = [
     { code: "en-US", label: "EN" },
     { code: "ru", label: "RU" },
-    // { code: "kz", label: "KZ" },
+    { code: "kz", label: "KZ" },
   ];
 
   const handleNavigation = (href: string, e: React.MouseEvent) => {
@@ -58,7 +64,6 @@ export default function Header() {
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     setCurrentLang(lng);
-    setLangOpen(false);
   };
 
   // Close mobile menu when route changes
@@ -90,14 +95,14 @@ export default function Header() {
     try {
       await signOut({ callbackUrl: "/" });
       toast({
-        title: "Signed out successfully",
-        description: "You have been logged out",
+        title: t("common:dashboard.success"),
+        description: t("dashboard:header.signed_out_successfully"),
       });
     } catch (error) {
       console.error("Sign out error:", error);
       toast({
-        title: "Sign out error",
-        description: "There was an issue signing out. Please try again.",
+        title: t("common:dashboard.error"),
+        description: t("dashboard:header.sign_out_error"),
         variant: "destructive",
       });
     }
@@ -115,17 +120,18 @@ export default function Header() {
             title={siteInfo?.title || "Uyren Academy"}
             subtitle={siteInfo?.subtitle}
             icon={
-              siteInfo?.logo?.url ? (
-                <Image
-                  src={siteInfo.logo.url}
-                  alt={siteInfo.logo.caption || siteInfo.title || "Logo"}
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 object-contain"
-                />
-              ) : (
-                <span className="text-white font-bold text-lg">U</span>
-              )
+              <Image
+                src={siteInfo?.logo?.url || "/img/logo.svg"}
+                alt={siteInfo?.logo?.caption || siteInfo?.title || t("dashboard:header.logo")}
+                width={40}
+                height={40}
+                className="h-10 w-10 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = "/img/logo.svg";
+                }}
+              />
             }
             onClick={handleNavigation}
           />
@@ -142,7 +148,7 @@ export default function Header() {
                   href={item.href}
                   onClick={(e) => handleNavigation(item.href, e)}
                   className={cn(
-                    "relative py-2 px-1 text-gray-700 text-sm transition-all duration-300 hover:text-brand-primary group",
+                    "relative py-2 px-1 text-gray-700 dark:text-gray-200 text-sm transition-all duration-300 hover:text-brand-primary group",
                     isActive ? "font-bold text-brand-primary" : "font-medium",
                   )}
                 >
@@ -158,30 +164,21 @@ export default function Header() {
             })}
 
             {/* Language selector */}
-            <div className="relative">
-              <Button
-                onClick={() => setLangOpen(!langOpen)}
-                className="flex items-center space-x-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md"
-              >
-                {languages.find((l) => l.code === currentLang)?.label}
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-              {langOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-white border rounded-md shadow-lg z-50">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
-                      className="w-full text-left px-3 py-2 hover:bg-brand-primary hover:text-white rounded-md"
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <Select value={currentLang} onValueChange={changeLanguage}>
+              <SelectTrigger className="w-20 h-9 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {languages.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    {lang.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            {/* Get Started */}
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* Get Started */}
             {!isAuthenticated ? (
@@ -197,12 +194,13 @@ export default function Header() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 p-2 rounded-md text-muted-foreground hover:text-brand-primary hover:bg-accent transition-colors duration-200"
+                  className="p-2 rounded-md text-muted-foreground hover:text-brand-primary hover:bg-accent transition-colors duration-200"
+                  aria-label={profile?.name || session?.user?.name || t("dashboard:header.user")}
                 >
                   {profile?.avatar?.file ? (
                     <Image
                       src={profile.avatar.file}
-                      alt={profile.name || "User Avatar"}
+                      alt={profile.name || t("dashboard:header.user_avatar")}
                       width={32}
                       height={32}
                       className="w-8 h-8 rounded-full object-cover"
@@ -210,9 +208,6 @@ export default function Header() {
                   ) : (
                     <UserCircle className="w-8 h-8 text-brand-primary" />
                   )}
-                  <span className="font-medium text-foreground">
-                    {profile?.name || session?.user?.name || "User"}
-                  </span>
                 </button>
 
                 {userMenuOpen && (
@@ -223,14 +218,14 @@ export default function Header() {
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <Settings className="w-4 h-4 inline mr-2" />
-                      Dashboard
+                      {t("common:dashboard.dashboard")}
                     </Link>
                     <button
                       onClick={handleSignOut}
                       className="block w-full text-left px-4 py-2 text-sm text-muted-foreground hover:text-red-500 hover:bg-accent"
                     >
                       <LogOut className="w-4 h-4 inline mr-2" />
-                      Sign Out
+                      {t("dashboard:header.sign_out")}
                     </button>
                   </div>
                 )}
@@ -242,7 +237,7 @@ export default function Header() {
           <button
             className="lg:hidden focus:outline-none"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileMenuOpen ? t("dashboard:header.close_menu") : t("dashboard:header.open_menu")}
           >
             {mobileMenuOpen ? (
               <X className="h-6 w-6 transition-transform duration-300 rotate-90" />
@@ -273,35 +268,35 @@ export default function Header() {
                     "block py-2 px-2 transition-all duration-200 rounded-md",
                     isActive
                       ? "text-brand-primary font-bold bg-orange-50 border-l-4 border-brand-primary pl-4"
-                      : "text-gray-700 hover:text-brand-primary hover:bg-orange-50/50 font-medium",
+                      : "text-gray-700 dark:text-gray-200 hover:text-brand-primary hover:bg-orange-50/50 dark:hover:bg-orange-900/20 font-medium",
                   )}
                 >
                   {item.name}
                 </Link>
               );
             })}
-            {/* 
             <div className="flex items-center justify-between py-2 px-2">
-              <span className="text-gray-700 font-medium">{t("nav_theme")}</span>
+              <span className="text-gray-700 dark:text-gray-200 font-medium">{t("nav_theme")}</span>
               <ThemeToggle />
-            </div> */}
+            </div>
 
             {/* Mobile language selector */}
             <div className="flex items-center justify-between py-2 px-2">
-              <span className="text-gray-700 font-medium">
+              <span className="text-gray-700 dark:text-gray-300 font-medium">
                 {t("nav_language")}
               </span>
-              <select
-                value={currentLang}
-                onChange={(e) => changeLanguage(e.target.value)}
-                className="border rounded px-2 py-1 text-gray-700"
-              >
-                {languages.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={currentLang} onValueChange={changeLanguage}>
+                <SelectTrigger className="w-20 h-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {!isAuthenticated ? (
@@ -342,11 +337,11 @@ const Branding = (props: {
       className="flex items-center space-x-3 group transition-all duration-300"
       onClick={(e) => props.onClick("/", e)}
     >
-      <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-brand-primary-hover rounded-full flex items-center justify-center transition-transform duration-300">
-        <span className="text-white font-bold text-lg">{props.icon}</span>
+      <div className="w-10 h-10 flex items-center justify-center transition-transform duration-300">
+        {props.icon}
       </div>
       <div>
-        <div className="text-lg font-bold text-gray-900">{props.title}</div>
+        <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{props.title}</div>
         <div className="text-xs text-brand-primary">{props.subtitle}</div>
       </div>
     </Link>

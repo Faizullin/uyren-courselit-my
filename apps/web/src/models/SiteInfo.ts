@@ -12,19 +12,8 @@ const SettingsSchema = new mongoose.Schema<SiteInfo>({
   codeInjectionHead: { type: String },
   codeInjectionBody: { type: String },
   stripeSecret: { type: String },
-  paytmSecret: { type: String },
-  paypalSecret: { type: String },
   mailingAddress: { type: String },
   hideCourseLitBranding: { type: Boolean, default: false },
-  razorpayKey: { type: String },
-  razorpaySecret: { type: String },
-  razorpayWebhookSecret: { type: String },
-  lemonsqueezyKey: { type: String },
-  lemonsqueezyStoreId: { type: String },
-  lemonsqueezyWebhookSecret: { type: String },
-  lemonsqueezyOneTimeVariantId: { type: String },
-  lemonsqueezySubscriptionMonthlyVariantId: { type: String },
-  lemonsqueezySubscriptionYearlyVariantId: { type: String },
 });
 
 export default SettingsSchema;

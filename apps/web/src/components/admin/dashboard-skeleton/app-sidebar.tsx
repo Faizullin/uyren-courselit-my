@@ -5,13 +5,7 @@ import { NavProjects } from "@/components/admin/dashboard-skeleton/nav-projects"
 import { NavUser } from "@/components/admin/dashboard-skeleton/nav-user";
 import { useProfile } from "@/components/contexts/profile-context";
 import { useSiteInfo } from "@/components/contexts/site-info-context";
-import {
-  MY_CONTENT_HEADER,
-  SIDEBAR_MENU_SETTINGS,
-  SIDEBAR_MENU_USERS
-} from "@/lib/ui/config/strings";
 import { UIConstants } from "@workspace/common-models";
-import { Image } from "@workspace/components-library";
 import {
   Sidebar,
   SidebarContent,
@@ -26,22 +20,22 @@ import { checkPermission } from "@workspace/utils";
 import {
   Box,
   Database,
-  Globe,
   LibraryBig,
-  LifeBuoy,
-  Mail,
   MessageCircleHeart,
   Settings,
   Target,
-  Users,
+  Users
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ComponentProps } from "react";
+import { useTranslation } from "react-i18next";
 import { NavSecondary } from "./nav-secondary";
 const { permissions } = UIConstants;
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+  const { t } = useTranslation("dashboard");
   const { siteInfo } = useSiteInfo();
   const { profile } = useProfile();
   const path = usePathname();
@@ -52,6 +46,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     profile,
     path!,
     tab!,
+    t,
   );
 
   return (
@@ -61,18 +56,15 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <div className="flex aspect-square size-8 items-center justify-center">
                   <Image
-                    borderRadius={1}
-                    src={siteInfo.logo?.url || ""}
-                    width="w-[16px]"
-                    height="h-[16px]"
-                    alt="logo"
+                    src={siteInfo?.logo?.url || "/img/logo.svg"}
+                    alt={siteInfo?.logo?.caption || siteInfo?.title || "Logo"}
+                    width={16}
+                    height={16}
+                    className="w-4 h-4 object-contain"
                   />
                 </div>
-                {/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                    <Command className="size-4" />
-                                </div> */}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">
                     {siteInfo.title}
@@ -100,6 +92,7 @@ function getSidebarItems(
   profile: ReturnType<typeof useProfile>["profile"],
   path: string,
   tab: string | null,
+  t: (key: string) => string,
 ) {
   const navMainItems: any[] = [];
 
@@ -111,14 +104,14 @@ function getSidebarItems(
       ])
     ) {
       navMainItems.push({
-        title: "Overview",
+        title: t("sidebar.overview"),
         url: "/dashboard/overview",
         icon: Target,
         isActive: path === "/dashboard/overview",
         // items: [],
       });
       navMainItems.push({
-        title: "Products",
+        title: t("sidebar.products"),
         url: "/dashboard/products",
         icon: Box,
         isActive:
@@ -127,28 +120,28 @@ function getSidebarItems(
         items: [],
       });
       navMainItems.push({
-        title: "LMS",
+        title: t("sidebar.lms"),
         url: "/dashboard/lms",
         icon: LibraryBig,
         isActive: path.startsWith("/dashboard/lms"),
         items: [
           {
-            title: "Quizzes",
+            title: t("lms.modules.quizzes.title"),
             url: "/dashboard/lms/quizzes",
             isActive: path === "/dashboard/lms/quizzes",
           },
           {
-            title: "Reviews",
+            title: t("lms.modules.reviews.title"),
             url: "/dashboard/lms/reviews",
             isActive: path === "/dashboard/lms/reviews",
           },
           {
-            title: "Assignments",
+            title: t("lms.modules.assignments.title"),
             url: "/dashboard/lms/assignments",
             isActive: path === "/dashboard/lms/assignments",
           },
           {
-            title: "Themes",
+            title: t("lms.modules.themes.title"),
             url: "/dashboard/lms/themes",
             isActive: path === "/dashboard/lms/themes",
           },
@@ -157,7 +150,7 @@ function getSidebarItems(
     }
     if (checkPermission(profile.permissions!, [permissions.manageCommunity])) {
       navMainItems.push({
-        title: "Communities",
+        title: t("sidebar.communities"),
         beta: true,
         url: "/dashboard/communities",
         icon: MessageCircleHeart,
@@ -168,71 +161,49 @@ function getSidebarItems(
 
     if (profile.permissions!.includes(permissions.manageUsers)) {
       navMainItems.push({
-        title: SIDEBAR_MENU_USERS,
+        title: t("sidebar.users"),
         url: "#",
         icon: Users,
         isActive: path?.startsWith("/dashboard/users"),
         items: [
           {
-            title: "All users",
+            title: t("sidebar.all_users"),
             url: "/dashboard/users",
             isActive: path === "/dashboard/users",
           },
         ],
       });
-      // navMainItems.push({
-      //   title: SIDEBAR_MENU_MAILS,
-      //   beta: true,
-      //   url: "#",
-      //   icon: Mail,
-      //   isActive:
-      //     path.startsWith("/dashboard/mails") ||
-      //     path.startsWith("/dashboard/mail"),
-      //   items: [
-      //     {
-      //       title: "Broadcasts",
-      //       url: "/dashboard/mails?tab=Broadcasts",
-      //       isActive:
-      //         `${path}?tab=${tab}` === "/dashboard/mails?tab=Broadcasts",
-      //     },
-      //     {
-      //       title: "Sequences",
-      //       url: "/dashboard/mails?tab=Sequences",
-      //       isActive: `${path}?tab=${tab}` === "/dashboard/mails?tab=Sequences",
-      //     },
-      //   ],
-      // });
     }
     if (profile.permissions!.includes(permissions.manageSettings)) {
       const items = [
         {
-          title: "Branding",
+          title: t("sidebar.branding"),
           url: "/dashboard/settings?tab=Branding",
           isActive: `${path}?tab=${tab}` === "/dashboard/settings?tab=Branding",
         },
         {
-          title: "Payment",
+          title: t("sidebar.payment"),
           url: "/dashboard/settings?tab=Payment",
           isActive: `${path}?tab=${tab}` === "/dashboard/settings?tab=Payment",
         },
         {
-          title: "Mails",
+          title: t("sidebar.mails"),
           url: "/dashboard/settings?tab=Mails",
           isActive: `${path}?tab=${tab}` === "/dashboard/settings?tab=Mails",
         },
         {
-          title: "Code injection",
+          title: t("sidebar.code_injection"),
           url: "/dashboard/settings?tab=Code%20Injection",
           isActive:
             `${path}?tab=${tab}` === "/dashboard/settings?tab=Code Injection",
         },
         {
-          title: "API Keys",
+          title: t("sidebar.api_keys"),
           url: "/dashboard/settings?tab=API%20Keys",
           isActive: `${path}?tab=${tab}` === "/dashboard/settings?tab=API Keys",
         },
         {
-          title: "Website Settings",
+          title: t("sidebar.website_settings"),
           url: "/dashboard/settings/website-settings",
           isActive: path === "/dashboard/settings/website-settings",
         },
@@ -241,13 +212,13 @@ function getSidebarItems(
       // Add Schools section for admin users
       if (profile.roles && profile.roles.includes("admin")) {
         items.push({
-          title: "Schools",
+          title: t("sidebar.schools"),
           url: "/dashboard/settings/schools",
           isActive: path === "/dashboard/settings/schools",
         });
       }
       navMainItems.push({
-        title: SIDEBAR_MENU_SETTINGS,
+        title: t("sidebar.settings"),
         url: "#",
         icon: Settings,
         isActive: path?.startsWith("/dashboard/settings"),
@@ -258,37 +229,25 @@ function getSidebarItems(
 
   const navSecondaryItems = [
     {
-      title: "Support",
-      url: "/dashboard/support",
-      icon: LifeBuoy,
-      isActive: path === "/dashboard/support",
+      title: t("sidebar.my_progress"),
+      url: "/dashboard/my-progress",
+      icon: Target,
+      isActive: path === "/dashboard/my-progress",
     },
   ];
   const navProjectItems = [
     {
-      name: MY_CONTENT_HEADER,
+      name: t("sidebar.my_content"),
       url: "/dashboard/my-content",
       icon: LibraryBig,
       isActive: path === "/dashboard/my-content",
     },
-    ...(profile?.permissions?.includes(permissions.enrollInCourse)
-      ? [
-        {
-          name: "My Progress",
-          url: "/dashboard/my-progress",
-          icon: Target,
-          isActive: path === "/dashboard/my-progress",
-        } as any,
-      ]
-      : []),
   ];
-
-
 
   // Add Studio section for admin users only
   if (profile.roles && profile.roles.includes("admin")) {
     navMainItems.push({
-      title: "Studio",
+      title: t("sidebar.studio"),
       url: "/dashboard/studio",
       icon: Database,
       isActive: path.startsWith("/dashboard/studio"),

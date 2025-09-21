@@ -13,11 +13,11 @@ import { capitalize } from "@workspace/utils";
 import { BookOpen, Download, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-
-const breadcrumbs = [{ label: MY_CONTENT_HEADER, href: "#" }];
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const { t } = useTranslation("dashboard");
+  const breadcrumbs = [{ label: t("my_content.title"), href: "#" }];
   const [data, setData] = useState<ContentItem[]>([]);
 
   const loadUserContentQuery =
@@ -41,11 +41,11 @@ export default function Page() {
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
       <div className="space-y-12">
-        <h1 className="text-4xl font-bold">My Content</h1>
+        <h1 className="text-4xl font-bold">{t("my_content.title")}</h1>
 
         <section>
           <h2 className="text-xl font-semibold mb-6">
-            My Products
+            {t("my_content.courses")}
           </h2>
           {
             (!isLoading && courses.length === 0) ? (
@@ -115,31 +115,35 @@ function SkeletonCard() {
   );
 }
 
-const EmptyStateMessage = ({ type }: { type: MembershipEntityType }) => (
-  <div className="text-center py-12">
-    <div className="flex justify-center mb-4">
+const EmptyStateMessage = ({ type }: { type: MembershipEntityType }) => {
+  const { t } = useTranslation(["dashboard", "common"]);
+  
+  return (
+    <div className="text-center py-12">
+      <div className="flex justify-center mb-4">
+        {type === Constants.MembershipEntityType.COURSE ? (
+          <BookOpen className="w-12 h-12 text-muted-foreground" />
+        ) : (
+          <Users className="w-12 h-12 text-muted-foreground" />
+        )}
+      </div>
+      <p className="text-muted-foreground mb-4">
+        {type === Constants.MembershipEntityType.COURSE
+          ? t("my_content.no_courses")
+          : t("my_content.no_communities")}{" "}
+      </p>
       {type === Constants.MembershipEntityType.COURSE ? (
-        <BookOpen className="w-12 h-12 text-muted-foreground" />
+        <Link href="/courses" className="text-primary">
+          <Button size="sm">{t("my_content.browse_courses")}</Button>
+        </Link>
       ) : (
-        <Users className="w-12 h-12 text-muted-foreground" />
+        <Link href="/communities" className="text-primary">
+          <Button size="sm">{t("my_content.browse_communities")}</Button>
+        </Link>
       )}
     </div>
-    <p className="text-muted-foreground mb-4">
-      {type === Constants.MembershipEntityType.COURSE
-        ? "You haven't enrolled in any products yet."
-        : "You haven't joined any communities yet."}{" "}
-    </p>
-    {type === Constants.MembershipEntityType.COURSE ? (
-      <Link href="/courses" className="text-primary">
-        <Button size="sm">Browse products</Button>
-      </Link>
-    ) : (
-      <Link href="/communities" className="text-primary">
-        <Button size="sm">Browse communities</Button>
-      </Link>
-    )}
-  </div>
-);
+  );
+};
 
 
 interface ContentItem {
@@ -166,6 +170,7 @@ interface ContentCardProps {
 }
 
 function MyContentCard({ item }: ContentCardProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
   const { entity, entityType } = item;
   const progress =
     entity.totalLessons && entity.completedLessonsCount
@@ -194,14 +199,19 @@ function MyContentCard({ item }: ContentCardProps) {
               ) : (
                 <Download className="h-4 w-4 mr-1" />
               )}
-              {capitalize(entity.type)}
+              {entity.type === Constants.CourseType.COURSE 
+                ? t("my_content.courses") 
+                : t("my_content.downloads")}
             </Badge>
           </>
           {isCourse && entity.totalLessons ? (
             <div className="space-y-2 mt-4">
               <ProgressBar value={progress} />
               <p className="text-sm text-muted-foreground flex justify-between">
-                <span>{`${entity.completedLessonsCount} of ${entity.totalLessons} lessons completed`}</span>
+                <span>{t("my_content.lessons_completed", { 
+                  completed: entity.completedLessonsCount, 
+                  total: entity.totalLessons 
+                })}</span>
                 <span>{`${Math.round(progress)}%`}</span>
               </p>
             </div>

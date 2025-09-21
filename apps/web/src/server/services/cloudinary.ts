@@ -40,6 +40,10 @@ export class CloudinaryService {
       const timestamp = Date.now();
       const publicId = `${type}/${userId}/${timestamp}_${mediaId}`;
 
+      // Get folder prefix from environment or use default
+      const folderPrefix = process.env.UPLOAD_FOLDER_PREFIX || "courselit";
+      const folderPath = `${folderPrefix}/${domain.name}-${domain._id}/${type}`;
+
       let uploadResult: any;
 
       if (file instanceof Buffer) {
@@ -49,7 +53,7 @@ export class CloudinaryService {
             .upload_stream(
               {
                 resource_type: "auto",
-                folder: `courselit/${domain.name}-${domain._id}/${type}`,
+                folder: folderPath,
                 transformation: [{ quality: "auto", fetch_format: "auto" }],
               },
               (error, result) => {
@@ -70,7 +74,7 @@ export class CloudinaryService {
               {
                 public_id: publicId,
                 resource_type: "auto",
-                folder: `courselit/${type}`,
+                folder: folderPath,
                 transformation: [{ quality: "auto", fetch_format: "auto" }],
               },
               (error, result) => {

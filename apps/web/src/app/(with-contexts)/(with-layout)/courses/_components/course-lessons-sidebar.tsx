@@ -268,7 +268,7 @@ export default function CourseLessonsSidebar({
                             {defaultPlan.oneTimeAmount &&
                             course.cost > defaultPlan.oneTimeAmount
                               ? `${Math.round(((course.cost - defaultPlan.oneTimeAmount) / course.cost) * 100)}% OFF`
-                              : "Special Offer"}
+                              : t("course_sidebar_special_offer")}
                           </Badge>
                         </div>
                       )}
@@ -276,15 +276,15 @@ export default function CourseLessonsSidebar({
                       Constants.PaymentPlanType.SUBSCRIPTION && (
                       <Badge variant="secondary" className="text-xs">
                         {defaultPlan.subscriptionYearlyAmount
-                          ? "Yearly Plan"
-                          : "Monthly Plan"}
+                          ? t("course_sidebar_yearly_plan")
+                          : t("course_sidebar_monthly_plan")}
                       </Badge>
                     )}
                   </>
                 ) : course.costType === Constants.ProductPriceType.FREE ? (
                   <div className="text-center">
                     <span className="text-2xl font-bold text-[rgb(var(--brand-primary))]">
-                      Free
+                      {t("course_sidebar_free")}
                     </span>
                   </div>
                 ) : (
@@ -305,13 +305,13 @@ export default function CourseLessonsSidebar({
                   <div className="space-y-2">
                     <div className="text-center">
                       <span className="text-sm text-muted-foreground">
-                        Your enrollment is pending
+                        {t("course_sidebar_enrollment_pending")}
                       </span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <Clock className="h-5 w-5 text-amber-500" />
                       <span className="text-sm font-medium text-amber-600">
-                        Waiting for approval
+                        {t("course_sidebar_waiting_approval")}
                       </span>
                     </div>
                   </div>
@@ -319,13 +319,13 @@ export default function CourseLessonsSidebar({
                   <div className="space-y-2">
                     <div className="text-center">
                       <span className="text-sm text-muted-foreground">
-                        You have access to this course
+                        {t("course_sidebar_has_access")}
                       </span>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-500" />
                       <span className="text-sm font-medium text-green-600">
-                        Course Purchased
+                        {t("course_sidebar_course_purchased")}
                       </span>
                     </div>
                   </div>
@@ -456,7 +456,7 @@ export default function CourseLessonsSidebar({
                                           : ""
                                       }`}
                                     >
-                                      {lesson?.title || `Lesson ${lessonId}`}
+                                      {lesson?.title || t("course_sidebar_lesson_default", { number: lessonId })}
                                     </span>
                                   </div>
                                 </div>

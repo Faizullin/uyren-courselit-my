@@ -17,6 +17,7 @@ import {
   Star,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 export async function generateMetadata(
   _: any,
@@ -28,13 +29,13 @@ export async function generateMetadata(
 }
 
 export default function LMSPage() {
-  const breadcrumbs = [{ label: "LMS", href: "#" }];
+  const { t } = useTranslation("dashboard");
+  const breadcrumbs = [{ label: t("sidebar.lms"), href: "#" }];
 
   const lmsModules = [
     {
-      title: "Quizzes",
-      description:
-        "Create and manage interactive quizzes to test student knowledge",
+      title: t("lms.modules.quizzes.title"),
+      description: t("lms.modules.quizzes.description"),
       icon: ClipboardList,
       href: "/dashboard/lms/quizzes",
       stats: {
@@ -44,9 +45,8 @@ export default function LMSPage() {
       },
     },
     {
-      title: "Reviews",
-      description:
-        "Manage customer reviews and testimonials for your products and courses",
+      title: t("lms.modules.reviews.title"),
+      description: t("lms.modules.reviews.description"),
       icon: Star,
       href: "/dashboard/lms/reviews",
       stats: {
@@ -56,15 +56,25 @@ export default function LMSPage() {
       },
     },
     {
-      title: "Assignments",
-      description:
-        "Track student progress with structured assignments and submissions",
+      title: t("lms.modules.assignments.title"),
+      description: t("lms.modules.assignments.description"),
       icon: FileText,
       href: "/dashboard/lms/assignments",
       stats: {
         total: 0,
         active: 0,
         overdue: 0,
+      },
+    },
+    {
+      title: t("lms.modules.themes.title"),
+      description: t("lms.modules.themes.description"),
+      icon: Target,
+      href: "/dashboard/lms/themes",
+      stats: {
+        total: 0,
+        active: 0,
+        draft: 0,
       },
     },
   ];
@@ -75,10 +85,10 @@ export default function LMSPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-semibold">
-              Learning Management System
+              {t("lms.title")}
             </h1>
             <p className="text-muted-foreground mt-2">
-              Manage your educational content, assessments, and student progress
+              {t("lms.subtitle")}
             </p>
           </div>
         </div>
@@ -129,13 +139,13 @@ export default function LMSPage() {
                   <div className="flex gap-2">
                     <Link href={module.href} className="flex-1">
                       <Button variant="outline" className="w-full">
-                        View All
+                        {t("lms.actions.view_all")}
                       </Button>
                     </Link>
                     <Link href={`${module.href}/new`}>
                       <Button size="sm">
                         <Plus className="h-4 w-4 mr-2" />
-                        New
+                        {t("lms.actions.new")}
                       </Button>
                     </Link>
                   </div>
@@ -149,42 +159,42 @@ export default function LMSPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Students
+                {t("lms.stats.total_students")}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0</div>
               <p className="text-xs text-muted-foreground">
-                Enrolled across all courses
+                {t("lms.stats.enrolled_across_courses")}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Completion Rate
+                {t("lms.stats.completion_rate")}
               </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0%</div>
               <p className="text-xs text-muted-foreground">
-                Average across all assessments
+                {t("lms.stats.average_across_assessments")}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Active Assessments
+                {t("lms.stats.active_assessments")}
               </CardTitle>
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0</div>
               <p className="text-xs text-muted-foreground">
-                Currently active quizzes & assignments
+                {t("lms.stats.currently_active")}
               </p>
             </CardContent>
           </Card>

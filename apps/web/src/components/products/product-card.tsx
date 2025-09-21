@@ -1,6 +1,6 @@
 import { InternalCourse } from "@workspace/common-logic";
 import { Constants } from "@workspace/common-models";
-import { getSymbolFromCurrency, Image } from "@workspace/components-library";
+import { getSymbolFromCurrency } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@works
 import { cn } from "@workspace/ui/lib/utils";
 import { capitalize } from "@workspace/utils";
 import { BookOpen, CheckCircle, CircleDashed, Download, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 import { useSiteInfo } from "../contexts/site-info-context";
 
 interface ProductCardBaseProps {
@@ -127,7 +128,7 @@ export const ProductCardContent = {
     } & ProductCardBaseProps) => {
         return (
             <div className={cn("relative aspect-video", className)}>
-              <Image src={src} alt={alt} loading="lazy" />
+              <Image src={src} alt={alt} loading="lazy" width={300} height={300} className="w-full h-full object-cover" />
             </div>
         );
     },

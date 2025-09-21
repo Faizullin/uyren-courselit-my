@@ -51,10 +51,10 @@ export function SortableItem({
       {...attributes}
       ref={setNodeRef}
       style={style}
-      className={cn("flex flex-col text-black", isDragging && "opacity-50")}
+      className={cn("flex flex-col text-black dark:text-white", isDragging && "opacity-50")}
     >
       <div className="flex items-center gap-5">
-        <button className="border cursor-grab" {...listeners}>
+        <button className="border border-gray-300 dark:border-gray-600 cursor-grab" {...listeners}>
           <DragHandle />
         </button>
         <Renderer {...rendererProps} />

@@ -1,20 +1,19 @@
-import constants from "@/config/constants";
 import { internal, responses } from "@/config/strings";
 import {
   getNextRoleForCommunityMember,
   getNextStatusForCommunityMember,
   hasCommunityPermission,
 } from "@/lib/ui/lib/utils";
-import CommunityModel, { InternalCommunity } from "@/models/Community";
-import CommunityCommentModel from "@/models/CommunityComment";
-import CommunityPostModel from "@/models/CommunityPost";
+import CommunityModel, { InternalCommunity } from "@/models/community/Community";
+import CommunityCommentModel from "@/models/community/CommunityComment";
+import CommunityPostModel from "@/models/community/CommunityPost";
 import CommunityReportModel, {
   InternalCommunityReport,
-} from "@/models/CommunityReport";
+} from "@/models/community/CommunityReport";
 import DomainModel from "@/models/Domain";
 import MembershipModel from "@/models/Membership";
-import PageModel from "@/models/Page";
 import PaymentPlanModel from "@/models/PaymentPlan";
+import UserModel from "@/models/User";
 import { addNotification } from "@/server/lib/queue";
 import { getPaymentMethodFromSettings } from "@/server/services/payment";
 import {
@@ -55,7 +54,6 @@ import {
   getMembership,
   getPlans,
 } from "./helpers";
-import UserModel from "@/models/User";
 
 // Schema definitions following standard patterns
 const CreateSchema = getFormDataSchema({
@@ -377,31 +375,6 @@ export const communityRouter = router({
 
       const pageId = `${slugify(input.data.name.toLowerCase())}-${communityId.substring(0, 5)}`;
 
-      await PageModel.create({
-        domain: ctx.domainData.domainObj!._id,
-        pageId,
-        type: constants.communityPage,
-        creatorId: ctx.user.userId,
-        name: input.data.name,
-        entityId: communityId,
-        layout: [
-          {
-            name: "header",
-            deleteable: false,
-            shared: true,
-          },
-          {
-            name: "banner",
-          },
-          {
-            name: "footer",
-            deleteable: false,
-            shared: true,
-          },
-        ],
-        title: input.data.name,
-      });
-
       const community = await CommunityModel.create({
         domain: ctx.domainData.domainObj!._id,
         communityId,
@@ -470,17 +443,6 @@ export const communityRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const community = await getCommunityObjOrAssert(ctx, input.communityId);
-
-      await PageModel.updateOne(
-        {
-          domain: ctx.domainData.domainObj._id,
-          pageId: community.pageId,
-          entityId: community.communityId,
-        },
-        {
-          deleted: true,
-        },
-      );
 
       await CommunityModel.updateOne(
         {

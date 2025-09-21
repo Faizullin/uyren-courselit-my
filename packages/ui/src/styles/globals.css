@@ -55,7 +55,7 @@
   --brand-background: 236 236 236; /* #ececec */
 }
 
-/* Dark Mode Custom Properties
+/* Dark Mode Custom Properties */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -91,14 +91,13 @@
   --sidebar-ring: oklch(0.439 0 0);
   
 
-  --brand-primary: 241 81 27; 
-  --brand-primary-hover: 230 74 25;
+  --brand-primary: 255 138 101; /* Lighter, more muted orange for dark mode */
+  --brand-primary-hover: 255 152 120; /* Lighter hover state */
   --brand-dark: 255 255 255; 
   --brand-gray: 200 200 200;
   --brand-light-gray: 55 55 55; 
   --brand-background: 40 40 40; 
 }
-  */
 
 @theme inline {
   --color-background: var(--background);

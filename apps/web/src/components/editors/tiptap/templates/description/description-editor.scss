@@ -1,4 +1,10 @@
 .description-editor-wrapper {
+
+    &.bg-card {
+        background-color: transparent;
+    }
+    
+    
     .content-editor-content {
         height: unset;
     }

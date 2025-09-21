@@ -2,11 +2,9 @@
 
 import DashboardContent from "@/components/admin/dashboard-content";
 import { ProductCard, ProductSkeletonCard } from "@/components/products/product-card";
-import Resources from "@/components/resources";
 import { useDialogControl } from "@/hooks/use-dialog-control";
 import {
-  BTN_NEW_PRODUCT,
-  MANAGE_COURSES_PAGE_HEADING,
+  MANAGE_COURSES_PAGE_HEADING
 } from "@/lib/ui/config/strings";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { capitalize } from "@workspace/utils";
 import {
   Plus
 } from "lucide-react";
@@ -47,6 +44,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import z from "zod";
 
 const ITEMS_PER_PAGE = 9;
@@ -64,6 +62,7 @@ const ProductSchema = z.object({
 type ProductFormDataType = z.infer<typeof ProductSchema>;
 
 function CreateProductDialog() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
   const router = useRouter();
   const dialogControl = useDialogControl();
@@ -80,15 +79,15 @@ function CreateProductDialog() {
     trpc.lmsModule.courseModule.course.create.useMutation({
       onSuccess: (response) => {
         toast({
-          title: "Success",
-          description: "Product created successfully",
+          title: t("common:dashboard.success"),
+          description: t("products.created_successfully"),
         });
         dialogControl.close();
         router.push(`/dashboard/products/${response.courseId}`);
       },
       onError: (err: any) => {
         toast({
-          title: "Error",
+          title: t("common:dashboard.error"),
           description: err.message,
           variant: "destructive",
         });
@@ -119,12 +118,12 @@ function CreateProductDialog() {
       <DialogTrigger asChild>
         <Button onClick={() => dialogControl.open()}>
           <Plus className="h-4 w-4 mr-2" />
-          {BTN_NEW_PRODUCT}
+          {t("products.new_product")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Product</DialogTitle>
+          <DialogTitle>{t("products.create_new_product")}</DialogTitle>
           <DialogDescription></DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -137,9 +136,9 @@ function CreateProductDialog() {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>{t("products.form.title")}</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter product title" />
+                    <Input {...field} placeholder={t("products.form.title_placeholder")} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,31 +149,31 @@ function CreateProductDialog() {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>{t("products.form.type")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl className="w-full">
                       <SelectTrigger>
                         <SelectValue>
                           {field.value === Constants.CourseType.COURSE
-                            ? "Course"
-                            : "Download"}
+                            ? t("products.status.course")
+                            : t("products.status.download")}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value={Constants.CourseType.COURSE}>
                         <div>
-                          <div className="font-medium">Course</div>
+                          <div className="font-medium">{t("products.status.course")}</div>
                           <div className="text-sm text-muted-foreground">
-                            Interactive learning experience
+                            {t("products.course_description")}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value={Constants.CourseType.DOWNLOAD}>
                         <div>
-                          <div className="font-medium">Download</div>
+                          <div className="font-medium">{t("products.status.download")}</div>
                           <div className="text-sm text-muted-foreground">
-                            Digital file or resource
+                            {t("products.download_description")}
                           </div>
                         </div>
                       </SelectItem>
@@ -190,10 +189,10 @@ function CreateProductDialog() {
                 variant="outline"
                 onClick={dialogControl.close}
               >
-                Cancel
+                {t("common:dashboard.cancel")}
               </Button>
               <Button type="submit" disabled={isSaving || isSubmitting}>
-                {isSaving || isSubmitting ? "Creating..." : "Create Product"}
+                {isSaving || isSubmitting ? t("products.creating") : t("products.create_product")}
               </Button>
             </div>
           </form>
@@ -204,6 +203,7 @@ function CreateProductDialog() {
 }
 
 export default function Page() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const searchParams = useSearchParams();
   const page = parseInt(searchParams?.get("page") || "1");
   const filter: "all" | CourseType =
@@ -211,6 +211,8 @@ export default function Page() {
   // const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1") || 1);
   // const [filter, setFilter] = useState<"all" | CourseType>(searchParams?.get("filter") as "all" | CourseType || "all");
   const router = useRouter();
+  
+  const breadcrumbs = [{ label: t("products.title"), href: "#" }];
 
   const filterArray = useMemo(
     () => (filter === "all" ? undefined : [filter]),
@@ -247,7 +249,7 @@ export default function Page() {
       {/* <Products address={address} loading={false} siteinfo={siteinfo} /> */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-semibold mb-4">
-          {MANAGE_COURSES_PAGE_HEADING}
+          {t("products.title")}
         </h1>
         <div>
           <CreateProductDialog />
@@ -257,14 +259,16 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <Select value={filter} onValueChange={handleFilterChange}>
             <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t("products.filter_by_status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="all">{t("common:dashboard.select_all")}</SelectItem>
               {[Constants.CourseType.COURSE, Constants.CourseType.DOWNLOAD].map(
                 (status) => (
                   <SelectItem value={status} key={status}>
-                    {capitalize(status)}
+                    {status === Constants.CourseType.COURSE 
+                      ? t("products.status.course") 
+                      : t("products.status.download")}
                   </SelectItem>
                 ),
               )}

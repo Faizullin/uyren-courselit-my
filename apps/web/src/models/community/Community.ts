@@ -2,7 +2,7 @@ import { createModel } from "@workspace/common-logic";
 import { Community } from "@workspace/common-models";
 import { generateUniqueId } from "@workspace/utils";
 import mongoose from "mongoose";
-import { MediaSchema } from "./Media";
+import { MediaSchema } from "../Media";
 
 export interface InternalCommunity extends Omit<Community, "paymentPlans"> {
   domain: mongoose.Types.ObjectId;

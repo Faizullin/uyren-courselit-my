@@ -5,14 +5,14 @@ import {
 } from "@/lib/ui/lib/utils";
 import CommunityCommentModel, {
   InternalCommunityComment,
-} from "@/models/CommunityComment";
-import CommunityPostModel from "@/models/CommunityPost";
+} from "@/models/community/CommunityComment";
+import CommunityPostModel from "@/models/community/CommunityPost";
 import CommunityPostSubscriberModel, {
   CommunityPostSubscriber,
-} from "@/models/CommunityPostSubscriber";
+} from "@/models/community/CommunityPostSubscriber";
 import CommunityReportModel, {
   InternalCommunityReport,
-} from "@/models/CommunityReport";
+} from "@/models/community/CommunityReport";
 import { InternalUser } from "@workspace/common-logic";
 import {
   CommunityMedia,

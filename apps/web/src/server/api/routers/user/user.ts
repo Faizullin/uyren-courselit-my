@@ -2,7 +2,7 @@ import { responses } from "@/config/strings";
 import { checkForInvalidPermissions } from "@/lib/check-invalid-permissions";
 import { Log } from "@/lib/logger";
 import { generateEmailFrom } from "@/lib/utils";
-import CommunityModel from "@/models/Community";
+import CommunityModel from "@/models/community/Community";
 import CourseModel from "@/models/Course";
 import MembershipModel from "@/models/Membership";
 import UserModel from "@/models/User";

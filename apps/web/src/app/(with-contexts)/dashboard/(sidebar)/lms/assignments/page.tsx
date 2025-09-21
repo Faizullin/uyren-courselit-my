@@ -24,6 +24,7 @@ import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { Archive, Edit, Eye, FileText, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const breadcrumbs = [
   { label: "LMS", href: "#" },
@@ -37,6 +38,7 @@ type QueryParams = Parameters<
 >[0];
 
 export default function Page() {
+  const { t } = useTranslation("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [parsedData, setParsedData] = useState<Array<ItemType>>([]);
@@ -65,7 +67,7 @@ export default function Page() {
     return [
       {
         accessorKey: "title",
-        header: "Assignment Title",
+        header: t("table.title"),
         cell: ({ row }) => {
           const obj = row.original;
           return (
@@ -85,33 +87,33 @@ export default function Page() {
       },
       {
         accessorKey: "courseId",
-        header: "Course",
+        header: t("table.course"),
         cell: ({ row }) => {
           const assignment = row.original;
           const course = (assignment as any).course;
           return (
             <Badge variant="outline">
-              {course?.title || assignment.courseId || "No Course"}
+              {course?.title || assignment.courseId || t("table.no_course")}
             </Badge>
           );
         },
       },
       {
         accessorKey: "ownerId",
-        header: "Owner",
+        header: t("table.owner"),
         cell: ({ row }) => {
           const assignment = row.original;
           const owner = (assignment as any).owner;
           return (
             <div className="text-sm text-muted-foreground">
-              {owner?.name || owner?.email || assignment.ownerId || "Unknown"}
+              {owner?.name || owner?.email || assignment.ownerId || t("table.unknown")}
             </div>
           );
         },
       },
       {
         accessorKey: "assignmentType",
-        header: "Type",
+        header: t("table.type"),
         cell: ({ row }) => {
           const assignmentType = row.getValue("assignmentType") as string;
           return (
@@ -119,14 +121,14 @@ export default function Page() {
               <FileText className="h-3 w-3 text-muted-foreground" />
               {assignmentType
                 ?.replace("_", " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase()) || "Unknown"}
+                .replace(/\b\w/g, (l) => l.toUpperCase()) || t("table.unknown")}
             </div>
           );
         },
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("table.status"),
         cell: ({ row }) => {
           const status = row.original.status;
           const getStatusVariant = (status: string) => {
@@ -145,13 +147,13 @@ export default function Page() {
           const getStatusLabel = (status: string) => {
             switch (status) {
               case "published":
-                return "Published";
+                return t("table.published");
               case "draft":
-                return "Draft";
+                return t("table.draft");
               case "archived":
-                return "Archived";
+                return t("table.archived");
               default:
-                return "Unknown";
+                return t("table.unknown");
             }
           };
 
@@ -162,19 +164,19 @@ export default function Page() {
           );
         },
         meta: {
-          label: "Status",
+          label: t("table.status"),
           variant: "select",
           options: [
-            { label: "Published", value: "published" },
-            { label: "Draft", value: "draft" },
-            { label: "Archived", value: "archived" },
+            { label: t("table.published"), value: "published" },
+            { label: t("table.draft"), value: "draft" },
+            { label: t("table.archived"), value: "archived" },
           ],
         },
         enableColumnFilter: true,
       },
       {
         accessorKey: "createdAt",
-        header: "Created",
+        header: t("table.created"),
         cell: ({ row }) => {
           const date = row.getValue("createdAt") as string;
           return (
@@ -184,13 +186,13 @@ export default function Page() {
           );
         },
         meta: {
-          label: "Created Date",
+          label: t("table.created"),
           variant: "date",
         },
       },
       {
         id: "actions",
-        header: "Actions",
+        header: t("table.actions"),
         cell: ({ row }) => {
           const obj = row.original;
           return (
@@ -205,13 +207,13 @@ export default function Page() {
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/assignments/${obj.id}`}>
                     <Eye className="h-4 w-4 mr-2" />
-                    View Details
+                    {t("table.view_details")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/assignments/${obj.id}`}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Assignment
+                    {t("table.edit")}
                   </Link>
                 </DropdownMenuItem>
                 {obj.status !== "archived" && (
@@ -220,7 +222,7 @@ export default function Page() {
                     className="text-orange-600"
                   >
                     <Archive className="h-4 w-4 mr-2" />
-                    Archive Assignment
+                    {t("table.archive")}
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -298,8 +300,8 @@ export default function Page() {
       <div className="flex flex-col gap-4">
         <HeaderTopbar
           header={{
-            title: "Assignments",
-            subtitle: "Manage assignments and submissions",
+            title: t("lms.modules.assignments.title"),
+            subtitle: t("lms.modules.assignments.description"),
           }}
           rightAction={<CreateButton href="/dashboard/lms/assignments/new" />}
         />
@@ -307,7 +309,7 @@ export default function Page() {
           <CardContent>
             <div className="flex flex-col gap-2">
               <Input
-                placeholder={"Search"}
+                placeholder={t("table.search_placeholder")}
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className="h-8 w-40 lg:w-56"

@@ -2,7 +2,6 @@
 
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -10,31 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Checkbox } from "@workspace/ui/components/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
 import {
   Bot,
   Clock,
-  Download,
   FileText,
   Loader2,
-  MessageSquare,
-  MoreHorizontal,
   Star,
-  Users,
+  Users
 } from "lucide-react";
 import { useState } from "react";
 import { useAssignmentContext } from "./assignment-context";

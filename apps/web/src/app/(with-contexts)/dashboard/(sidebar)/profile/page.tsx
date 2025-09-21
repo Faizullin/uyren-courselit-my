@@ -38,10 +38,12 @@ import { generateUniqueId } from "@workspace/utils";
 import { useSession } from "next-auth/react";
 import { MediaAccessType } from "node_modules/@workspace/common-models/src/constants";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const breadcrumbs = [{ label: PROFILE_PAGE_HEADER, href: "#" }];
 
 export default function Page() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const [bio, setBio] = useState("");
   const [name, setName] = useState("");
   const [subscribedToUpdates, setSubscribedToUpdates] = useState(false);
@@ -53,7 +55,7 @@ export default function Page() {
   const updateProfileMutation = trpc.userModule.user.updateProfile.useMutation({
     onSuccess: (data) => {
       toast({
-        title: "Success",
+        title: t("common:dashboard.success"),
         description: data.message,
       });
 
@@ -138,8 +140,8 @@ export default function Page() {
 
       if (!firebaseProfile?.photoURL) {
         toast({
-          title: "No Firebase Avatar",
-          description: "No profile picture found in your Firebase account",
+          title: t("profile.no_firebase_avatar"),
+          description: t("profile.no_firebase_avatar_desc"),
           variant: "destructive",
         });
         return;
@@ -163,13 +165,13 @@ export default function Page() {
       });
 
       toast({
-        title: "Avatar Reset",
-        description: "Profile picture has been restored from Firebase",
+        title: t("profile.avatar_reset"),
+        description: t("profile.avatar_reset_desc"),
       });
     } catch (error) {
       toast({
         title: TOAST_TITLE_ERROR,
-        description: "Failed to reset picture from Firebase",
+        description: t("profile.reset_picture_error"),
         variant: "destructive",
       });
     }
@@ -188,7 +190,7 @@ export default function Page() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Loading profile...</p>
+            <p>{t("profile.loading")}</p>
           </div>
         </div>
       </DashboardContent>
@@ -209,7 +211,7 @@ export default function Page() {
             <Avatar className="w-32 h-32">
               <AvatarImage
                 src={profile.avatar?.url}
-                alt={profile.name || "Profile"}
+                alt={profile.name || t("profile.profile")}
               />
               <AvatarFallback className="text-2xl">
                 {profile.name?.charAt(0)?.toUpperCase() || "U"}
@@ -221,8 +223,8 @@ export default function Page() {
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">
                   {profile.avatar.storageProvider === "custom"
-                    ? "Firebase Avatar"
-                    : "Uploaded Image"}
+                    ? t("profile.firebase_avatar")
+                    : t("profile.uploaded_image")}
                 </p>
               </div>
             )}
@@ -231,7 +233,7 @@ export default function Page() {
             <div className="flex flex-col space-y-2 w-full">
               <div className="flex space-x-2">
                 <Button variant="outline" size="sm" className="flex-1">
-                  Upload New
+                  {t("profile.upload_new")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -240,7 +242,7 @@ export default function Page() {
                   disabled={updateProfileMutation.isPending}
                   className="flex-1"
                 >
-                  Remove
+                  {t("profile.remove")}
                 </Button>
               </div>
 
@@ -253,8 +255,8 @@ export default function Page() {
                   className="flex-1"
                 >
                   {updateProfileMutation.isPending
-                    ? "Resetting..."
-                    : "Reset from Google Provider"}
+                    ? t("profile.resetting")
+                    : t("profile.reset_from_google")}
                 </Button>
                 {/* <Button
                   variant="ghost"
@@ -298,7 +300,7 @@ export default function Page() {
                     setName(e.target.value)
                   }
                   disabled={updateProfileMutation.isPending}
-                  placeholder="Enter your name"
+                  placeholder={t("profile.enter_name_placeholder")}
                 />
               </div>
 
@@ -311,7 +313,7 @@ export default function Page() {
                     setBio(e.target.value)
                   }
                   disabled={updateProfileMutation.isPending}
-                  placeholder="Tell us about yourself..."
+                  placeholder={t("profile.bio_placeholder")}
                   rows={4}
                 />
               </div>
@@ -321,7 +323,7 @@ export default function Page() {
                 disabled={!hasChanges || updateProfileMutation.isPending}
                 className="w-full sm:w-auto"
               >
-                {updateProfileMutation.isPending ? "Saving..." : BUTTON_SAVE}
+                {updateProfileMutation.isPending ? t("profile.saving") : BUTTON_SAVE}
               </Button>
             </form>
           </CardContent>
@@ -340,7 +342,7 @@ export default function Page() {
                 {PROFILE_EMAIL_PREFERENCES_NEWSLETTER_OPTION_TEXT}
               </p>
               <p className="text-sm text-muted-foreground">
-                Receive updates about new features and content
+                {t("profile.receive_updates_desc")}
               </p>
             </div>
             <Checkbox

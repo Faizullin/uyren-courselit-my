@@ -89,9 +89,6 @@ interface SectionFormData {
   name: string;
   rank: number;
   collapsed: boolean;
-  enableDrip: boolean;
-  dripType?: DripType;
-  delay: number;
 }
 
 export default function ContentPage() {
@@ -113,9 +110,6 @@ export default function ContentPage() {
     name: "",
     rank: 0,
     collapsed: false,
-    enableDrip: false,
-    dripType: undefined,
-    delay: 0,
   });
   const [sectionErrors, setSectionErrors] = useState<Record<string, string>>(
     {},
@@ -163,11 +157,6 @@ export default function ContentPage() {
         name: section.name,
         rank: section.rank || 0,
         collapsed: section.collapsed || false,
-        enableDrip: section.drip?.status || false,
-        dripType: section.drip?.type,
-        delay: section.drip?.delayInMillis
-          ? section.drip.delayInMillis / 86400000
-          : 0,
       });
     } else {
       setEditingSection(null);
@@ -175,9 +164,6 @@ export default function ContentPage() {
         name: "",
         rank: product?.groups?.length || 0,
         collapsed: false,
-        enableDrip: false,
-        dripType: undefined,
-        delay: 0,
       });
     }
     setSectionErrors({});
@@ -190,14 +176,6 @@ export default function ContentPage() {
 
     if (!sectionFormData.name.trim()) {
       newErrors.name = "Section name is required";
-    }
-
-    if (
-      sectionFormData.enableDrip &&
-      sectionFormData.dripType === Constants.dripType[1] &&
-      sectionFormData.delay <= 0
-    ) {
-      newErrors.delay = "Delay must be greater than 0";
     }
 
     setSectionErrors(newErrors);
@@ -346,18 +324,6 @@ export default function ContentPage() {
                   <h2 className="text-xl font-semibold tracking-tight">
                     {section.name}
                   </h2>
-                  {section.drip && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Droplets className="h-4 w-4 text-gray-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>This section has scheduled release</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
                 </div>
               </div>
               <DropdownMenu>
@@ -524,80 +490,7 @@ export default function ContentPage() {
                     Release content gradually to your students
                   </p>
                 </div>
-                <Switch
-                  id="enable-drip"
-                  checked={sectionFormData.enableDrip}
-                  onCheckedChange={(checked) =>
-                    setSectionFormData((prev) => ({
-                      ...prev,
-                      enableDrip: checked,
-                    }))
-                  }
-                />
               </div>
-
-              {sectionFormData.enableDrip && (
-                <div className="rounded-lg border p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label>Release Type</Label>
-                    <Select
-                      value={sectionFormData.dripType}
-                      onValueChange={(value: DripType) =>
-                        setSectionFormData((prev) => ({
-                          ...prev,
-                          dripType: value,
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select release type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={Constants.dripType[0]}>
-                          Release on specific date
-                        </SelectItem>
-                        <SelectItem value={Constants.dripType[1]}>
-                          Release days after previous section
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {sectionFormData.dripType === Constants.dripType[1] && (
-                    <div className="space-y-2">
-                      <Label htmlFor="releaseDays">
-                        Days after previous section
-                      </Label>
-                      <div className="flex items-center space-x-2 max-w-[200px]">
-                        <Input
-                          id="releaseDays"
-                          type="number"
-                          min="1"
-                          placeholder="0"
-                          value={sectionFormData.delay}
-                          onChange={(e) =>
-                            setSectionFormData((prev) => ({
-                              ...prev,
-                              delay: Number(e.target.value),
-                            }))
-                          }
-                          className={
-                            sectionErrors.delay ? "border-red-500" : ""
-                          }
-                        />
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
-                          days
-                        </span>
-                      </div>
-                      {sectionErrors.delay && (
-                        <p className="text-sm text-red-500">
-                          {sectionErrors.delay}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             <DialogFooter>
@@ -727,13 +620,13 @@ const CollapsibleSection = ({
       <DragAndDrop
         items={dndItems}
         Renderer={({ lesson }) => (
-          <div className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-50 transition-colors duration-150 ease-in-out w-full">
+          <div className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 ease-in-out w-full">
             <div className="flex items-center space-x-3">
               <LessonTypeIcon type={lesson.type} />
               <span className="text-sm font-medium">{lesson.title}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200" onClick={(e) => {
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => {
                 e.stopPropagation();
                 window.open(`/courses/${product.courseId}/lessons/${lesson.lessonId}`, "_blank");
               }}>
@@ -742,7 +635,7 @@ const CollapsibleSection = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 hover:bg-gray-200"
+                className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
                 onClick={(e) => {
                   e.stopPropagation();
                   router.push(

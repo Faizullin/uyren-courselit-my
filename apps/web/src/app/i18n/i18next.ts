@@ -7,7 +7,7 @@ import { initReactI18next } from "react-i18next/initReactI18next";
 import resourcesToBackend from "i18next-resources-to-backend";
 
 const runsOnServerSide = typeof window === "undefined";
-const languages = ["en-US", "kk", "ru"];
+const languages = ["en-US", "kz", "ru"];
 const defaultNS = "common";
 const fallbackLng = "en-US";
 

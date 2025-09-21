@@ -53,18 +53,16 @@ export async function middleware(req: NextRequest) {
   // Domain resolution logic
   if (hostname) {
     try {
-      // Analyze domain without database lookup (edge-compatible)
       const domainInfo = analyzeDomain(hostname);
 
-      // Set domain analysis headers for downstream use
       response.headers.set("x-domain-type", domainInfo.type);
       response.headers.set("x-domain-host", domainInfo.cleanHost || "");
       response.headers.set("x-domain-identifier", domainInfo.identifier!);
-      console.log("[MIDDLEWARE] Domain analysis:", {
-        "x-domain-type": domainInfo.type,
-        "x-domain-host": domainInfo.cleanHost || "",
-        "x-domain-identifier": domainInfo.identifier!,
-      });
+      // console.log("[MIDDLEWARE] Domain analysis:", {
+      //   "x-domain-type": domainInfo.type,
+      //   "x-domain-host": domainInfo.cleanHost || "",
+      //   "x-domain-identifier": domainInfo.identifier!,
+      // });
     } catch (error) {
       console.error("[MIDDLEWARE] Error analyzing domain:", error);
     }
@@ -73,22 +71,18 @@ export async function middleware(req: NextRequest) {
   // Authentication logic for protected routes
   if (isProtectedRoute(pathname) && !isPublicRoute(pathname)) {
     try {
-      // Get the token using NextAuth JWT helper
       const token = await getToken({
         req,
         secret: process.env.NEXTAUTH_SECRET,
       });
 
       if (!token) {
-        // Redirect to login with return URL
         const loginUrl = new URL("/auth/sign-in", req.url);
         loginUrl.searchParams.set("redirect", pathname);
         return NextResponse.redirect(loginUrl);
       }
     } catch (error) {
       console.error("[MIDDLEWARE] Authentication error:", error);
-
-      // Redirect to login on authentication error
       const loginUrl = new URL("/auth/sign-in", req.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);

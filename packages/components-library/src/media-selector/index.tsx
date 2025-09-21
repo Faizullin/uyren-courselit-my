@@ -1,5 +1,6 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Address, Media, Profile } from "@workspace/common-models";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -19,14 +20,13 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { Upload, X } from "lucide-react";
-import React, { ChangeEvent, useEffect, useState } from "react";
+import Image from "next/image";
+import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import Dialog2 from "../dialog2";
 import { useToast } from "../hooks/use-toast";
-import { Image } from "../image";
 import Access from "./access";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 interface Strings {
   buttonCaption?: string;
@@ -253,8 +253,9 @@ const MediaSelector = (props: MediaSelectorProps) => {
           <div className="flex flex-col gap-2 items-center">
             <Image
               src={src}
-              width="w-[80px]"
-              height="h-[80px]"
+              width={80}
+              height={80}
+              alt={srcTitle}
               className="rounded-md"
             />
             <Tooltip>

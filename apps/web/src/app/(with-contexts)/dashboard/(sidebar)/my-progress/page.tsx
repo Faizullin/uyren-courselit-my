@@ -7,10 +7,12 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { BookOpen, CheckCircle, ClipboardList } from "lucide-react";
 import Link from "next/link";
-
-const breadcrumbs = [{ label: "My Progress", href: "#" }];
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const { t } = useTranslation("dashboard");
+  const breadcrumbs = [{ label: t("my_progress.title"), href: "#" }];
+
   const attemptsQuery = trpc.lmsModule.quizModule.quizAttempt.listMine.useQuery({
     filter: { passed: true },
     pagination: { skip: 0, take: 12 },
@@ -29,10 +31,10 @@ export default function Page() {
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
       <div className="space-y-12">
-        <h1 className="text-4xl font-bold">My Progress</h1>
+        <h1 className="text-4xl font-bold">{t("my_progress.title")}</h1>
 
         <section>
-          <h2 className="text-xl font-semibold mb-6">Passed Quizzes</h2>
+          <h2 className="text-xl font-semibold mb-6">{t("my_progress.quizzes")}</h2>
           {(!isLoading && attempts.length === 0) ? (
             <EmptyState icon={<CheckCircle className="w-12 h-12 text-muted-foreground" />} text="No passed quizzes yet." />
           ) : (
@@ -63,7 +65,7 @@ export default function Page() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-6">Graded Assignments</h2>
+          <h2 className="text-xl font-semibold mb-6">{t("my_progress.assignments")}</h2>
           {(!isLoading && submissions.length === 0) ? (
             <EmptyState icon={<ClipboardList className="w-12 h-12 text-muted-foreground" />} text="No graded assignments yet." />
           ) : (
@@ -118,5 +120,4 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
     </div>
   );
 }
-
 

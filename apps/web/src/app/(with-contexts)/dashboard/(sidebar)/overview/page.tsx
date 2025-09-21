@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import DashboardContent from "@/components/admin/dashboard-content";
 import { useSiteInfo } from "@/components/contexts/site-info-context";
 import { TIME_RANGES } from "@/lib/ui/config/constants";
+import { useTranslation } from "react-i18next";
 
 const LoadingScreen = dynamic(
   () => import("@/components/admin/loading-screen"),
@@ -66,6 +67,7 @@ const Mail = dynamic(() =>
 const breadcrumbs = [{ label: OVERVIEW_HEADER, href: "#" }];
 
 export default function Page() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const { siteInfo } = useSiteInfo();
   const { profile } = useProfile();
   const [timeRange, setTimeRange] = useState("7d");
@@ -89,22 +91,24 @@ export default function Page() {
     return <LoadingScreen />;
   }
 
+  const breadcrumbs = [{ label: t("overview.title"), href: "#" }];
+
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-semibold mb-4">
-          {DASHBOARD_PAGE_HEADER},{" "}
-          {profile.name ? profile.name.split(" ")[0] : UNNAMED_USER}
+          {t("common:dashboard.welcome")},{" "}
+          {profile.name ? profile.name.split(" ")[0] : t("common:dashboard.unnamed_user")}
         </h1>
         <div>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select time range" />
+              <SelectValue placeholder={t("overview.select_time_range")} />
             </SelectTrigger>
             <SelectContent>
               {TIME_RANGES.map((range) => (
                 <SelectItem key={range.value} value={range.value}>
-                  {range.label}
+                  {t(`overview.time_ranges.${range.value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -131,13 +135,13 @@ export default function Page() {
                         </Select> */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         <MetricCard
-          title="Sales"
+          title={t("overview.sales")}
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
           type={Constants.ActivityType.PURCHASED}
           duration={timeRange}
         />
         <MetricCard
-          title="Customers"
+          title={t("overview.customers")}
           icon={<UserPlus className="h-4 w-4 text-muted-foreground" />}
           type={Constants.ActivityType.ENROLLED}
           duration={timeRange}
