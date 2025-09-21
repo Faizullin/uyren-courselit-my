@@ -21,4 +21,9 @@
     "@workspace/common-models": "workspace:*",
     "@workspace/utils": "workspace:*"   
   }
+  
+  
+  
+  ,
+  "type": "module"
 }

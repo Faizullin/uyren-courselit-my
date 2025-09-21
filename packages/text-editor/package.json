@@ -7,7 +7,8 @@
     "check-types": "tsc --noEmit"
   },
   "exports": {
-    "./tiptap-sh": "./src/tiptap-sh/index.ts"
+    "./tiptap-sh": "./src/tiptap-sh/index.ts",
+    "./tiptap-sh/server": "./src/tiptap-sh/server/index.ts"
   },
   "dependencies": {
     "@ariakit/react": "^0.4.18",
@@ -34,6 +35,7 @@
     "@tiptap/pm": "^3.3.0",
     "@tiptap/react": "^3.3.0",
     "@tiptap/starter-kit": "^3.3.0",
+    "@tiptap/static-renderer": "^3.4.4",
     "@workspace/common-models": "workspace:^",
     "@workspace/components-library": "workspace:^",
     "@workspace/ui": "workspace:^",

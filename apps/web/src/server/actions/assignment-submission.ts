@@ -1,13 +1,13 @@
 "use server";
 
+import { authOptions } from "@/lib/auth/options";
+import { Domain } from "@/models/Domain";
 import { AssignmentModel, AssignmentSubmissionModel } from "@/models/lms";
+import { getDomainData } from "@/server/lib/domain";
 import { connectToDatabase } from "@workspace/common-logic";
 import { BASIC_PUBLICATION_STATUS_TYPE } from "@workspace/common-models";
 import { getServerSession, User } from "next-auth";
 import { AuthenticationException, NotFoundException } from "../api/core/exceptions";
-import { getDomainData } from "@/server/lib/domain";
-import { authOptions } from "@/lib/auth/options";
-import { Domain } from "@/models/Domain";
 
 // Types
 interface ActionContext {
@@ -225,7 +225,7 @@ export async function calculateSubmissionStatistics(
   const averageScore =
     totalSubmissions > 0
       ? submissions.reduce((sum, sub) => sum + (sub.score || 0), 0) /
-        totalSubmissions
+      totalSubmissions
       : 0;
 
   // Calculate grade distribution (A, B, C, D, F)
@@ -257,10 +257,10 @@ export async function calculateSubmissionStatistics(
 export async function uploadFileAction(formData: FormData) {
   const ctx = await getActionContext();
   const file = formData.get("file") as File;
-  
+
   if (!file) throw new Error("File is required");
   if (file.size > 15 * 1024 * 1024) throw new Error("File too large");
-  
+
   const allowed = ["image/", "video/", "audio/", "application/pdf", "application/zip", "text/"];
   const ok = allowed.some(t => file.type.startsWith(t));
   if (!ok) throw new Error("Unsupported file type");
@@ -273,17 +273,17 @@ export async function uploadFileAction(formData: FormData) {
   const headersList = await (await import("next/headers")).headers();
   const proto = headersList.get("x-forwarded-proto") || "http";
   const host = headersList.get("host") || "localhost:3000";
-  
+
   const res = await fetch(`${proto}://${host}/api/services/media/upload?storageType=cloudinary`, {
     method: "POST",
     body: fd,
   });
-  
+
   if (!res.ok) throw new Error("Upload failed");
   const json = await res.json();
   const url = json?.url || json?.media?.url;
   if (!url) throw new Error("Upload response invalid");
-  
+
   return { success: true, url };
 }
 

@@ -11,6 +11,8 @@
     "lint:fix": "next lint --fix",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
+    "seed-rag": "tsx scripts/seed-rag.ts",
+    "seed-rag-test": "tsx scripts/seed-rag-test.ts",
     "test:email": "tsx scripts/test-email.ts"
   },
   "dependencies": {
@@ -30,6 +32,7 @@
     "@trpc/client": "^11.0.8",
     "@trpc/react-query": "^11.0.8",
     "@trpc/server": "^11.0.8",
+    "@workspace/ai-bot": "workspace:*",
     "@workspace/common-logic": "workspace:*",
     "@workspace/common-models": "workspace:*",
     "@workspace/components-library": "workspace:*",
@@ -88,6 +91,7 @@
     "@workspace/typescript-config": "workspace:*",
     "dotenv": "^17.2.1",
     "sass": "^1.90.0",
+    "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2"
   }

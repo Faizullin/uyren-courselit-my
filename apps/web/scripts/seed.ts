@@ -4,107 +4,17 @@
  */
 
 // Load environment variables from .env files
+import DomainModel from "@/models/Domain";
+import UserModel from "@/models/User";
+import { connectToDatabase } from "@workspace/common-logic";
+import { UIConstants } from "@workspace/common-models";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-// Define constants locally to avoid import issues
-const UIConstants = {
-  permissions: {
-    manageCourse: "course:manage",
-    manageAnyCourse: "course:manage_any",
-    publishCourse: "course:publish",
-    enrollInCourse: "course:enroll",
-    manageMedia: "media:manage",
-    manageSite: "site:manage",
-    manageSettings: "setting:manage",
-    manageUsers: "user:manage",
-    manageCommunity: "community:manage",
-  },
-  roles: {
-    admin: "admin",
-    instructor: "instructor",
-    student: "student",
-  },
-};
+
+
 
 dotenv.config(); // Load .env as fallback
 
-// Create a minimal DB connection function to avoid workspace import issues
-async function connectToDatabase() {
-  const MONGODB_URI = process.env.MONGODB_URI;
-  if (!MONGODB_URI) {
-    throw new Error("MONGODB_URI environment variable is required");
-  }
-
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(MONGODB_URI);
-  }
-}
-
-// Define simplified schemas to avoid workspace import issues
-const UserSchema = new mongoose.Schema(
-  {
-    domain: { type: mongoose.Schema.Types.ObjectId, required: true },
-    userId: {
-      type: String,
-      required: true,
-      default: () => Math.random().toString(36).substring(2, 15),
-    },
-    email: { type: String, required: true },
-    active: { type: Boolean, required: true, default: true },
-    name: { type: String, required: false },
-    purchases: [{ type: mongoose.Schema.Types.Mixed }],
-    bio: { type: String },
-    permissions: [String],
-    roles: [String],
-    subscribedToUpdates: { type: Boolean, default: true },
-    lead: { type: String, required: true, default: "website" },
-    tags: [String],
-    unsubscribeToken: {
-      type: String,
-      required: true,
-      default: () => Math.random().toString(36).substring(2, 15),
-    },
-    avatar: { type: mongoose.Schema.Types.Mixed },
-    invited: { type: Boolean },
-    providerData: {
-      type: {
-        provider: { type: String, required: true },
-        uid: { type: String, required: true },
-        name: { type: String },
-      },
-      required: false,
-    },
-  },
-  { timestamps: true },
-);
-
-UserSchema.index({ email: "text", name: "text" });
-UserSchema.index({ domain: 1, email: 1 }, { unique: true });
-
-const DomainSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, unique: true },
-    customDomain: { type: String, unique: true, sparse: true },
-    email: { type: String, required: true },
-    deleted: { type: Boolean, required: true, default: false },
-    settings: {
-      title: { type: String },
-      subtitle: { type: String },
-      logo: { type: mongoose.Schema.Types.Mixed },
-      currencyISOCode: { type: String, maxlength: 3 },
-      paymentMethod: { type: String },
-      stripeKey: { type: String },
-      codeInjectionHead: { type: String },
-    },
-    firstRun: { type: Boolean, required: true, default: false },
-    tags: { type: [String], default: [] },
-  },
-  { timestamps: true },
-);
-
-// Create models
-const UserModel = mongoose.model("User", UserSchema);
-const DomainModel = mongoose.model("Domain", DomainSchema);
 
 // Simplified createUser function
 async function createUser({
@@ -132,20 +42,20 @@ async function createUser({
 }) {
   const superAdminPermissions = superAdmin
     ? [
-        UIConstants.permissions.manageCourse,
-        UIConstants.permissions.manageAnyCourse,
-        UIConstants.permissions.publishCourse,
-        UIConstants.permissions.manageMedia,
-        UIConstants.permissions.manageSite,
-        UIConstants.permissions.manageSettings,
-        UIConstants.permissions.manageUsers,
-        UIConstants.permissions.manageCommunity,
-      ]
+      UIConstants.permissions.manageCourse,
+      UIConstants.permissions.manageAnyCourse,
+      UIConstants.permissions.publishCourse,
+      UIConstants.permissions.manageMedia,
+      UIConstants.permissions.manageSite,
+      UIConstants.permissions.manageSettings,
+      UIConstants.permissions.manageUsers,
+      UIConstants.permissions.manageCommunity,
+    ]
     : [
-        UIConstants.permissions.enrollInCourse,
-        UIConstants.permissions.manageMedia,
-        ...permissions,
-      ];
+      UIConstants.permissions.enrollInCourse,
+      UIConstants.permissions.manageMedia,
+      ...permissions,
+    ];
 
   const roles = superAdmin ? [UIConstants.roles.admin] : [];
 
@@ -265,10 +175,10 @@ async function createSuperAdmin(
   // Prepare provider data if Firebase UID is available
   const providerData = superAdminFirebaseUid
     ? {
-        provider: "firebase",
-        uid: superAdminFirebaseUid,
-        name: process.env.SUPER_ADMIN_NAME || "Super Administrator",
-      }
+      provider: "firebase",
+      uid: superAdminFirebaseUid,
+      name: process.env.SUPER_ADMIN_NAME || "Super Administrator",
+    }
     : undefined;
 
   const superAdmin = await createUser({
