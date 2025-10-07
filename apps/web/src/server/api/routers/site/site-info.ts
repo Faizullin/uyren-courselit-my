@@ -1,111 +1,55 @@
-import constants from "@/config/constants";
-import { responses } from "@/config/strings";
-import ApikeyModel from "@/models/ApiKey";
-import DomainModel, { Domain } from "@/models/Domain";
-
 import {
-  Constants,
-  PaymentMethod,
-  SiteInfo,
-  UIConstants,
-} from "@workspace/common-models";
-import { capitalize, checkPermission } from "@workspace/utils";
-import { z } from "zod";
-import {
-  ConflictException,
   NotFoundException,
-  ValidationException,
-} from "../../core/exceptions";
+  ValidationException
+} from "@/server/api/core/exceptions";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
   protectedProcedure,
   publicProcedure,
-} from "../../core/procedures";
-import { getFormDataSchema } from "../../core/schema";
-import { router } from "../../core/trpc";
-import { mediaWrappedFieldValidator } from "../../core/validators";
+} from "@/server/api/core/procedures";
+import { getFormDataSchema } from "@/server/api/core/schema";
+import { router } from "@/server/api/core/trpc";
+import { mediaWrappedFieldValidator } from "@/server/api/core/validators";
+import DomainManager from "@/server/lib/domain";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import {
+  DomainModel,
+  ISiteInfo,
+} from "@workspace/common-logic/models/organization";
+import { checkPermission } from "@workspace/utils";
+import { z } from "zod";
 
 import currencies from "@/data/currencies.json";
-import DomainManager from "@/server/lib/domain";
-
-const { permissions } = UIConstants;
-
-function validateSiteInfo(domain: Domain) {
-  if (!domain.settings.title || !domain.settings.title.trim()) {
-    throw new ConflictException(responses.school_title_not_set);
-  }
-
-  if (
-    domain.settings.mailingAddress &&
-    domain.settings.mailingAddress.trim().length <
-      constants.minMailingAddressLength
-  ) {
-    throw new ConflictException(responses.mailing_address_too_short);
-  }
-}
 
 const currencyISOCodes = currencies.map((currency) =>
   currency.isoCode?.toLowerCase(),
 );
 
-const verifyCurrencyISOCode = (isoCode: string) => {
-  if (!currencyISOCodes.includes(isoCode.toLowerCase())) {
-    throw new Error(responses.unrecognised_currency_code);
-  }
-};
-
-const verifyCurrencyISOCodeBasedOnSiteInfo = (siteInfo: SiteInfo) => {
-  if (!siteInfo.paymentMethod) {
-    if (siteInfo.currencyISOCode) {
-      verifyCurrencyISOCode(siteInfo.currencyISOCode);
+function validatePaymentSettings(siteInfo: ISiteInfo) {
+  if (siteInfo.currencyISOCode) {
+    if (!currencyISOCodes.includes(siteInfo.currencyISOCode.toLowerCase())) {
+      throw new ValidationException("Unrecognised currency code");
     }
-  } else {
+  }
+
+  if (siteInfo.paymentMethods?.stripe) {
     if (!siteInfo.currencyISOCode) {
-      throw new Error(responses.currency_iso_code_required);
+      throw new ValidationException("Currency ISO code is required");
     }
 
-    verifyCurrencyISOCode(siteInfo.currencyISOCode);
+    if (
+      siteInfo.paymentMethods.stripe.type === "stripe" &&
+      (!siteInfo.paymentMethods.stripe.stripeKey ||
+        !siteInfo.paymentMethods.stripe.stripeSecret)
+    ) {
+      throw new ValidationException(
+        `Stripe settings are invalid`,
+      );
+    }
   }
-};
-
-const checkForInvalidPaymentSettings = (
-  siteInfo: SiteInfo,
-): undefined | Error => {
-  verifyCurrencyISOCodeBasedOnSiteInfo(siteInfo);
-
-  if (!siteInfo.paymentMethod) {
-    return;
-  }
-
-  if (!Constants.paymentMethods.includes(siteInfo.paymentMethod)) {
-    return new Error(responses.invalid_payment_method);
-  }
-};
-
-const checkForInvalidPaymentMethodSettings = (siteInfo: SiteInfo) => {
-  if (!siteInfo.paymentMethod) {
-    return;
-  }
-
-  let failedPaymentMethod: PaymentMethod | undefined = undefined;
-
-
-
-  if (
-    siteInfo.paymentMethod === UIConstants.PAYMENT_METHOD_STRIPE &&
-    !(siteInfo.stripeSecret && siteInfo.stripeKey)
-  ) {
-    failedPaymentMethod = UIConstants.PAYMENT_METHOD_STRIPE;
-  }
-
-  return failedPaymentMethod;
-};
-
-const getPaymentInvalidException = (paymentMethod: string) =>
-  new Error(
-    `${capitalize(paymentMethod)} ${responses.payment_settings_invalid_suffix}`,
-  );
+}
 
 export const siteInfoRouter = router({
   publicGetSettings: publicProcedure.query(async ({ ctx }) => {
@@ -115,252 +59,189 @@ export const siteInfoRouter = router({
       throw new NotFoundException("Domain", "current");
     }
 
-    return domainObj.settings;
+    const exclusionFields = {
+      "siteInfo.paymentMethods.stripe.stripeSecret": 0,
+      "siteInfo.paymentMethods.stripe.stripeWebhookSecret": 0,
+    };
+
+    const domain = await DomainModel.findById(
+      domainObj._id,
+      exclusionFields,
+    ).lean();
+
+    if (!domain) {
+      throw new NotFoundException("Domain", "current");
+    }
+
+    return jsonify(domain.siteInfo);
   }),
 
-  // Get complete site setup (settings + theme + page) - replaces getFullSiteSetup
   publicGetFullSiteSetup: publicProcedure
     .input(
       z.object({
         pageId: z.string().optional(),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      console.log("[publicGetFullSiteSetup]");
-
+    .query(async ({ ctx }) => {
       const { domainObj } = ctx.domainData || {};
 
       if (!domainObj) {
         throw new NotFoundException("Domain", "current");
       }
 
-      const exclusionProjection: Record<string, 0> = {
-        email: 0,
-        deleted: 0,
-        customDomain: 0,
-        "settings.stripeSecret": 0,
-        "settings.paytmSecret": 0,
-        "settings.paypalSecret": 0,
-        "settings.razorpaySecret": 0,
-        "settings.razorpayWebhookSecret": 0,
-        lastEditedThemeId: 0,
+      const exclusionFields = {
+        "siteInfo.paymentMethods.stripe.stripeSecret": 0,
+        "siteInfo.paymentMethods.stripe.stripeWebhookSecret": 0,
       };
 
-      const theme = {
-        id: domainObj.themeId || "default",
-        name: "Default Theme",
-      };
+      const domain = await DomainModel.findById(
+        domainObj._id,
+        exclusionFields,
+      ).lean();
 
-      // Return combined data
-      return {
-        settings: domainObj.settings,
-        theme,
-      };
-    }),
-
-  updateSiteInfo: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageSettings]))
-    .input(
-      getFormDataSchema({
-        title: z.string().optional(),
-        subtitle: z.string().optional(),
-        hideCourseLitBranding: z.boolean().optional(),
-        logo: mediaWrappedFieldValidator().nullable().optional(),
-        codeInjectionHead: z.string().optional(),
-        codeInjectionBody: z.string().optional(),
-        codeInjectionFoot: z.string().optional(),
-        mailingAddress: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const domain = await DomainModel.findOne({
-        _id: ctx.domainData.domainObj._id,
-      });
       if (!domain) {
         throw new NotFoundException("Domain", "current");
       }
-      const siteData = input.data;
 
-      if (!domain.settings) {
-        domain.settings = {};
-      }
+      const theme = {
+        id: "default",
+        name: "Default Theme",
+      };
 
-      for (const key of Object.keys(siteData)) {
-        (domain as any).settings[key] = (siteData as any)[key];
-      }
-
-      validateSiteInfo(domain);
-
-      await DomainManager.removeFromCache(domain);
-      await domain.save();
-      await DomainManager.setDomainCache(domain);
-
-      return domain;
+      return jsonify({
+        settings: domain.siteInfo,
+        theme,
+      });
     }),
 
   getSiteInfo: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .query(async ({ ctx }) => {
-      const exclusionProjection: Record<string, 0> = {
-        email: 0,
-        deleted: 0,
-        customDomain: 0,
-        "settings.stripeSecret": 0,
-        "settings.paytmSecret": 0,
-        "settings.paypalSecret": 0,
-        "settings.razorpaySecret": 0,
-        "settings.razorpayWebhookSecret": 0,
-      };
       const isSiteEditor =
         ctx.user &&
-        checkPermission(ctx.user.permissions, [permissions.manageSite]);
+        checkPermission(ctx.user.permissions, [
+          UIConstants.permissions.manageSite,
+        ]);
+
+      const exclusionFields: any = {
+        "siteInfo.paymentMethods.stripe.stripeSecret": 0,
+      };
+
       if (!isSiteEditor) {
-        exclusionProjection.lastEditedThemeId = 0;
+        exclusionFields["siteInfo.paymentMethods.stripe.stripeWebhookSecret"] = 0;
       }
+
       const domain = await DomainModel.findById(
         ctx.domainData.domainObj._id,
-        exclusionProjection,
-      );
+        exclusionFields,
+      ).lean();
+
       if (!domain) {
         throw new NotFoundException("Domain", "current");
       }
-      return domain;
+
+      return jsonify(domain);
     }),
 
-  listApiKeys: protectedProcedure
+  updateSiteInfo: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageSettings]))
-    .query(async ({ ctx }) => {
-      const apikeys = (await ApikeyModel.find(
-        { domain: ctx.domainData.domainObj._id },
-        {
-          name: 1,
-          keyId: 1,
-          createdAt: 1,
-          purposeKey: 1,
-        },
-      ).lean()) as unknown as {
-        name: string;
-        keyId: string;
-        createdAt: string;
-        purposeKey: string;
-      }[];
-      return apikeys;
-    }),
-
-  addApiKey: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageSettings]))
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageSettings]),
+    )
     .input(
       getFormDataSchema({
-        name: z.string().min(1).max(255),
-        purposeKey: z.string().optional(),
+        title: z.string().min(1).max(120).optional(),
+        subtitle: z.string().min(1).max(200).optional(),
+        logo: mediaWrappedFieldValidator().nullable().optional(),
+        codeInjectionHead: z.string().max(50000).optional(),
+        codeInjectionBody: z.string().max(50000).optional(),
+        mailingAddress: z.string().min(1).max(500).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
-      if (!domain) {
-        throw new NotFoundException("Domain", "current");
-      }
-      const existingApikey = await ApikeyModel.findOne({
-        name: input.data.name,
-        domain: domain._id,
-      });
-      if (existingApikey) {
-        throw new ConflictException(responses.apikey_already_exists);
-      }
-      const apikey = await ApikeyModel.create({
-        name: input.data.name,
-        domain: domain._id,
-        purposeKey: input.data.purposeKey,
-      });
 
-      return {
-        name: apikey.name,
-        keyId: apikey.keyId,
-        key: apikey.key,
-        purposeKey: apikey.purposeKey,
-      };
-    }),
-
-  removeApiKey: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageSettings]))
-    .input(
-      getFormDataSchema({
-        keyId: z.string().min(1).max(255),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
       if (!domain) {
         throw new NotFoundException("Domain", "current");
       }
 
-      const apikey = await ApikeyModel.findOneAndDelete({
-        keyId: input.data.keyId,
-        domain: ctx.domainData.domainObj._id,
-      });
-      if (!apikey) {
-        throw new NotFoundException("API Key", input.data.keyId);
+      if (!domain.siteInfo) {
+        domain.siteInfo = {} as ISiteInfo;
       }
 
-      return apikey;
+      Object.keys(input.data).forEach((key) => {
+        (domain.siteInfo as any)[key] = (input.data as any)[key];
+      });
+
+      await DomainManager.removeFromCache(domain.toObject());
+      const saved = await domain.save();
+
+      return jsonify(saved.toObject());
     }),
 
   updatePaymentInfo: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageSettings]))
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageSettings]),
+    )
     .input(
       getFormDataSchema({
-        currencyISOCode: z.string().min(1).max(3).optional(),
-        paymentMethod: z.enum(Constants.paymentMethods).optional(),
+        currencyISOCode: z.string().length(3).optional(),
         stripeKey: z.string().min(32).max(255).optional(),
         stripeSecret: z.string().min(32).max(255).optional(),
-        // razorpayWebhookSecret: $razorpayWebhookSecret,
-        // lemonsqueezyKey: $lemonsqueezyKey,
-        // lemonsqueezyStoreId: $lemonsqueezyStoreId,
-        // lemonsqueezyWebhookSecret: $lemonsqueezyWebhookSecret,
-        // lemonsqueezyOneTimeVariantId: $lemonsqueezyOneTimeVariantId,
-        // lemonsqueezySubscriptionMonthlyVariantId:
-        //   $lemonsqueezySubscriptionMonthlyVariantId,
-        // lemonsqueezySubscriptionYearlyVariantId:
-        //   $lemonsqueezySubscriptionYearlyVariantId,
+        stripeWebhookSecret: z.string().min(32).max(255).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
+
       if (!domain) {
         throw new NotFoundException("Domain", "current");
       }
 
-      if (!domain.settings || !domain.settings.title) {
-        throw new ValidationException(responses.school_title_not_set);
+      if (!domain.siteInfo || !domain.siteInfo.title) {
+        throw new ValidationException("School title is not set");
       }
 
-      Object.assign(domain.settings, input.data);
-
-      const invalidPaymentMethod = checkForInvalidPaymentSettings(
-        domain.settings,
-      );
-      if (invalidPaymentMethod) {
-        throw invalidPaymentMethod;
+      if (input.data.currencyISOCode) {
+        domain.siteInfo.currencyISOCode =
+          input.data.currencyISOCode.toUpperCase();
       }
 
-      const failedPaymentMethod = checkForInvalidPaymentMethodSettings(
-        domain.settings,
-      );
-      if (failedPaymentMethod) {
-        throw getPaymentInvalidException(failedPaymentMethod);
+      if (
+        input.data.stripeKey ||
+        input.data.stripeSecret ||
+        input.data.stripeWebhookSecret
+      ) {
+        if (!domain.siteInfo.paymentMethods) {
+          domain.siteInfo.paymentMethods = { stripe: { type: "stripe" } };
+        }
+
+        if (!domain.siteInfo.paymentMethods.stripe) {
+          domain.siteInfo.paymentMethods.stripe = { type: "stripe" };
+        }
+
+        if (input.data.stripeKey) {
+          domain.siteInfo.paymentMethods.stripe.stripeKey =
+            input.data.stripeKey;
+        }
+
+        if (input.data.stripeSecret) {
+          domain.siteInfo.paymentMethods.stripe.stripeSecret =
+            input.data.stripeSecret;
+        }
+
+        if (input.data.stripeWebhookSecret) {
+          domain.siteInfo.paymentMethods.stripe.stripeWebhookSecret =
+            input.data.stripeWebhookSecret;
+        }
       }
 
-      if (domain.settings.paymentMethod) {
-        domain.settings.currencyISOCode =
-          domain.settings.currencyISOCode?.toLowerCase();
-      }
-      await domain.save();
+      validatePaymentSettings(domain.siteInfo);
 
-      return domain;
+      await DomainManager.removeFromCache(domain.toObject());
+      const saved = await domain.save();
+
+      return jsonify(saved.toObject());
     }),
 });

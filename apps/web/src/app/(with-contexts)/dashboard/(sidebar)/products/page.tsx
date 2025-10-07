@@ -8,7 +8,8 @@ import {
 } from "@/lib/ui/config/strings";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Constants, CourseType, UIConstants } from "@workspace/common-models";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course";
 import {
   useToast
 } from "@workspace/components-library";
@@ -57,7 +58,7 @@ const ProductSchema = z.object({
     .string()
     .min(1, "Title is required")
     .max(255, "Title must be less than 255 characters"),
-  type: z.enum([Constants.CourseType.COURSE, Constants.CourseType.DOWNLOAD]),
+  level: z.nativeEnum(CourseLevelEnum),
 });
 type ProductFormDataType = z.infer<typeof ProductSchema>;
 
@@ -71,7 +72,6 @@ function CreateProductDialog() {
     resolver: zodResolver(ProductSchema),
     defaultValues: {
       title: "",
-      type: Constants.CourseType.COURSE,
     },
   });
 
@@ -83,7 +83,7 @@ function CreateProductDialog() {
           description: t("products.created_successfully"),
         });
         dialogControl.close();
-        router.push(`/dashboard/products/${response.courseId}`);
+        router.push(`/dashboard/products/${response.slug}`);
       },
       onError: (err: any) => {
         toast({
@@ -99,7 +99,7 @@ function CreateProductDialog() {
       await createCourseMutation.mutateAsync({
         data: {
           title: data.title,
-          type: data.type,
+          level: data.level,
         },
       });
     } catch (error) {
@@ -146,34 +146,38 @@ function CreateProductDialog() {
             />
             <FormField
               control={form.control}
-              name="type"
+              name="level"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t("products.form.type")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl className="w-full">
                       <SelectTrigger>
-                        <SelectValue>
-                          {field.value === Constants.CourseType.COURSE
-                            ? t("products.status.course")
-                            : t("products.status.download")}
-                        </SelectValue>
+                        <SelectValue placeholder={t("products.form.level_placeholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={Constants.CourseType.COURSE}>
+                      <SelectItem value={CourseLevelEnum.BEGINNER}>
                         <div>
-                          <div className="font-medium">{t("products.status.course")}</div>
+                          <div className="font-medium">{t("products.status.beginner")}</div>
                           <div className="text-sm text-muted-foreground">
-                            {t("products.course_description")}
+                            {t("products.beginner_description")}
                           </div>
                         </div>
                       </SelectItem>
-                      <SelectItem value={Constants.CourseType.DOWNLOAD}>
+                      <SelectItem value={CourseLevelEnum.INTERMEDIATE}>
                         <div>
-                          <div className="font-medium">{t("products.status.download")}</div>
+                          <div className="font-medium">{t("products.status.intermediate")}</div>
                           <div className="text-sm text-muted-foreground">
-                            {t("products.download_description")}
+                            {t("products.intermediate_description")}
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value={CourseLevelEnum.ADVANCED}>
+                        <div>
+                          <div className="font-medium">{t("products.status.advanced")}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {t("products.advanced_description")}
                           </div>
                         </div>
                       </SelectItem>
@@ -206,12 +210,12 @@ export default function Page() {
   const { t } = useTranslation(["dashboard", "common"]);
   const searchParams = useSearchParams();
   const page = parseInt(searchParams?.get("page") || "1");
-  const filter: "all" | CourseType =
-    (searchParams?.get("filter") as "all" | CourseType) || "all";
+  const filter: "all" | CourseLevelEnum =
+    (searchParams?.get("filter") as "all" | CourseLevelEnum) || "all";
   // const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1") || 1);
   // const [filter, setFilter] = useState<"all" | CourseType>(searchParams?.get("filter") as "all" | CourseType || "all");
   const router = useRouter();
-  
+
   const breadcrumbs = [{ label: t("products.title"), href: "#" }];
 
   const filterArray = useMemo(
@@ -219,13 +223,13 @@ export default function Page() {
     [filter],
   );
 
-  const listQuery = trpc.lmsModule.product.list.useQuery({
+  const listQuery = trpc.lmsModule.courseModule.course.list.useQuery({
     pagination: {
       take: ITEMS_PER_PAGE,
       skip: (page - 1) * ITEMS_PER_PAGE,
     },
     filter: {
-      filterBy: filterArray as any,
+      filterBy: filterArray as CourseLevelEnum[],
       publicView: false,
     },
   });
@@ -233,9 +237,9 @@ export default function Page() {
     if (!listQuery.data?.total || !ITEMS_PER_PAGE) return 1;
     return Math.ceil(listQuery.data.total / ITEMS_PER_PAGE);
   }, [listQuery.data, ITEMS_PER_PAGE]);
-  const products = useMemo(() => listQuery.data?.items || [], [listQuery.data]);
+  const courses = useMemo(() => listQuery.data?.items || [], [listQuery.data]);
 
-  const handleFilterChange = useCallback((value: "all" | CourseType) => {
+  const handleFilterChange = useCallback((value: "all" | CourseLevelEnum) => {
     router.push(
       `/dashboard/products?${value !== "all" ? `filter=${value}` : ""}`,
     );
@@ -263,12 +267,14 @@ export default function Page() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("common:dashboard.select_all")}</SelectItem>
-              {[Constants.CourseType.COURSE, Constants.CourseType.DOWNLOAD].map(
+              {[CourseLevelEnum.BEGINNER, CourseLevelEnum.INTERMEDIATE, CourseLevelEnum.ADVANCED].map(
                 (status) => (
                   <SelectItem value={status} key={status}>
-                    {status === Constants.CourseType.COURSE 
-                      ? t("products.status.course") 
-                      : t("products.status.download")}
+                    {status === CourseLevelEnum.BEGINNER
+                      ? t("products.status.beginner")
+                      : status === CourseLevelEnum.INTERMEDIATE
+                        ? t("products.status.intermediate")
+                        : t("products.status.advanced")}
                   </SelectItem>
                 ),
               )}
@@ -287,9 +293,9 @@ export default function Page() {
           <>
             {totalPages > 0 && (
               <>
-                {products.map((product, index) => (
-                  <Link key={index} href={`/dashboard/products/${product.courseId}`}>
-                    <ProductCard product={product as any} />
+                {courses.map((product, index) => (
+                  <Link key={index} href={`/dashboard/products/${product.slug}`}>
+                    <ProductCard product={product} />
                   </Link>
                 ))}
               </>

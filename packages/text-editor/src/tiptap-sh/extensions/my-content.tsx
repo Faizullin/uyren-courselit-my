@@ -1,27 +1,98 @@
 "use client";
 
 import { Extension } from "@tiptap/core";
-import { TextEditorContent } from "@workspace/common-models";
+import { ITextEditorContent } from "@workspace/common-logic";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     myContent: {
-      setMyContent: (content: TextEditorContent) => ReturnType;
+      setMyContent: (content: ITextEditorContent) => ReturnType;
+      getMyContent: () => ITextEditorContent;
     };
   }
 }
 
+declare module "@tiptap/core" {
+  interface Storage {
+    myContent: {
+      assets: ITextEditorContent["assets"];
+      widgets: ITextEditorContent["widgets"];
+      config: ITextEditorContent["config"];
+    };
+  }
+}
+
+const extensionName = "myContent";
+
 export const MyContentExtension = Extension.create<{}, any>({
-  name: "myContent",
+  name: extensionName,
+
+  addStorage() {
+    return {
+      myContent: {
+        assets: [],
+        widgets: [],
+        config: { editorType: "tiptap" },
+      },
+    };
+  },
 
   addCommands() {
+    const getAllAssetsFromEditor = (editor: any): ITextEditorContent["assets"] => {
+      const assets: ITextEditorContent["assets"] = [];
+      
+      editor.state.doc.descendants((node: any) => {
+        if (node.type.name === "media-view" && node.attrs.asset) {
+          assets.push(node.attrs.asset);
+        }
+      });
+
+      return assets;
+    };
+
     return {
       setMyContent:
-        (textEditorContent: TextEditorContent) =>
-        ({ editor, commands }) => {
-          commands.setContent(textEditorContent.content);
-          return true;
-        },
+        (textEditorContent: ITextEditorContent) =>
+          ({ editor, commands }) => {
+            // Set the HTML content
+            commands.setContent(textEditorContent.content);
+            
+            // Store assets and widgets in editor storage for later retrieval
+            editor.storage.myContent = {
+              assets: textEditorContent.assets || [],
+              widgets: textEditorContent.widgets || [],
+              config: textEditorContent.config || { editorType: "tiptap" },
+            };
+            
+            return true;
+          },
+
+      getMyContent:
+        () =>
+          ({ editor }: { editor: any }) => {
+            const storage = editor.storage.myContent || {};
+            const assets = getAllAssetsFromEditor(editor);
+            
+            return {
+              type: "doc" as const,
+              content: editor.getHTML(),
+              assets: assets,
+              widgets: storage.widgets || [],
+              config: storage.config || { editorType: "tiptap" },
+            } as ITextEditorContent;
+          },
+
     };
+  },
+
+  // Initialize storage
+  onCreate() {
+    if (!this.editor.storage.myContent) {
+      this.editor.storage.myContent = {
+        assets: [],
+        widgets: [],
+        config: { editorType: "tiptap" },
+      };
+    }
   },
 });

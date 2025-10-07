@@ -8,7 +8,7 @@ import { ReactNode, useCallback } from "react";
 type HeaderProps = {
   header: {
     title: string;
-    subtitle: string;
+    subtitle?: string;
   };
   backLink?: boolean;
   rightAction?: ReactNode;
@@ -32,7 +32,9 @@ const HeaderTopbar = (props: HeaderProps) => {
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           {props.header.title}
         </h1>
-        <p className="text-muted-foreground">{props.header.subtitle}</p>
+        {props.header.subtitle && (
+          <p className="text-muted-foreground">{props.header.subtitle}</p>
+        )}
       </div>
       {props.rightAction}
     </div>

@@ -5,6 +5,8 @@ import {
   navigateQuizQuestion,
   submitQuizAttempt,
 } from "@/server/actions/quiz-attempt";
+import { IOption, IQuizHydratedDocument, IQuizQuestionHydratedDocument } from "@workspace/common-logic/models/lms/quiz";
+import { IQuizAttemptHydratedDocument } from "@workspace/common-logic/models/lms/quiz-attempt";
 import { useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -23,72 +25,54 @@ import { CheckCircle2, Circle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useMemo, useState } from "react";
 
+type ISerializerQuestion = Pick<IQuizQuestionHydratedDocument, "text" | "type" | "points"> & {
+  _id: string;
+  options: Pick<IOption, "uid" | "text" |  "order">[];
+};
+
+type ISerializedQuiz = Pick<IQuizHydratedDocument, "title" | "description" | "maxAttempts" | "timeLimit" | "totalPoints"> & {
+  _id: string;
+  questions: ISerializerQuestion[];
+};
+
+type ISerializedAttemptAnswer = Pick<IQuizAttemptHydratedDocument["answers"][number], "answer"> & {
+  questionId: string;
+};
+
+type ISerializedAttempt = Pick<IQuizAttemptHydratedDocument, "status"> & {
+  _id: string;
+  quizId: string;
+  userId: string;
+  answers: ISerializedAttemptAnswer[];
+};
+
+
 interface QuizInterfaceProps {
-  initialQuiz: {
-    _id: string;
-    title: string;
-    questions: Array<{
-      _id: string;
-      text: string;
-      type: string;
-      points: number;
-      options?: Array<{
-        _id: string;
-        uid: string;
-        text: string;
-        isCorrect?: boolean;
-        order?: number;
-      }>;
-    }>;
-  };
+  initialQuiz: ISerializedQuiz;
   attemptId?: string;
-  initialAttemptData?: {
-    _id: string;
-    quizId: string;
-    userId: string;
-    status: string;
-    startedAt?: string;
-    expiresAt?: string;
-    answers: Array<{
-      questionId: string;
-      answer: any;
-      timeSpent?: number;
-    }>;
-    timeSpent?: number;
-    abandonedAt?: string;
-    createdAt?: string;
-    updatedAt?: string;
-  };
+  initialAttemptData?: ISerializedAttempt;
 }
 
-// Question components defined outside main function for optimization
 const MultipleChoiceQuestion = ({
   options,
   currentAnswer,
   onOptionChange,
-}: {
-  options?: Array<{
-    _id: string;
-    uid: string;
-    text: string;
-    isCorrect?: boolean;
-    order?: number;
-  }>;
+}: Pick<ISerializerQuestion, "options"> & {
   currentAnswer: string[];
   onOptionChange: (optionUid: string, checked: boolean) => void;
 }) => (
   <div className="space-y-3">
     {options?.map((option) => (
-      <div key={option._id} className="flex items-center space-x-3">
+      <div key={option.uid} className="flex items-center space-x-3">
         <Checkbox
-          id={option._id}
+          id={option.uid}
           checked={currentAnswer.includes(option.uid)}
           onCheckedChange={(checked) =>
             onOptionChange(option.uid, checked as boolean)
           }
         />
         <Label
-          htmlFor={option._id}
+          htmlFor={option.uid}
           className="cursor-pointer text-base leading-relaxed"
         >
           {option.text}
@@ -159,7 +143,7 @@ export default function QuizInterface({
           newAnswer &&
           (Array.isArray(newAnswer)
             ? newAnswer.length > 0 &&
-              newAnswer.some((a) => a && a.toString().trim() !== "")
+            newAnswer.some((a) => a && a.toString().trim() !== "")
             : typeof newAnswer === "string"
               ? newAnswer.trim() !== ""
               : true);
@@ -393,7 +377,7 @@ export default function QuizInterface({
                       onClick={handleNext}
                       disabled={
                         currentQuestionIndex ===
-                          initialQuiz.questions.length - 1 || isLoading
+                        initialQuiz.questions.length - 1 || isLoading
                       }
                       size="lg"
                     >
@@ -425,11 +409,10 @@ export default function QuizInterface({
                         key={question._id}
                         variant={isCurrent ? "default" : "outline"}
                         size="sm"
-                        className={`h-14 w-14 p-0 ${
-                          isCurrent
-                            ? "bg-blue-600 text-white ring-2 ring-blue-200"
-                            : ""
-                        }`}
+                        className={`h-14 w-14 p-0 ${isCurrent
+                          ? "bg-blue-600 text-white ring-2 ring-blue-200"
+                          : ""
+                          }`}
                         onClick={() => handleQuestionNavigation(index)}
                         disabled={isLoading}
                       >

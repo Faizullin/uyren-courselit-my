@@ -6,8 +6,8 @@ import { cache } from "react";
  * - Uses Redis-first domain resolution with clear [DEBUG] logs
  * - Memoized per-request via React cache() to avoid duplicate Redis/DB calls
  */
-export const getSiteInfo = cache(async () => {
+export const getServerSiteInfo = cache(async () => {
   const domainData = await getDomainData();
   if (!domainData.domainObj) return undefined;
-  return domainData.domainObj.settings;
+  return domainData.domainObj.siteInfo;
 });

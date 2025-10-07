@@ -17,9 +17,9 @@ interface QuizAttemptPageProps {
   params: Promise<{ id: string; attemptId: string }>;
 }
 
-const getCachedData = cache(async (quizId: string) => {
-  return await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizIdWithQuestions({
-    quizId,
+const getCachedData = cache(async (id: string) => {
+  return await trpcCaller.lmsModule.quizModule.quiz.protectedGetByIdWithQuestions({
+    id, 
   });
 });
 
@@ -53,14 +53,9 @@ export default async function QuizAttemptPage({
     if (!attempt) {
       notFound();
     }
-
-    // Verify attempt belongs to this quiz
     if (attempt.quizId?.toString() !== id) {
       notFound();
     }
-
-    // Serialize only the minimal data needed for the quiz interface
-    // Remove sensitive data like scores, correct answers, and grading info
     const serializedQuiz = {
       _id: quiz._id?.toString(),
       title: quiz.title,
@@ -70,17 +65,13 @@ export default async function QuizAttemptPage({
       totalPoints: quiz.totalPoints,
       questions: quiz.questions.map((question) => ({
         _id: question._id?.toString(),
-        title: question.title,
         text: question.text,
-        description: question.description,
         type: question.type,
         points: question.points,
-        options: question.options.map((option: any) => ({
-          _id: option._id?.toString(),
+        options: question.options?.map((option) => ({
           text: option.text,
           uid: option.uid,
-          // isCorrect: option.isCorrect,
-        })),
+        })) || [],
       })),
     };
 

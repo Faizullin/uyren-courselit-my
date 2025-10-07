@@ -1,13 +1,11 @@
+import { BaseQuestionProvider, QuestionAnswer } from "./BaseQuestionProvider";
 import {
-  BaseQuestionProvider,
-  baseQuestionSchema,
-} from "./BaseQuestionProvider";
-import { IQuestion, MultipleChoiceQuestion } from "@/models/lms/Question";
-import { QuestionAnswer } from "./BaseQuestionProvider";
+  MultipleChoiceQuestion,
+  QuestionTypeEnum,
+} from "@workspace/common-logic/models/lms/quiz";
 import { MainContextType } from "@/server/api/core/procedures";
 import { z } from "zod";
 
-// Multiple choice specific schema
 const multipleChoiceSchema = z.object({
   options: z
     .array(
@@ -23,20 +21,13 @@ const multipleChoiceSchema = z.object({
     .array(z.string())
     .min(1, "Correct answer is required")
     .optional(),
-  settings: z
-    .object({
-      // allowMultipleAnswers: z.boolean().optional(),
-      // shuffleOptions: z.boolean().optional(),
-      // minOptions: z.number().min(2).optional(),
-      // maxOptions: z.number().max(6).optional(),
-    })
-    .optional(),
+  settings: z.object({}).optional(),
 });
 
 export class MultipleChoiceProvider extends BaseQuestionProvider<MultipleChoiceQuestion> {
-  readonly type = "multiple_choice";
+  readonly type = QuestionTypeEnum.MULTIPLE_CHOICE;
   readonly displayName = "Multiple Choice";
-  readonly description = "Single correct answer from multiple options";
+  readonly description = "Single or multiple correct answers from options";
 
   protected getSpecificValidationSchema(): z.ZodObject<z.ZodRawShape> {
     return multipleChoiceSchema;

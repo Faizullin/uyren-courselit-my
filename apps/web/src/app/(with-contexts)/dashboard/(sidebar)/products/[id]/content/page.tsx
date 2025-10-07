@@ -189,11 +189,6 @@ export default function ContentPage() {
               courseId: product!.courseId,
               name: sectionFormData.name,
               collapsed: sectionFormData.collapsed,
-              // drip: sectionFormData.enableDrip ? {
-              //     status: true,
-              //     type: sectionFormData.dripType,
-              //     delayInMillis: sectionFormData.dripType === Constants.dripType[1] ? sectionFormData.delay * 86400000 : undefined,
-              // } : undefined,
             },
           });
         } else {
@@ -204,11 +199,6 @@ export default function ContentPage() {
               name: sectionFormData.name,
               rank: sectionFormData.rank,
               collapsed: sectionFormData.collapsed,
-              // drip: sectionFormData.enableDrip ? {
-              //     status: true,
-              //     type: sectionFormData.dripType,
-              //     delayInMillis: sectionFormData.dripType === Constants.dripType[1] ? sectionFormData.delay * 86400000 : undefined,
-              // } : undefined,
             },
           });
         }
@@ -257,7 +247,7 @@ export default function ContentPage() {
     });
 
   const addGroupMutation =
-    trpc.lmsModule.courseModule.course.addGroup.useMutation({
+    trpc.lmsModule.courseModule.course.addCourseChapter.useMutation({
       onSuccess: () => {
         toast({
           title: TOAST_TITLE_SUCCESS,

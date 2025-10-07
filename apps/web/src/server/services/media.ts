@@ -1,9 +1,9 @@
-import { Media } from "@workspace/common-models";
+import { IAttachmentMedia } from "@workspace/common-logic";
 
-export async function deleteMedia(mediaId: string | Media): Promise<boolean> {
+export async function deleteMedia(mediaId: string | IAttachmentMedia): Promise<boolean> {
   // checkMediaLitAPIKeyOrThrow();
 
-  const usedMediaId = typeof mediaId === "string" ? mediaId : mediaId.mediaId;
+  const usedMediaId = typeof mediaId === "string" ? mediaId : mediaId._id.toString();
   const medialitServer = "";
   let response: any = await fetch(
     `${medialitServer}/api/services/media/${usedMediaId}`,

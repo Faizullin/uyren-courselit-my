@@ -1,11 +1,6 @@
 "use server";
 
 import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/server/lib/domain";
-import { Domain } from "@/models/Domain";
-import { QuestionModel, QuizAttemptModel, QuizModel } from "@/models/lms";
-import { IQuestion } from "@/models/lms/Question";
-import { IQuizAttempt } from "@/models/lms/QuizAttempt";
 import {
   AuthenticationException,
   ConflictException,
@@ -13,35 +8,29 @@ import {
   ValidationException,
 } from "@/server/api/core/exceptions";
 import { QuestionProviderFactory } from "@/server/api/routers/lms/question-bank/_providers";
-import { connectToDatabase } from "@workspace/common-logic";
-import {
-  BASIC_PUBLICATION_STATUS_TYPE,
-  UIConstants,
-} from "@workspace/common-models";
+import { getDomainData } from "@/server/lib/domain";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { IQuizHydratedDocument, IQuizQuestionHydratedDocument, QuestionTypeEnum, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz";
+import { IQuizAttemptHydratedDocument, QuizAttemptModel, QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt";
+import { UserModel } from "@workspace/common-logic/models/user";
 import { checkPermission } from "@workspace/utils";
-import { User } from "next-auth";
+import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
-
-// Types
-interface ActionContext {
-  user: User;
-  domainData: {
-    domainObj: Domain;
-    headers: { type: string; host: string; identifier: string };
-  };
-}
+import { MainContextType } from "../api/core/procedures";
 
 // Use types from QuizAttempt model
 type AnswerSubmission = Pick<
-  IQuizAttempt["answers"][0],
+  IQuizAttemptHydratedDocument["answers"][0],
   "questionId" | "answer"
 >;
-type ProcessedAnswer = IQuizAttempt["answers"][0];
+type ProcessedAnswer = IQuizAttemptHydratedDocument["answers"][0];
 
 interface QuizSubmissionResult {
   success: boolean;
   attemptId: string;
-  status: IQuizAttempt["status"];
+  status: IQuizAttemptHydratedDocument["status"];
   score?: number;
   percentageScore?: number;
   passed?: boolean;
@@ -50,10 +39,15 @@ interface QuizSubmissionResult {
 }
 
 // Core functions
-async function getActionContext(): Promise<ActionContext> {
+async function getActionContext(): Promise<MainContextType> {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     throw new AuthenticationException("User not authenticated");
+  }
+
+  const user = await UserModel.findById(session.user.userId);
+  if (!user) {
+    throw new AuthenticationException("User not found");
   }
 
   const domainData = await getDomainData();
@@ -62,20 +56,18 @@ async function getActionContext(): Promise<ActionContext> {
   }
 
   return {
-    user: session.user,
-    domainData: {
-      domainObj: domainData.domainObj,
-      headers: domainData.headers,
-    },
+    session,
+    user,
+    domainData,
   };
 }
 
 // Helper functions
-async function validateAttempt(attemptId: string, ctx: ActionContext) {
+async function validateAttempt(attemptId: string, ctx: MainContextType) {
   const attempt = await QuizAttemptModel.findOne({
     _id: attemptId,
-    userId: ctx.user.userId,
-    domain: ctx.domainData.domainObj._id,
+    userId: ctx.user._id,
+    orgId: ctx.domainData.domainObj.orgId,
   });
 
   if (!attempt) {
@@ -96,7 +88,7 @@ async function validateAttempt(attemptId: string, ctx: ActionContext) {
 async function validateAnswer(
   answer: any,
   questionId: string,
-  questions: IQuestion[],
+  questions: IQuizQuestionHydratedDocument[],
 ): Promise<{ isValid: boolean; normalizedAnswer?: any; error?: string }> {
   const question = questions.find((q) => q._id?.toString() === questionId);
   if (!question) {
@@ -127,7 +119,7 @@ async function validateAnswer(
 
 async function validateAndProcessAnswers(
   answers: AnswerSubmission[],
-  questions: IQuestion[],
+  questions: IQuizQuestionHydratedDocument[],
 ): Promise<{
   isValid: boolean;
   errors: string[];
@@ -153,7 +145,7 @@ async function validateAndProcessAnswers(
     }
 
     const question = questions.find(
-      (q) => q._id?.toString() === answer.questionId,
+      (q) => q._id === answer.questionId,
     );
     if (!question) {
       errors.push(`Question ${answer.questionId} not found`);
@@ -200,13 +192,12 @@ export async function startQuizAttempt(
   quizId: string,
 ): Promise<QuizSubmissionResult> {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     const quiz = await QuizModel.findOne({
       _id: quizId,
-      domain: ctx.domainData.domainObj._id,
-      status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
+      orgId: ctx.domainData.domainObj.orgId,
+      publicationStatus: PublicationStatusEnum.PUBLISHED,
     });
 
     if (!quiz) {
@@ -215,9 +206,9 @@ export async function startQuizAttempt(
 
     const activeAttempt = await QuizAttemptModel.findOne({
       quizId,
-      userId: ctx.user.userId,
-      domain: ctx.domainData.domainObj._id,
-      status: "in_progress",
+      userId: ctx.user._id,
+      orgId: ctx.domainData.domainObj.orgId,
+      status: QuizAttemptStatusEnum.IN_PROGRESS,
     });
 
     if (activeAttempt) {
@@ -232,9 +223,9 @@ export async function startQuizAttempt(
     if (quiz.maxAttempts && quiz.maxAttempts > 0) {
       const attemptCount = await QuizAttemptModel.countDocuments({
         quizId,
-        userId: ctx.user.userId,
-        domain: ctx.domainData.domainObj._id,
-        status: { $in: ["completed", "graded"] },
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: { $in: [QuizAttemptStatusEnum.COMPLETED, QuizAttemptStatusEnum.GRADED] },
       });
 
       if (attemptCount >= quiz.maxAttempts) {
@@ -244,9 +235,9 @@ export async function startQuizAttempt(
 
     const attempt = await QuizAttemptModel.create({
       quizId,
-      userId: ctx.user.userId,
-      domain: ctx.domainData.domainObj._id,
-      status: "in_progress",
+      userId: ctx.user._id,
+      orgId: ctx.domainData.domainObj.orgId,
+      status: QuizAttemptStatusEnum.IN_PROGRESS,
       startedAt: new Date(),
       expiresAt: null,
       // expiresAt: quiz.timeLimit && quiz.timeLimit > 0
@@ -265,7 +256,7 @@ export async function startQuizAttempt(
     return {
       success: false,
       attemptId: "",
-      status: "abandoned",
+      status: QuizAttemptStatusEnum.ABANDONED,
       message: error.message || "Failed to start quiz attempt",
     };
   }
@@ -278,16 +269,12 @@ export async function getQuizAttempt(attemptId: string) {
 
     const attempt = await QuizAttemptModel.findOne({
       _id: attemptId,
-      userId: ctx.user.userId,
-      domain: ctx.domainData.domainObj._id,
+      userId: ctx.user._id,
+      orgId: ctx.domainData.domainObj.orgId,
     })
       .populate<{
-        quiz: {
-          quizId: string;
-          title: string;
-          totalPoints: number;
-        };
-      }>("quiz", "quizId title totalPoints")
+        quiz: Pick<IQuizHydratedDocument, "_id" | "title" | "totalPoints">;
+      }>("quiz", " title totalPoints")
       .lean();
 
     if (!attempt) {
@@ -302,13 +289,12 @@ export async function getQuizAttempt(attemptId: string) {
 
 export async function getQuizAttemptDetails(attemptId: string) {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     const attempt = await QuizAttemptModel.findOne({
       _id: attemptId,
-      userId: ctx.user.userId,
-      domain: ctx.domainData.domainObj._id,
+      userId: ctx.user._id,
+      orgId: ctx.domainData.domainObj.orgId,
     }).populate<{
       quiz: {
         quizId: string;
@@ -327,9 +313,9 @@ export async function getQuizAttemptDetails(attemptId: string) {
       throw new NotFoundException("Quiz", attempt.quizId.toString());
     }
 
-    const questions = await QuestionModel.find({
+    const questions = await QuizQuestionModel.find({
       _id: { $in: quiz.questionIds },
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     const questionsData = questions.map((question) => ({
@@ -338,14 +324,13 @@ export async function getQuizAttemptDetails(attemptId: string) {
       type: question.type,
       points: question.points || 1,
       options:
-        question.type === "multiple_choice"
+        question.type === QuestionTypeEnum.MULTIPLE_CHOICE
           ? question.options?.map((opt) => ({
-              _id: opt._id?.toString(),
-              uid: opt.uid,
-              text: opt.text,
-              isCorrect: opt.isCorrect,
-              order: opt.order,
-            }))
+            uid: opt.uid,
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+            order: opt.order,
+          }))
           : undefined,
       correctAnswers: question.correctAnswers?.map((id) => id.toString()),
     }));
@@ -384,7 +369,6 @@ export async function saveTeacherFeedback(
   feedback: string,
 ) {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     // Check if user has permission to leave feedback
@@ -401,7 +385,7 @@ export async function saveTeacherFeedback(
 
     const attempt = await QuizAttemptModel.findOne({
       _id: attemptId,
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     if (!attempt) {
@@ -420,7 +404,7 @@ export async function saveTeacherFeedback(
     if (attempt.answers[answerIndex]) {
       attempt.answers[answerIndex].feedback = feedback;
       attempt.answers[answerIndex].gradedAt = new Date();
-      attempt.answers[answerIndex].gradedBy = ctx.user.userId;
+      attempt.answers[answerIndex].gradedById = ctx.user._id;
     }
 
     await attempt.save();
@@ -445,23 +429,22 @@ export async function navigateQuizQuestion(params: {
   saveAnswer?: boolean;
 }) {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
     const attempt = await validateAttempt(params.attemptId, ctx);
 
     const quiz = await QuizModel.findOne({
       _id: attempt.quizId,
-      domain: ctx.domainData.domainObj._id,
-      status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
+      orgId: ctx.domainData.domainObj.orgId,
+      publicationStatus: PublicationStatusEnum.PUBLISHED,
     });
 
     if (!quiz) {
       throw new NotFoundException("Quiz", attempt.quizId);
     }
 
-    const questions = await QuestionModel.find({
+    const questions = await QuizQuestionModel.find({
       _id: { $in: quiz.questionIds },
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     if (
@@ -500,7 +483,7 @@ export async function navigateQuizQuestion(params: {
           }
         } else {
           attempt.answers.push({
-            questionId: params.currentQuestionId,
+            questionId: new mongoose.Types.ObjectId(params.currentQuestionId),
             answer: validation.normalizedAnswer,
             timeSpent: 0,
           });
@@ -522,11 +505,10 @@ export async function navigateQuizQuestion(params: {
       options:
         targetQuestion.type === "multiple_choice"
           ? targetQuestion.options?.map((opt) => ({
-              _id: opt._id?.toString() || "",
-              uid: opt.uid,
-              text: opt.text,
-              order: opt.order,
-            }))
+            uid: opt.uid,
+            text: opt.text,
+            order: opt.order,
+          }))
           : [],
     };
 
@@ -563,7 +545,6 @@ export async function navigateQuizQuestion(params: {
 }
 export async function submitQuizAttempt(attemptId: string) {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
     const attempt = await validateAttempt(attemptId, ctx);
 
@@ -572,9 +553,9 @@ export async function submitQuizAttempt(attemptId: string) {
       throw new NotFoundException("Quiz", attempt.quizId.toString());
     }
 
-    const questions = await QuestionModel.find({
+    const questions = await QuizQuestionModel.find({
       _id: { $in: quiz.questionIds },
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     let totalScore = 0;
@@ -631,7 +612,7 @@ export async function submitQuizAttempt(attemptId: string) {
       throw new NotFoundException("Quiz attempt", attemptId);
     }
 
-    updatedAttempt.status = "completed";
+    updatedAttempt.status = QuizAttemptStatusEnum.COMPLETED;
     updatedAttempt.completedAt = new Date();
     updatedAttempt.answers = gradedAnswers;
     updatedAttempt.score = totalScore;
@@ -652,7 +633,7 @@ export async function submitQuizAttempt(attemptId: string) {
     return {
       success: false,
       attemptId: attemptId,
-      status: "abandoned",
+      status: QuizAttemptStatusEnum.ABANDONED,
       message: error.message || "Failed to submit quiz attempt",
     };
   }
@@ -662,28 +643,27 @@ export async function getQuizQuestions(quizId: string): Promise<{
   _id: string;
   title: string;
   description?: string;
-  questions: Partial<IQuestion>[];
+  questions: Partial<IQuizQuestionHydratedDocument>[];
 }> {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     const quiz = await QuizModel.findOne({
       _id: quizId,
-      domain: ctx.domainData.domainObj._id,
-      status: "published",
+      orgId: ctx.domainData.domainObj.orgId,
+      publicationStatus: PublicationStatusEnum.PUBLISHED,
     });
 
     if (!quiz) {
       throw new NotFoundException("Quiz", quizId);
     }
 
-    const questions = await QuestionModel.find({
+    const questions = await QuizQuestionModel.find({
       _id: { $in: quiz.questionIds },
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
-    const processedQuestions = questions.map((question: IQuestion) => {
+    const processedQuestions = questions.map((question) => {
       const provider = QuestionProviderFactory.getProvider(question.type);
       if (
         provider &&
@@ -720,7 +700,6 @@ export async function getQuizQuestions(quizId: string): Promise<{
 }
 export async function regradeQuizAttempt(attemptId: string) {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     // Check if user has permission to regrade
@@ -737,7 +716,7 @@ export async function regradeQuizAttempt(attemptId: string) {
 
     const attempt = await QuizAttemptModel.findOne({
       _id: attemptId,
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     if (!attempt) {
@@ -749,16 +728,16 @@ export async function regradeQuizAttempt(attemptId: string) {
       throw new NotFoundException("Quiz", attempt.quizId.toString());
     }
 
-    const questions = await QuestionModel.find({
+    const questions = await QuizQuestionModel.find({
       _id: { $in: quiz.questionIds },
-      domain: ctx.domainData.domainObj._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     // Reuse the same grading logic from submitQuizAttempt
     let totalScore = 0;
     const gradedAnswers = attempt.answers.map((answer) => {
       const question = questions.find(
-        (q) => q._id?.toString() === answer.questionId?.toString(),
+        (q) => q._id === answer.questionId,
       );
 
       if (!question) {
@@ -810,7 +789,7 @@ export async function regradeQuizAttempt(attemptId: string) {
       throw new NotFoundException("Quiz attempt", attemptId);
     }
 
-    updatedAttempt.status = "graded";
+    updatedAttempt.status = QuizAttemptStatusEnum.GRADED;
     updatedAttempt.answers = gradedAnswers;
     updatedAttempt.score = totalScore;
     updatedAttempt.percentageScore = percentageScore;
@@ -843,20 +822,19 @@ export async function getAttemptStatistics(quizId: string): Promise<{
   completedAttempts: number;
   bestScore: number;
   averageScore: number;
-  lastAttempt: IQuizAttempt | null;
+  lastAttempt: IQuizAttemptHydratedDocument | null;
 }> {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     const attempts = await QuizAttemptModel.find({
       quizId,
-      userId: ctx.user.userId,
-      domain: ctx.domainData.domainObj._id,
+      userId: ctx.user._id,
+      orgId: ctx.domainData.domainObj.orgId,
     });
 
     const completedAttempts = attempts.filter(
-      (a) => a.status === "completed" || a.status === "graded",
+      (a) => a.status === QuizAttemptStatusEnum.COMPLETED || a.status === QuizAttemptStatusEnum.GRADED,
     );
     const bestScore =
       completedAttempts.length > 0
@@ -866,9 +844,9 @@ export async function getAttemptStatistics(quizId: string): Promise<{
     const averageScore =
       completedAttempts.length > 0
         ? completedAttempts.reduce(
-            (sum, a) => sum + (a.percentageScore || 0),
-            0,
-          ) / completedAttempts.length
+          (sum, a) => sum + (a.percentageScore || 0),
+          0,
+        ) / completedAttempts.length
         : 0;
 
     return {
@@ -876,7 +854,7 @@ export async function getAttemptStatistics(quizId: string): Promise<{
       completedAttempts: completedAttempts.length,
       bestScore,
       averageScore: Math.round(averageScore * 100) / 100,
-      lastAttempt: attempts.length > 0 ? (attempts[0] as IQuizAttempt) : null,
+      lastAttempt: attempts.length > 0 ? (attempts[0] as any) : null,
     };
   } catch (error: any) {
     throw new Error(error.message || "Failed to get attempt statistics");
@@ -884,15 +862,14 @@ export async function getAttemptStatistics(quizId: string): Promise<{
 }
 export async function getUserQuizAttempts(
   quizId: string,
-): Promise<IQuizAttempt[]> {
+): Promise<IQuizAttemptHydratedDocument[]> {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     const attempts = await QuizAttemptModel.find({
       quizId,
-      userId: ctx.user.userId,
-      domain: ctx.domainData.domainObj._id,
+      userId: ctx.user._id,
+      orgId: ctx.domainData.domainObj.orgId,
     }).sort({ createdAt: -1 });
 
     return attempts;

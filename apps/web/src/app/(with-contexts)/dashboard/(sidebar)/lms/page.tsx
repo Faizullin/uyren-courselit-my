@@ -17,7 +17,7 @@ import {
   Star,
 } from "lucide-react";
 import Link from "next/link";
-import { useTranslation } from "react-i18next";
+import { getT } from "@/app/i18n/server";
 
 export async function generateMetadata(
   _: any,
@@ -28,8 +28,8 @@ export async function generateMetadata(
   };
 }
 
-export default function LMSPage() {
-  const { t } = useTranslation("dashboard");
+export default async function LMSPage() {
+  const { t } = await getT("dashboard");
   const breadcrumbs = [{ label: t("sidebar.lms"), href: "#" }];
 
   const lmsModules = [

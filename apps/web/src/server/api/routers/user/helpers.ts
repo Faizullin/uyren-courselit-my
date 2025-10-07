@@ -4,11 +4,11 @@ import { recordActivity } from "@/lib/models/record-activity";
 // import { triggerSequences } from "@/lib/models/trigger-sequences";
 import DomainModel, { Domain } from "@/models/Domain";
 import UserModel from "@/models/User";
-import { Constants, UIConstants } from "@workspace/common-models";
+import { UIConstants } from "@workspace/common-models";
 import { checkPermission } from "@workspace/utils";
 import {
-  NotFoundException,
   AuthorizationException,
+  NotFoundException,
 } from "../../core/exceptions";
 import { MainContextType } from "../../core/procedures";
 
@@ -29,10 +29,10 @@ export async function createUser({
   name?: string;
   email: string;
   lead?:
-    | typeof constants.leadWebsite
-    | typeof constants.leadNewsletter
-    | typeof constants.leadApi
-    | typeof constants.leadDownload;
+  | typeof constants.leadWebsite
+  | typeof constants.leadNewsletter
+  | typeof constants.leadApi
+  | typeof constants.leadDownload;
   superAdmin?: boolean;
   subscribedToUpdates?: boolean;
   invited?: boolean;
@@ -58,20 +58,20 @@ export async function createUser({
         purchases: [],
         permissions: superAdmin
           ? [
-              constants.permissions.manageCourse,
-              constants.permissions.manageAnyCourse,
-              constants.permissions.publishCourse,
-              constants.permissions.manageMedia,
-              constants.permissions.manageSite,
-              constants.permissions.manageSettings,
-              constants.permissions.manageUsers,
-              constants.permissions.manageCommunity,
-            ]
+            constants.permissions.manageCourse,
+            constants.permissions.manageAnyCourse,
+            constants.permissions.publishCourse,
+            constants.permissions.manageMedia,
+            constants.permissions.manageSite,
+            constants.permissions.manageSettings,
+            constants.permissions.manageUsers,
+            constants.permissions.manageCommunity,
+          ]
           : [
-              constants.permissions.enrollInCourse,
-              constants.permissions.manageMedia,
-              ...permissions,
-            ],
+            constants.permissions.enrollInCourse,
+            constants.permissions.manageMedia,
+            ...permissions,
+          ],
         lead: lead || constants.leadWebsite,
         subscribedToUpdates,
         invited,
@@ -118,7 +118,7 @@ export const addTags = async (tags: string[], ctx: MainContextType) => {
     throw new NotFoundException("Domain not found");
   }
   if (!checkPermission(ctx.user.permissions, [permissions.manageUsers])) {
-    throw new AuthorizationException("User is not authorized to manage tags");
+    throw new AuthorizationException();
   }
   for (let tag of tags) {
     if (!domainObj.tags.includes(tag)) {

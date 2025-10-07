@@ -1,7 +1,6 @@
 "use client";
 
 import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
-import { TextEditorContent } from "@workspace/common-models";
 import { Button } from "@workspace/ui/components/button";
 import {
   DropdownMenu,
@@ -24,7 +23,6 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 
-type AssetType = TextEditorContent["assets"][number];
 
 // Media type components defined within the same file
 function ImageMedia({

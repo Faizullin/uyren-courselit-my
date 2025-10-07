@@ -4,19 +4,14 @@
  */
 
 // Load environment variables from .env files
-import DomainModel from "@/models/Domain";
-import UserModel from "@/models/User";
-import { connectToDatabase } from "@workspace/common-logic";
-import { UIConstants } from "@workspace/common-models";
+import { connectToDatabase, OrganizationModel, UIConstants, UserModel } from "@workspace/common-logic";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 
 
+dotenv.config();
 
-dotenv.config(); // Load .env as fallback
 
-
-// Simplified createUser function
 async function createUser({
   domain,
   name,
@@ -91,7 +86,7 @@ async function createRootDomain() {
   console.log("🌱 Creating or finding root domain...");
 
   const rootDomainName = "main";
-  let domain = await DomainModel.findOne({ name: rootDomainName });
+  let domain = await OrganizationModel.findOne({ name: rootDomainName });
 
   if (!domain) {
     console.log(`📝 Creating new domain: ${rootDomainName}`);
@@ -106,7 +101,7 @@ async function createRootDomain() {
       codeInjectionHead: "",
     };
 
-    domain = new DomainModel({
+    domain = new OrganizationModel({
       name: rootDomainName,
       email: process.env.SUPER_ADMIN_EMAIL || "admin@example.com",
       deleted: false,
@@ -262,9 +257,6 @@ async function seedDefaultData(
     await DomainModel.findByIdAndUpdate(domain._id, { firstRun: false });
     console.log("✅ Updated domain firstRun status to false");
   }
-
-  // Add any additional default data seeding here
-  // Examples: default pages, themes, courses, etc.
 
   console.log("✅ Default data seeding completed");
 }

@@ -1,32 +1,31 @@
 "use server";
 
 import { authOptions } from "@/lib/auth/options";
-import { Domain } from "@/models/Domain";
-import { AssignmentModel, AssignmentSubmissionModel } from "@/models/lms";
 import { getDomainData } from "@/server/lib/domain";
-import { connectToDatabase } from "@workspace/common-logic";
-import { BASIC_PUBLICATION_STATUS_TYPE } from "@workspace/common-models";
-import { getServerSession, User } from "next-auth";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
+import { AssignmentModel, AssignmentPeerReviewModel, AssignmentSubmissionModel, AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment";
+import { UserModel } from "@workspace/common-logic/models/user";
+import mongoose from "mongoose";
+import { getServerSession } from "next-auth";
 import { AuthenticationException, NotFoundException } from "../api/core/exceptions";
+import { MainContextType } from "../api/core/procedures";
 
-// Types
-interface ActionContext {
-  user: User;
-  domainData: {
-    domainObj: Domain;
-    headers: { type: string; host: string; identifier: string };
-  };
-}
 
 interface SubmissionData {
   content: string;
   attachments?: string[];
 }
 // Core functions
-async function getActionContext(): Promise<ActionContext> {
+async function getActionContext(): Promise<MainContextType> {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     throw new AuthenticationException("User not authenticated");
+  }
+
+  const user = await UserModel.findById(session.user.userId);
+  if (!user) {
+    throw new AuthenticationException("User not found");
   }
 
   const domainData = await getDomainData();
@@ -35,23 +34,21 @@ async function getActionContext(): Promise<ActionContext> {
   }
 
   return {
-    user: session.user,
-    domainData: {
-      domainObj: domainData.domainObj,
-      headers: domainData.headers,
-    },
+    user: user,
+    session: session,
+    domainData,
   };
 }
 
-const validateAssignment = async (assignmentId: string, ctx: ActionContext) => {
+const validateAssignment = async (assignmentId: string, ctx: MainContextType) => {
   const assignment = await AssignmentModel.findOne({
     _id: assignmentId,
-    domain: ctx.domainData.domainObj._id,
+    orgId: ctx.domainData.domainObj.orgId
   });
   if (!assignment) {
     throw new Error("Assignment not found");
   }
-  if (assignment.status !== BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED) {
+  if (assignment.publicationStatus !== PublicationStatusEnum.PUBLISHED) {
     throw new Error("Assignment is not published");
   }
   if (
@@ -68,34 +65,32 @@ const validateAssignment = async (assignmentId: string, ctx: ActionContext) => {
 
 export async function createAssignmentSubmission(
   assignmentId: string,
-  userId: string,
-  domainId: string,
+  userId: mongoose.Types.ObjectId,
   data: SubmissionData,
 ): Promise<any> {
-  await connectToDatabase();
   const ctx = await getActionContext();
   const assignment = await validateAssignment(assignmentId, ctx);
   // Check existing submissions
   const existingSubmissions = await AssignmentSubmissionModel.countDocuments({
     assignmentId,
     userId,
-    domain: domainId,
+    orgId: ctx.domainData.domainObj.orgId,
     status: { $in: ["submitted", "graded"] },
   });
 
-  if (existingSubmissions >= assignment.maxSubmissions) {
+  if (assignment.maxAttempts && existingSubmissions >= assignment.maxAttempts) {
     throw new Error("Maximum submissions reached");
   }
 
   const submission = await AssignmentSubmissionModel.create({
+    orgId: ctx.domainData.domainObj.orgId,
     assignmentId,
     userId,
-    domain: domainId,
-    status: "submitted",
+    status: AssignmentSubmissionStatusEnum.SUBMITTED,
     submittedAt: new Date(),
     content: data.content,
     attachments: data.attachments || [],
-    resubmissionCount: existingSubmissions,
+    attemptNumber: existingSubmissions + 1,
   });
 
   return submission;
@@ -103,18 +98,18 @@ export async function createAssignmentSubmission(
 
 export async function gradeAssignmentSubmission(
   submissionId: string,
-  graderId: string,
+  graderId: mongoose.Types.ObjectId,
   gradeData: {
     score: number;
     feedback?: string;
     rubricScores?: Array<{
-      criterionId: string;
+      criterionId: mongoose.Types.ObjectId;
       score: number;
       feedback?: string;
     }>;
   },
 ): Promise<any> {
-  await connectToDatabase();
+  const ctx = await getActionContext();
 
   const submission = await AssignmentSubmissionModel.findById(submissionId);
   if (!submission) {
@@ -145,12 +140,12 @@ export async function gradeAssignmentSubmission(
   const updatedSubmission = await AssignmentSubmissionModel.findByIdAndUpdate(
     submissionId,
     {
-      status: "graded",
+      status: AssignmentSubmissionStatusEnum.GRADED,
       score: finalScore,
       percentageScore: (finalScore / assignment.totalPoints) * 100,
       feedback: gradeData.feedback,
       gradedAt: new Date(),
-      gradedBy: graderId,
+      gradedById: graderId,
       latePenaltyApplied:
         finalScore < gradeData.score ? gradeData.score - finalScore : 0,
     },
@@ -162,13 +157,13 @@ export async function gradeAssignmentSubmission(
 
 export async function addPeerReview(
   submissionId: string,
-  reviewerId: string,
+  reviewerId: mongoose.Types.ObjectId,
   reviewData: {
     score: number;
     feedback: string;
   },
 ): Promise<any> {
-  await connectToDatabase();
+  const ctx = await getActionContext();
 
   const submission = await AssignmentSubmissionModel.findById(submissionId);
   if (!submission) {
@@ -176,82 +171,20 @@ export async function addPeerReview(
   }
 
   const assignment = await AssignmentModel.findById(submission.assignmentId);
-  if (!assignment || !assignment.peerReviewEnabled) {
+  if (!assignment || !assignment.allowPeerReview) {
     throw new Error("Peer review not enabled for this assignment");
   }
 
-  const peerReview = {
+  const peerReview = await AssignmentPeerReviewModel.create({
+    orgId: ctx.domainData.domainObj.orgId,
+    submissionId: submission._id,
     reviewerId,
     score: reviewData.score,
     feedback: reviewData.feedback,
     reviewedAt: new Date(),
-  };
-
-  const updatedSubmission = await AssignmentSubmissionModel.findByIdAndUpdate(
-    submissionId,
-    { $push: { peerReviews: peerReview } },
-    { new: true },
-  );
-
-  return updatedSubmission;
-}
-
-export async function calculateSubmissionStatistics(
-  assignmentId: string,
-  domainId: string,
-): Promise<{
-  totalSubmissions: number;
-  averageScore: number;
-  submissionRate: number;
-  gradeDistribution: Record<string, number>;
-}> {
-  await connectToDatabase();
-
-  const assignment = await AssignmentModel.findOne({
-    _id: assignmentId,
-    domain: domainId,
-  });
-  if (!assignment) {
-    throw new Error("Assignment not found");
-  }
-
-  const submissions = await AssignmentSubmissionModel.find({
-    assignmentId,
-    domain: domainId,
-    status: "graded",
   });
 
-  const totalSubmissions = submissions.length;
-  const averageScore =
-    totalSubmissions > 0
-      ? submissions.reduce((sum, sub) => sum + (sub.score || 0), 0) /
-      totalSubmissions
-      : 0;
-
-  // Calculate grade distribution (A, B, C, D, F)
-  const gradeDistribution = {
-    A: 0, // 90-100%
-    B: 0, // 80-89%
-    C: 0, // 70-79%
-    D: 0, // 60-69%
-    F: 0, // Below 60%
-  };
-
-  submissions.forEach((sub) => {
-    const percentage = sub.percentageScore || 0;
-    if (percentage >= 90) gradeDistribution.A++;
-    else if (percentage >= 80) gradeDistribution.B++;
-    else if (percentage >= 70) gradeDistribution.C++;
-    else if (percentage >= 60) gradeDistribution.D++;
-    else gradeDistribution.F++;
-  });
-
-  return {
-    totalSubmissions,
-    averageScore,
-    submissionRate: 0, // Would need total enrolled students to calculate
-    gradeDistribution,
-  };
+  return peerReview;
 }
 
 export async function uploadFileAction(formData: FormData) {
@@ -301,14 +234,14 @@ export async function submitAssignmentAction(formData: FormData) {
 
 
   const submission = await AssignmentSubmissionModel.create({
-    assignmentId,
-    userId: ctx.user.userId,
-    domain: ctx.domainData.domainObj._id,
-    status: "submitted",
+    orgId: ctx.domainData.domainObj.orgId,
+    assignmentId: assignment._id,
+    userId: ctx.user._id,
+    status: AssignmentSubmissionStatusEnum.SUBMITTED,
     submittedAt: new Date(),
     content,
     attachments,
-    resubmissionCount: 0,
+    attemptNumber: 1,
   });
 
   return { success: true, id: submission._id.toString() };

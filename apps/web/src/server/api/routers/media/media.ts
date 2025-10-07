@@ -4,7 +4,6 @@ import {
   createDomainRequiredMiddleware,
   protectedProcedure,
 } from "@/server/api/core/procedures";
-import MediaModel from "@/models/Media";
 import { ListInputSchema } from "@/server/api/core/schema";
 import { CloudinaryService } from "@/server/services/cloudinary";
 import { deleteMedia } from "@/server/services/media";
@@ -32,7 +31,7 @@ export const mediaRouter = router({
 
       // Build search query
       const searchQuery: any = {
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       };
 
       if (q) {
@@ -95,7 +94,7 @@ export const mediaRouter = router({
 
       const media = await MediaModel.findOne({
         mediaId,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       }).lean();
 
       if (!media) {
@@ -171,7 +170,7 @@ export const mediaRouter = router({
       const stats = await MediaModel.aggregate([
         {
           $match: {
-            domain: ctx.domainData.domainObj._id,
+            orgId: ctx.domainData.domainObj.orgId,
           },
         },
         {
@@ -246,7 +245,7 @@ export const mediaRouter = router({
       // Ensure media belongs to this domain before deleting upstream
       const existing = await MediaModel.findOne({
         mediaId: input.mediaId,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       }).lean();
       if (!existing) {
         throw new Error("Media not found");

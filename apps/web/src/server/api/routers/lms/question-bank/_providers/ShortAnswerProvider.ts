@@ -1,26 +1,21 @@
-import { BaseQuestionProvider } from "./BaseQuestionProvider";
-import { IQuestion, ShortAnswerQuestion } from "@/models/lms/Question";
-import { QuestionAnswer } from "./BaseQuestionProvider";
+import { BaseQuestionProvider, QuestionAnswer } from "./BaseQuestionProvider";
+import {
+  ShortAnswerQuestion,
+  QuestionTypeEnum,
+} from "@workspace/common-logic/models/lms/quiz";
 import { MainContextType } from "@/server/api/core/procedures";
 import { z } from "zod";
 
-// Short answer specific schema
 const shortAnswerSchema = z.object({
   correctAnswers: z
     .array(z.string().min(1, "Answer cannot be empty"))
-    .min(1, "Correct answer is required"),
-  settings: z
-    .object({
-      // caseSensitive: z.boolean().optional(),
-      // partialMatch: z.boolean().optional(),
-      // minAnswerLength: z.number().min(1).optional(),
-      // maxAnswerLength: z.number().max(1000).optional(),
-    })
+    .min(1, "Correct answer is required")
     .optional(),
+  settings: z.object({}).optional(),
 });
 
 export class ShortAnswerProvider extends BaseQuestionProvider<ShortAnswerQuestion> {
-  readonly type = "short_answer";
+  readonly type = QuestionTypeEnum.SHORT_ANSWER;
   readonly displayName = "Short Answer";
   readonly description = "Text-based answer with flexible matching";
 
@@ -44,7 +39,6 @@ export class ShortAnswerProvider extends BaseQuestionProvider<ShortAnswerQuestio
       return errors;
     }
 
-    // Validate each answer in the array
     answer.forEach((ans, index) => {
       if (typeof ans !== "string") {
         errors.push(`Answer ${index + 1} must be a string`);

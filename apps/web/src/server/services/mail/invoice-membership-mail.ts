@@ -1,17 +1,22 @@
 import { Log } from "@/lib/logger";
-import { addMailJob } from "@/server/lib/queue";
 import { generateEmailFrom } from "@/lib/utils";
-import { Constants } from "@workspace/common-models";
-import CourseModel from "@/models/Course";
-import InvoiceModel from "@/models/Invoice";
-import MembershipModel from "@/models/Membership";
-import UserModel from "@/models/User";
+import { addMailJob } from "@/server/lib/queue";
+import {
+  ApprovalStatusEnum,
+  CohortJoinRequestModel,
+  CourseEnrollmentMemberTypeEnum,
+  CourseModel,
+  EnrollmentModel,
+  InvoiceModel,
+  UserModel
+} from "@workspace/common-logic";
 import pug from "pug";
 import invoiceMembershipTemplate from "./templates/invoice-membership";
 
 interface SendInvoiceMembershipEmailParams {
   membershipId: string;
   invoiceId?: string;
+  cohortJoinRequestId?: string;
   domain: {
     name: string;
     email: string;
@@ -29,7 +34,7 @@ interface EmailData {
   emailTitle: string;
   emailMessage: string;
   courseTitle: string;
-  courseType: string;
+  courseLevel: string;
   creatorName: string;
   membershipId: string;
   membershipStatus: string;
@@ -39,7 +44,7 @@ interface EmailData {
   invoiceId?: string;
   amount?: number;
   invoiceStatus?: string;
-  paymentProcessor?: string;
+  paymentMethod?: string;
   invoiceDate?: string;
   currencySymbol: string;
   loginLink: string;
@@ -53,37 +58,43 @@ interface EmailData {
 export async function sendInvoiceMembershipEmail({
   membershipId,
   invoiceId,
+  cohortJoinRequestId,
   domain,
   headers,
   eventType,
 }: SendInvoiceMembershipEmailParams) {
   try {
-    // Get membership details
-    const membership = await MembershipModel.findOne({ membershipId }).lean();
-    if (!membership) {
+    const enrollment = await EnrollmentModel.findById(membershipId).lean();
+    if (!enrollment) {
       throw new Error(`Membership not found: ${membershipId}`);
     }
 
-    // Get user details
-    const user = await UserModel.findOne({ userId: membership.userId }).lean();
+    const user = await UserModel.findById(enrollment.userId).lean();
     if (!user) {
-      throw new Error(`User not found: ${membership.userId}`);
+      throw new Error(`User not found: ${enrollment.userId}`);
     }
 
     // Get course details
-    const course = await CourseModel.findOne({
-      courseId: membership.entityId,
-    }).lean();
+    const course = await CourseModel.findById(enrollment.courseId).lean();
     if (!course) {
-      throw new Error(`Course not found: ${membership.entityId}`);
+      throw new Error(`Course not found: ${enrollment.courseId}`);
     }
 
     // Get invoice details if provided
     let invoice = null;
     if (invoiceId) {
-      invoice = await InvoiceModel.findOne({ invoiceId }).lean();
+      invoice = await InvoiceModel.findById(invoiceId).lean();
       if (!invoice) {
         Log.info(`Invoice not found: ${invoiceId}`);
+      }
+    }
+
+    // Get cohort join request if provided
+    let cohortJoinRequest = null;
+    if (cohortJoinRequestId) {
+      cohortJoinRequest = await CohortJoinRequestModel.findById(cohortJoinRequestId).lean();
+      if (!cohortJoinRequest) {
+        Log.info(`Cohort join request not found: ${cohortJoinRequestId}`);
       }
     }
 
@@ -96,27 +107,44 @@ export async function sendInvoiceMembershipEmail({
       emailTitle = "Payment Session Expired";
       emailMessage = `Your payment session for "${course.title}" has expired. To complete your enrollment, please initiate a new payment session.`;
     } else {
-      // Handle based on membership status
-      switch (membership.status) {
-        case Constants.MembershipStatus.ACTIVE:
-          emailTitle = "Welcome to Your Course!";
-          emailMessage = `Congratulations! Your enrollment in "${course.title}" has been approved and you now have full access to the course content.`;
-          break;
-        case Constants.MembershipStatus.PENDING:
-          emailTitle = "Course Enrollment Pending";
-          emailMessage = `Your enrollment request for "${course.title}" has been received and is currently under review. We'll notify you once it's approved.`;
-          break;
-        case Constants.MembershipStatus.REJECTED:
-          emailTitle = "Course Enrollment Update";
-          emailMessage = `Your enrollment request for "${course.title}" could not be approved at this time. Please contact support for more information.`;
-          break;
-        case Constants.MembershipStatus.EXPIRED:
-          emailTitle = "Course Access Expired";
-          emailMessage = `Your access to "${course.title}" has expired. Please renew your membership to continue learning.`;
-          break;
-        default:
-          emailTitle = "Course Enrollment Update";
-          emailMessage = `There has been an update to your enrollment in "${course.title}".`;
+      // Handle based on enrollment member type and cohort join request
+      if (cohortJoinRequest) {
+        switch (cohortJoinRequest.status) {
+          case ApprovalStatusEnum.APPROVED:
+            emailTitle = "Cohort Join Request Approved";
+            emailMessage = `Your request to join the cohort for "${course.title}" has been approved. You now have access to the cohort activities.`;
+            break;
+          case ApprovalStatusEnum.PENDING:
+            emailTitle = "Cohort Join Request Pending";
+            emailMessage = `Your request to join the cohort for "${course.title}" has been received and is currently under review. We'll notify you once it's approved.`;
+            break;
+          case ApprovalStatusEnum.REJECTED:
+            emailTitle = "Cohort Join Request Update";
+            emailMessage = `Your request to join the cohort for "${course.title}" could not be approved at this time. Please contact support for more information.`;
+            break;
+          default:
+            emailTitle = "Cohort Join Request Update";
+            emailMessage = `There has been an update to your cohort join request for "${course.title}".`;
+        }
+      } else {
+        // Handle based on enrollment member type
+        switch (enrollment.memberType) {
+          case CourseEnrollmentMemberTypeEnum.STUDENT:
+            emailTitle = "Welcome to Your Course!";
+            emailMessage = `Congratulations! Your enrollment in "${course.title}" has been approved and you now have full access to the course content.`;
+            break;
+          case CourseEnrollmentMemberTypeEnum.MENTOR:
+            emailTitle = "Mentor Access Granted";
+            emailMessage = `You have been granted mentor access to "${course.title}". You can now help guide students through the course content.`;
+            break;
+          case CourseEnrollmentMemberTypeEnum.STAFF:
+            emailTitle = "Staff Access Granted";
+            emailMessage = `You have been granted staff access to "${course.title}". You can now manage and support the course.`;
+            break;
+          default:
+            emailTitle = "Course Enrollment Update";
+            emailMessage = `There has been an update to your enrollment in "${course.title}".`;
+        }
       }
     }
 
@@ -125,20 +153,18 @@ export async function sendInvoiceMembershipEmail({
       emailTitle,
       emailMessage,
       courseTitle: course.title,
-      courseType: course.type,
-      creatorName: course.creatorName || "Unknown",
-      membershipId: membership.membershipId,
-      membershipStatus: membership.status,
-      membershipRole: membership.role || "Student",
-      membershipDate: new Date(
-        membership.createdAt || Date.now(),
-      ).toLocaleDateString(),
+      courseLevel: course.level,
+      creatorName: course.instructors[0]?.fullName || "Unknown",
+      membershipId: enrollment._id.toString(),
+      membershipStatus: enrollment.memberType,
+      membershipRole: enrollment.role,
+      membershipDate: new Date().toLocaleDateString(),
       currencySymbol: "$", // Default currency symbol
       loginLink:
         eventType === "checkout.session.expired"
-          ? `${headers.host}/checkout?type=course&id=${membership.entityId}`
+          ? `${headers.host}/checkout?type=course&id=${enrollment.courseId}`
           : `${headers.host}/login`,
-      userName: user.name || user.email,
+      userName: user.fullName || user.userName || user.email,
       userEmail: user.email,
       currentDate: new Date().toLocaleDateString(),
       hideCourseLitBranding: domain.settings?.hideCourseLitBranding || false,
@@ -148,16 +174,14 @@ export async function sendInvoiceMembershipEmail({
     // Add invoice information if available
     if (invoice) {
       emailData.invoiceInfo = true;
-      emailData.invoiceId = invoice.invoiceId;
+      emailData.invoiceId = invoice._id.toString();
       emailData.amount = invoice.amount;
       emailData.invoiceStatus = invoice.status;
-      emailData.paymentProcessor = invoice.paymentProcessor;
-      emailData.invoiceDate = new Date(
-        invoice.createdAt || Date.now(),
-      ).toLocaleDateString();
+      emailData.paymentMethod = invoice.paymentMethod;
+      emailData.invoiceDate = new Date().toLocaleDateString();
 
       // Update currency symbol based on invoice
-      emailData.currencySymbol = getCurrencySymbol(invoice.currencyISOCode);
+      emailData.currencySymbol = getCurrencySymbol(invoice.currency);
     }
 
     // Render email template
@@ -226,9 +250,11 @@ export async function sendMembershipApprovalEmail(
   membershipId: string,
   domain: any,
   headers: any,
+  cohortJoinRequestId?: string,
 ) {
   return sendInvoiceMembershipEmail({
     membershipId,
+    cohortJoinRequestId,
     domain,
     headers,
   });
@@ -238,9 +264,11 @@ export async function sendMembershipPendingEmail(
   membershipId: string,
   domain: any,
   headers: any,
+  cohortJoinRequestId?: string,
 ) {
   return sendInvoiceMembershipEmail({
     membershipId,
+    cohortJoinRequestId,
     domain,
     headers,
   });
@@ -250,9 +278,11 @@ export async function sendMembershipRejectionEmail(
   membershipId: string,
   domain: any,
   headers: any,
+  cohortJoinRequestId?: string,
 ) {
   return sendInvoiceMembershipEmail({
     membershipId,
+    cohortJoinRequestId,
     domain,
     headers,
   });
@@ -299,5 +329,20 @@ export async function sendPaymentExpirationEmail(
     domain,
     headers,
     eventType: "checkout.session.expired",
+  });
+}
+
+// New convenience function for cohort join request emails
+export async function sendCohortJoinRequestEmail(
+  membershipId: string,
+  cohortJoinRequestId: string,
+  domain: any,
+  headers: any,
+) {
+  return sendInvoiceMembershipEmail({
+    membershipId,
+    cohortJoinRequestId,
+    domain,
+    headers,
   });
 }

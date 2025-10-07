@@ -18,11 +18,19 @@ export const ListInputSchema = z.object({
   search: z.object({ q: z.string().trim().optional() }).optional(),
 });
 
-// Define function getFormDataSchema({ title, ...}) so that generate {data:{title, ...}} with zod
-export const getFormDataSchema = <T extends Record<string, z.ZodTypeAny>>(
+export const getFormDataSchema = <
+  T extends Record<string, z.ZodTypeAny>,
+  P extends Record<string, z.ZodTypeAny> = {}
+>(
   fields: T,
-) => {
+  params?: P,
+): z.ZodObject<{
+  data: z.ZodObject<T>;
+} & P> => {
   return z.object({
     data: z.object(fields),
-  });
+    ...params,
+  }) as z.ZodObject<{
+    data: z.ZodObject<T>;
+  } & P>;
 };

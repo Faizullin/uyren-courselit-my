@@ -1,5 +1,5 @@
-import { Log } from "@/lib/logger";
 import { TRPCError } from "@trpc/server";
+import mongoose from "mongoose";
 
 function getTRPCCode(statusCode: number): TRPCError["code"] {
   switch (statusCode) {
@@ -79,7 +79,10 @@ export class AuthorizationException extends APIException {
 }
 
 export class NotFoundException extends APIException {
-  constructor(resource: string, id?: string | number) {
+  constructor(resource: string, id?: string | number | mongoose.Types.ObjectId) {
+    if (id instanceof mongoose.Types.ObjectId) {
+      id = id.toString();
+    }
     const message = id
       ? `${resource} with id ${id} not found`
       : `${resource} not found`;

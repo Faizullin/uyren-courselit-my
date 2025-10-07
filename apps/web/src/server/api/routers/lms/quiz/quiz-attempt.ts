@@ -1,43 +1,40 @@
-import { QuizAttemptModel } from "@/models/lms";
+import { regradeQuizAttempt } from "@/server/actions/quiz-attempt";
 import {
   AuthorizationException,
   NotFoundException,
 } from "@/server/api/core/exceptions";
-import { regradeQuizAttempt } from "@/server/actions/quiz-attempt";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
   protectedProcedure,
 } from "@/server/api/core/procedures";
-import { ListInputSchema } from "@/server/api/core/schema";
+import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
+import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
-import { UIConstants } from "@workspace/common-models";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { IQuizHydratedDocument } from "@workspace/common-logic/models/lms/quiz";
+import { QuizAttemptModel, QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
-const { permissions } = UIConstants;
 
-const CreateQuizAttemptSchema = z.object({
-  quizId: z.string().min(1),
-  status: z
-    .enum(["in_progress", "completed", "abandoned", "graded"])
-    .default("in_progress"),
+const CreateQuizAttemptSchema = getFormDataSchema({
+  quizId: documentIdValidator(),
+  status: z.nativeEnum(QuizAttemptStatusEnum).default(QuizAttemptStatusEnum.IN_PROGRESS),
   startedAt: z.date().optional(),
   expiresAt: z.date().optional(),
 });
 
-const UpdateQuizAttemptSchema = CreateQuizAttemptSchema.partial();
-
 const QuizAttemptListInputSchema = ListInputSchema.extend({
   filter: z
     .object({
-      quizId: z.string().optional(),
-      userId: z.string().optional(),
-      status: z
-        .enum(["in_progress", "completed", "abandoned", "graded"])
-        .optional(),
+      quizId: documentIdValidator().optional(),
+      userId: documentIdValidator().optional(),
+      status: z.nativeEnum(QuizAttemptStatusEnum).optional(),
     })
     .optional(),
 });
@@ -45,63 +42,69 @@ const QuizAttemptListInputSchema = ListInputSchema.extend({
 export const quizAttemptRouter = router({
   create: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(CreateQuizAttemptSchema)
     .mutation(async ({ ctx, input }) => {
       const attempt = await QuizAttemptModel.create({
-        quizId: input.quizId,
+        ...input.data,
         userId: ctx.user._id,
-        domain: ctx.domainData.domainObj._id,
-        status: input.status,
-        startedAt: input.startedAt || new Date(),
-        expiresAt: input.expiresAt,
+        orgId: ctx.domainData.domainObj.orgId,
+        startedAt: input.data.startedAt || new Date(),
       });
-      return attempt;
+      return jsonify(attempt.toObject());
     }),
 
   update: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
-      z.object({
+      getFormDataSchema({
+        status: z.nativeEnum(QuizAttemptStatusEnum).optional(),
+        completedAt: z.date().optional(),
+        expiresAt: z.date().optional(),
+        score: z.number().min(0).optional(),
+        percentageScore: z.number().min(0).max(100).optional(),
+        passed: z.boolean().optional(),
+        timeSpent: z.number().min(0).optional(),
+      }, {
         id: documentIdValidator(),
-        data: UpdateQuizAttemptSchema,
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const attempt = await QuizAttemptModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
-      if (!attempt) throw new NotFoundException("Quiz attempt not found");
-      if (attempt.userId.toString() !== ctx.user._id.toString()) {
-        throw new AuthorizationException("No access to this attempt");
+      if (!attempt) throw new NotFoundException("Quiz attempt", input.id);
+      if (!attempt.userId.equals(ctx.user._id)) {
+        throw new AuthorizationException();
       }
-      const updated = await QuizAttemptModel.findByIdAndUpdate(
-        input.id,
-        input.data,
-        { new: true },
-      );
-      return updated;
+      Object.keys(input.data).forEach((key) => {
+        (attempt as any)[key] = (input.data as any)[key];
+      });
+      const saved = await attempt.save();
+      return jsonify(saved.toObject());
     }),
 
   delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
-    .input(documentIdValidator())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .input(z.object({
+      id: documentIdValidator(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const attempt = await QuizAttemptModel.findOne({
-        _id: input,
-        domain: ctx.domainData.domainObj._id,
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
-      if (!attempt) throw new NotFoundException("Quiz attempt not found");
-      await QuizAttemptModel.findByIdAndDelete(input);
+      if (!attempt) throw new NotFoundException("Quiz attempt", input.id);
+      await QuizAttemptModel.findByIdAndDelete(input.id);
       return { success: true };
     }),
 
   getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       z.object({
         id: documentIdValidator(),
@@ -110,74 +113,58 @@ export const quizAttemptRouter = router({
     .query(async ({ ctx, input }) => {
       const attempt = await QuizAttemptModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          user: {
-            userId: string;
-            name: string;
-            email: string;
-          };
-        }>("user", "userId name email")
+          user: Pick<IUserHydratedDocument, "username" | "fullName" | "email">;
+        }>("user", "username fullName email")
         .populate<{
-          quiz: {
-            quizId: string;
-            title: string;
-            totalPoints: number;
-          };
-        }>("quiz", "quizId title totalPoints")
+          quiz: Pick<IQuizHydratedDocument, "title" | "totalPoints">;
+        }>("quiz", "title totalPoints")
         .lean();
 
       if (!attempt) throw new NotFoundException("Quiz attempt not found");
-      return attempt;
+      return jsonify(attempt);
     }),
 
   list: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(QuizAttemptListInputSchema)
     .query(async ({ ctx, input }) => {
       const query: RootFilterQuery<typeof QuizAttemptModel> = {
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
         ...(input.filter?.quizId ? { quizId: input.filter.quizId } : {}),
         ...(input.filter?.userId ? { userId: input.filter.userId } : {}),
         ...(input.filter?.status ? { status: input.filter.status } : {}),
       };
-      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const paginationMeta = paginate(input.pagination);
       const [items, total] = await Promise.all([
         QuizAttemptModel.find(query)
           .populate<{
-            user: {
-              userId: string;
-              name: string;
-              email: string;
-            };
-          }>("user", "userId name email")
-          .skip(input.pagination?.skip || 0)
-          .limit(input.pagination?.take || 20)
+            user: Pick<IUserHydratedDocument, "username" | "fullName" | "email">;
+          }>("user", "username fullName email")
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { createdAt: -1 },
           )
           .lean(),
-        includeCount
+        paginationMeta.includePaginationCount
           ? QuizAttemptModel.countDocuments(query)
           : Promise.resolve(0),
       ]);
 
-      return {
+      return jsonify({
         items,
         total,
-        meta: {
-          includePaginationCount: input.pagination?.includePaginationCount,
-          skip: input.pagination?.skip || 0,
-          take: input.pagination?.take || 20,
-        },
-      };
+        meta: paginationMeta,
+      });
     }),
   listMine: protectedProcedure
     .use(createDomainRequiredMiddleware())
@@ -185,9 +172,7 @@ export const quizAttemptRouter = router({
       ListInputSchema.extend({
         filter: z
           .object({
-            status: z
-              .enum(["in_progress", "completed", "abandoned", "graded"]) 
-              .optional(),
+            status: z.nativeEnum(QuizAttemptStatusEnum).optional(),
             passed: z.boolean().optional(),
           })
           .optional(),
@@ -195,51 +180,47 @@ export const quizAttemptRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const hasAccess = checkPermission(ctx.user.permissions, [
-        permissions.enrollInCourse,
+        UIConstants.permissions.enrollInCourse,
       ]);
-      if (!hasAccess) throw new AuthorizationException("No access");
+      if (!hasAccess) throw new AuthorizationException();
 
       const query: RootFilterQuery<typeof QuizAttemptModel> = {
-        domain: ctx.domainData.domainObj._id,
-        userId: ctx.user.userId,
+        orgId: ctx.domainData.domainObj.orgId,
+        userId: ctx.user._id,
         ...(input.filter?.status ? { status: input.filter.status } : {}),
         ...(typeof input.filter?.passed !== "undefined"
           ? { passed: input.filter?.passed }
           : {}),
       } as any;
 
-      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const paginationMeta = paginate(input.pagination);
       const [items, total] = await Promise.all([
         QuizAttemptModel.find(query)
-          .populate<{ quiz: { quizId: string; title: string; totalPoints: number } }>(
+          .populate<{ quiz: Pick<IQuizHydratedDocument, "title" | "totalPoints"> }>(
             "quiz",
-            "quizId title totalPoints",
+            "title totalPoints",
           )
-          .skip(input.pagination?.skip || 0)
-          .limit(input.pagination?.take || 20)
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { createdAt: -1 },
           )
           .lean(),
-        includeCount
+        paginationMeta.includePaginationCount
           ? QuizAttemptModel.countDocuments(query)
           : Promise.resolve(0),
       ]);
 
-      return {
+      return jsonify({
         items,
         total,
-        meta: {
-          includePaginationCount: input.pagination?.includePaginationCount,
-          skip: input.pagination?.skip || 0,
-          take: input.pagination?.take || 20,
-        },
-      };
+        meta: paginationMeta,
+      });
     }),
 
   getCurrentUserAttempt: protectedProcedure
@@ -253,35 +234,29 @@ export const quizAttemptRouter = router({
       const attempt = await QuizAttemptModel.findOne({
         quizId: input.quizId,
         userId: ctx.user._id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          user: {
-            userId: string;
-            name: string;
-            email: string;
-          };
-        }>("user", "userId name email")
+          user: Pick<IUserHydratedDocument, "username" | "fullName" | "email">;
+        }>("user", "username fullName email")
         .populate<{
-          quiz: {
-            quizId: string;
-            title: string;
-            totalPoints: number;
-          };
-        }>("quiz", "quizId title totalPoints")
+          quiz: Pick<IQuizHydratedDocument, "title" | "totalPoints">;
+        }>("quiz", "title totalPoints")
         .lean();
 
       if (!attempt) throw new NotFoundException("Quiz attempt not found");
 
-      return attempt;
+      return jsonify(attempt);
     }),
 
   regrade: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
-    .input(documentIdValidator())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .input(z.object({
+      id: documentIdValidator(),
+    }))
     .mutation(async ({ ctx, input }) => {
-      const result = await regradeQuizAttempt(input);
+      const result = await regradeQuizAttempt(input.id);
 
       if (!result.success) {
         throw new Error(result.message);
@@ -289,27 +264,19 @@ export const quizAttemptRouter = router({
 
       // Return the updated attempt data
       const attempt = await QuizAttemptModel.findOne({
-        _id: input,
-        domain: ctx.domainData.domainObj._id,
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          user: {
-            userId: string;
-            name: string;
-            email: string;
-          };
-        }>("user", "userId name email")
+          user: Pick<IUserHydratedDocument, "username" | "fullName" | "email">;
+        }>("user", "username fullName email")
         .populate<{
-          quiz: {
-            quizId: string;
-            title: string;
-            totalPoints: number;
-          };
-        }>("quiz", "quizId title totalPoints")
+          quiz: Pick<IQuizHydratedDocument, "title" | "totalPoints">;
+        }>("quiz", "title totalPoints")
         .lean();
 
       if (!attempt) throw new NotFoundException("Quiz attempt not found");
 
-      return attempt;
+      return jsonify(attempt);
     }),
 });

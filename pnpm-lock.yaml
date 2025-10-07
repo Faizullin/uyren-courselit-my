@@ -29,9 +29,6 @@ importers:
       '@workspace/common-logic':
         specifier: workspace:*
         version: link:../../packages/common-logic
-      '@workspace/common-models':
-        specifier: workspace:*
-        version: link:../../packages/common-models
       '@workspace/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -147,9 +144,6 @@ importers:
       '@workspace/common-logic':
         specifier: workspace:*
         version: link:../../packages/common-logic
-      '@workspace/common-models':
-        specifier: workspace:*
-        version: link:../../packages/common-models
       '@workspace/components-library':
         specifier: workspace:*
         version: link:../../packages/components-library
@@ -340,12 +334,6 @@ importers:
       '@workspace/common-logic':
         specifier: workspace:*
         version: link:../common-logic
-      '@workspace/common-models':
-        specifier: workspace:*
-        version: link:../common-models
-      '@workspace/text-editor':
-        specifier: workspace:*
-        version: link:../text-editor
       ai:
         specifier: ^5.0.10
         version: 5.0.28(zod@3.25.76)
@@ -374,12 +362,12 @@ importers:
 
   packages/common-logic:
     dependencies:
-      '@workspace/common-models':
-        specifier: workspace:*
-        version: link:../common-models
       '@workspace/utils':
         specifier: workspace:*
         version: link:../utils
+      mongodb:
+        specifier: ^6.18.0
+        version: 6.19.0(@aws-sdk/credential-providers@3.879.0)(socks@2.8.7)
       mongoose:
         specifier: ^8.17.0
         version: 8.18.0(@aws-sdk/credential-providers@3.879.0)(socks@2.8.7)
@@ -387,18 +375,6 @@ importers:
       '@types/node':
         specifier: ^20.19.9
         version: 20.19.11
-      '@workspace/eslint-config':
-        specifier: workspace:*
-        version: link:../eslint-config
-      '@workspace/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.2
-
-  packages/common-models:
-    devDependencies:
       '@workspace/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
@@ -450,9 +426,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.66.0
         version: 5.85.6(react@19.1.1)
-      '@workspace/common-models':
+      '@workspace/common-logic':
         specifier: workspace:^
-        version: link:../common-models
+        version: link:../common-logic
       '@workspace/icons':
         specifier: workspace:^
         version: link:../icons
@@ -662,9 +638,9 @@ importers:
       '@tiptap/static-renderer':
         specifier: ^3.4.4
         version: 3.4.4(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@workspace/common-models':
+      '@workspace/common-logic':
         specifier: workspace:^
-        version: link:../common-models
+        version: link:../common-logic
       '@workspace/components-library':
         specifier: workspace:^
         version: link:../components-library
@@ -876,9 +852,6 @@ importers:
       '@sindresorhus/slugify':
         specifier: ^2.2.1
         version: 2.2.1
-      '@workspace/common-models':
-        specifier: workspace:*
-        version: link:../common-models
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2

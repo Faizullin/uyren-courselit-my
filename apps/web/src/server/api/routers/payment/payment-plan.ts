@@ -1,227 +1,410 @@
-import PaymentPlanModel from "@/models/PaymentPlan";
 import {
-  createDomainRequiredMiddleware,
-  protectedProcedure,
-} from "@/server/api/core/procedures";
-import {
+  AuthorizationException,
   ConflictException,
   NotFoundException,
   ValidationException,
 } from "@/server/api/core/exceptions";
-import { getFormDataSchema } from "@/server/api/core/schema";
-import { router } from "@/server/api/core/trpc";
-import { Constants } from "@workspace/common-models";
-import { getPaymentMethodFromSettings } from "@/server/services/payment";
 import {
-  fetchEntity,
-  checkEntityPermission,
-} from "@/server/api/routers/community/helpers";
+  createDomainRequiredMiddleware,
+  createPermissionMiddleware,
+  MainContextType,
+  protectedProcedure,
+} from "@/server/api/core/procedures";
+import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
+import { router } from "@/server/api/core/trpc";
+import { paginate } from "@/server/api/core/utils";
+import { documentIdValidator } from "@/server/api/core/validators";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import {
+  IPaymentPlanHydratedDocument,
+  PaymentPlanModel,
+  PaymentPlanStatusEnum,
+  PaymentPlanTypeEnum,
+} from "@workspace/common-logic/models/payment/payment-plan";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+import { checkPermission } from "@workspace/utils";
+import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
-import { responses } from "@/config/strings";
-import DomainModel from "@/models/Domain";
+
+const getPaymentPlanOrThrow = async (id: string, ctx: MainContextType) => {
+  const paymentPlan = await PaymentPlanModel.findOne({
+    _id: id,
+    orgId: ctx.domainData.domainObj.orgId,
+  });
+
+  if (!paymentPlan) {
+    throw new NotFoundException("PaymentPlan", id);
+  }
+
+  if (
+    !checkPermission(ctx.user.permissions, [
+      UIConstants.permissions.manageAnyCourse,
+    ])
+  ) {
+    if (!paymentPlan.ownerId.equals(ctx.user._id)) {
+      throw new AuthorizationException();
+    }
+  }
+
+  return paymentPlan;
+};
+
+const validatePaymentPlanAmounts = (
+  type: PaymentPlanTypeEnum,
+  data: {
+    oneTimeAmount?: number;
+    emiAmount?: number;
+    emiTotalInstallments?: number;
+    subscriptionMonthlyAmount?: number;
+    subscriptionYearlyAmount?: number;
+  },
+) => {
+  if (type === PaymentPlanTypeEnum.ONE_TIME && !data.oneTimeAmount) {
+    throw new ValidationException(
+      "One-time amount is required for one-time payment plan",
+    );
+  }
+
+  if (
+    type === PaymentPlanTypeEnum.EMI &&
+    (!data.emiAmount || !data.emiTotalInstallments)
+  ) {
+    throw new ValidationException(
+      "EMI amount and total installments are required for EMI payment plan",
+    );
+  }
+
+  if (type === PaymentPlanTypeEnum.SUBSCRIPTION) {
+    const hasMonthly = !!data.subscriptionMonthlyAmount;
+    const hasYearly = !!data.subscriptionYearlyAmount;
+
+    if (!hasMonthly && !hasYearly) {
+      throw new ValidationException(
+        "Either monthly or yearly amount is required for subscription payment plan",
+      );
+    }
+  }
+
+  if (type === PaymentPlanTypeEnum.FREE) {
+    if (
+      data.oneTimeAmount ||
+      data.emiAmount ||
+      data.subscriptionMonthlyAmount ||
+      data.subscriptionYearlyAmount
+    ) {
+      throw new ValidationException(
+        "Free payment plans cannot have any amounts",
+      );
+    }
+  }
+};
 
 export const paymentPlanRouter = router({
-  create: protectedProcedure
+  list: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
     .input(
-      getFormDataSchema({
-        name: z.string().min(2).max(100),
-        type: z.nativeEnum(Constants.PaymentPlanType),
-        oneTimeAmount: z.number().optional(),
-        emiAmount: z.number().optional(),
-        emiTotalInstallments: z.number().optional(),
-        subscriptionMonthlyAmount: z.number().optional(),
-        subscriptionYearlyAmount: z.number().optional(),
-        entityId: z.string().min(2).max(100),
-        entityType: z.nativeEnum(Constants.MembershipEntityType),
+      ListInputSchema.extend({
+        filter: z
+          .object({
+            type: z.nativeEnum(PaymentPlanTypeEnum).optional(),
+            status: z.nativeEnum(PaymentPlanStatusEnum).optional(),
+            entityType: z.string().optional(),
+            entityId: documentIdValidator().optional(),
+          })
+          .optional(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      const {
-        name,
-        type,
-        oneTimeAmount,
-        emiAmount,
-        emiTotalInstallments,
-        subscriptionMonthlyAmount,
-        subscriptionYearlyAmount,
-        entityId,
-        entityType,
-      } = input.data;
+    .query(async ({ ctx, input }) => {
+      const query: RootFilterQuery<typeof PaymentPlanModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
+      };
 
-      const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
-      if (!domain) {
-        throw new ConflictException("Domain", ctx.domainData.domainObj._id);
-      }
-
-      if (type === Constants.PaymentPlanType.ONE_TIME && !oneTimeAmount) {
-        throw new ValidationException(
-          "One-time amount is required for one-time payment plan",
-        );
-      }
       if (
-        type === Constants.PaymentPlanType.EMI &&
-        (!emiAmount || !emiTotalInstallments)
+        !checkPermission(ctx.user.permissions, [
+          UIConstants.permissions.manageAnyCourse,
+        ])
       ) {
-        throw new ValidationException(
-          "EMI amounts and total installments are required for EMI payment plan",
-        );
-      }
-      if (
-        type === Constants.PaymentPlanType.SUBSCRIPTION &&
-        ((!subscriptionMonthlyAmount && !subscriptionYearlyAmount) ||
-          (subscriptionMonthlyAmount && subscriptionYearlyAmount))
-      ) {
-        throw new ValidationException(
-          "Either monthly or yearly amount is required for subscription payment plan, but not both",
-        );
+        query.ownerId = ctx.user._id;
       }
 
-      const entity = await fetchEntity(
-        entityType,
-        entityId,
-        domain._id.toString(),
-      );
-      if (!entity) {
-        throw new NotFoundException("Entity");
+      if (input.filter?.type) {
+        query.type = input.filter.type;
       }
 
-      checkEntityPermission(entityType, ctx.user.permissions);
+      if (input.filter?.status) {
+        query.status = input.filter.status;
+      }
 
-      const existingPlansForEntity = await PaymentPlanModel.find({
-        domain: domain._id,
-        planId: { $in: entity.paymentPlans },
-        archived: false,
+      if (input.filter?.entityType) {
+        query["entity.entityType"] = input.filter.entityType;
+      }
+
+      if (input.filter?.entityId) {
+        query["entity.entityId"] = input.filter.entityId;
+      }
+
+      if (input.search?.q) {
+        query.$text = { $search: input.search.q };
+      }
+
+      const paginationMeta = paginate(input.pagination);
+      const orderBy = input.orderBy || {
+        field: "createdAt",
+        direction: "desc",
+      };
+      const sortObject: Record<string, 1 | -1> = {
+        [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
+      };
+
+      const [items, total] = await Promise.all([
+        PaymentPlanModel.find(query)
+          .populate<{
+            owner: Pick<
+              IUserHydratedDocument,
+              "username" | "firstName" | "lastName" | "fullName" | "email"
+            >;
+          }>("owner", "username firstName lastName fullName email")
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
+          .sort(sortObject)
+          .lean(),
+        paginationMeta.includePaginationCount
+          ? PaymentPlanModel.countDocuments(query)
+          : Promise.resolve(null),
+      ]);
+
+      return jsonify({
+        items,
+        total,
+        meta: paginationMeta,
       });
+    }),
 
-      for (const plan of existingPlansForEntity) {
-        if (plan.type === type) {
-          if (plan.type !== Constants.PaymentPlanType.SUBSCRIPTION) {
-            throw new ConflictException(responses.duplicate_payment_plan);
-          }
-          if (subscriptionMonthlyAmount && plan.subscriptionMonthlyAmount) {
-            throw new ConflictException(responses.duplicate_payment_plan);
-          }
-          if (subscriptionYearlyAmount && plan.subscriptionYearlyAmount) {
-            throw new ConflictException(responses.duplicate_payment_plan);
-          }
+  getById: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      z.object({
+        id: documentIdValidator(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const paymentPlan = await PaymentPlanModel.findOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+      })
+        .populate<{
+          owner: Pick<
+            IUserHydratedDocument,
+            "username" | "firstName" | "lastName" | "fullName" | "email"
+          >;
+        }>("owner", "username firstName lastName fullName email")
+        .lean();
+
+      if (!paymentPlan) {
+        throw new NotFoundException("PaymentPlan", input.id);
+      }
+
+      if (
+        !checkPermission(ctx.user.permissions, [
+          UIConstants.permissions.manageAnyCourse,
+        ])
+      ) {
+        if (!paymentPlan.ownerId.equals(ctx.user._id)) {
+          throw new AuthorizationException();
         }
       }
 
-      const paymentMethod = await getPaymentMethodFromSettings(domain.settings);
-      if (!paymentMethod && type !== Constants.PaymentPlanType.FREE) {
-        throw new ConflictException("Payment information required");
-      }
+      return jsonify(paymentPlan);
+    }),
+
+  create: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
+    .input(
+      getFormDataSchema({
+        name: z.string().min(2).max(255),
+        type: z.nativeEnum(PaymentPlanTypeEnum),
+        status: z
+          .nativeEnum(PaymentPlanStatusEnum)
+          .default(PaymentPlanStatusEnum.ACTIVE),
+        oneTimeAmount: z.number().min(0).optional(),
+        emiAmount: z.number().min(0).optional(),
+        emiTotalInstallments: z.number().min(1).max(24).optional(),
+        subscriptionMonthlyAmount: z.number().min(0).optional(),
+        subscriptionYearlyAmount: z.number().min(0).optional(),
+        currency: z.string().length(3).default("USD"),
+        entityType: z.string().optional(),
+        entityIdStr: z.string().optional(),
+        isDefault: z.boolean().default(false),
+        isInternal: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      validatePaymentPlanAmounts(input.data.type, input.data);
+
+      const entity =
+        input.data.entityType && input.data.entityIdStr
+          ? {
+            entityType: input.data.entityType,
+            entityIdStr: input.data.entityIdStr,
+          }
+          : undefined;
+
+      const { entityType, entityIdStr, ...paymentPlanData } = input.data;
 
       const paymentPlan = await PaymentPlanModel.create({
-        domain: domain._id,
-        userId: ctx.user.userId,
-        name,
-        type,
-        oneTimeAmount,
-        emiAmount,
-        emiTotalInstallments,
-        subscriptionMonthlyAmount,
-        subscriptionYearlyAmount,
+        ...paymentPlanData,
+        entity,
+        orgId: ctx.domainData.domainObj.orgId,
+        ownerId: ctx.user._id,
       });
 
-      if (entity.paymentPlans.length === 0) {
-        entity.defaultPaymentPlan = paymentPlan.planId;
+      return jsonify(paymentPlan.toObject());
+    }),
+
+  update: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
+    .input(
+      getFormDataSchema(
+        {
+          name: z.string().min(2).max(255).optional(),
+          status: z.nativeEnum(PaymentPlanStatusEnum).optional(),
+          oneTimeAmount: z.number().min(0).optional(),
+          emiAmount: z.number().min(0).optional(),
+          emiTotalInstallments: z.number().min(1).max(24).optional(),
+          subscriptionMonthlyAmount: z.number().min(0).optional(),
+          subscriptionYearlyAmount: z.number().min(0).optional(),
+          currency: z.string().length(3).optional(),
+          isDefault: z.boolean().optional(),
+          isInternal: z.boolean().optional(),
+        },
+        {
+          id: documentIdValidator(),
+        },
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const paymentPlan = await getPaymentPlanOrThrow(input.id, ctx);
+
+      if (input.data.oneTimeAmount !== undefined || input.data.emiAmount !== undefined || input.data.subscriptionMonthlyAmount !== undefined || input.data.subscriptionYearlyAmount !== undefined) {
+        validatePaymentPlanAmounts(paymentPlan.type, {
+          oneTimeAmount: input.data.oneTimeAmount ?? paymentPlan.oneTimeAmount,
+          emiAmount: input.data.emiAmount ?? paymentPlan.emiAmount,
+          emiTotalInstallments: input.data.emiTotalInstallments ?? paymentPlan.emiTotalInstallments,
+          subscriptionMonthlyAmount: input.data.subscriptionMonthlyAmount ?? paymentPlan.subscriptionMonthlyAmount,
+          subscriptionYearlyAmount: input.data.subscriptionYearlyAmount ?? paymentPlan.subscriptionYearlyAmount,
+        });
       }
 
-      entity.paymentPlans.push(paymentPlan.planId);
-      await entity.save();
+      Object.keys(input.data).forEach((key) => {
+        (paymentPlan as any)[key] = (input.data as any)[key];
+      });
 
-      return paymentPlan;
+      const saved = await paymentPlan.save();
+      return jsonify(saved.toObject());
+    }),
+
+  delete: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
+    .input(
+      z.object({
+        id: documentIdValidator(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const paymentPlan = await getPaymentPlanOrThrow(input.id, ctx);
+
+      if (paymentPlan.isDefault) {
+        throw new ConflictException(
+          "Cannot delete default payment plan. Please set another plan as default first.",
+        );
+      }
+
+      await PaymentPlanModel.deleteOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+
+      return { success: true };
     }),
 
   archive: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
     .input(
-      getFormDataSchema({
-        planId: z.string().min(1, "Plan ID is required"),
-        entityId: z.string().min(1, "Entity ID is required"),
-        entityType: z.nativeEnum(Constants.MembershipEntityType),
+      z.object({
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
-      if (!domain) {
-        throw new ConflictException("Domain", ctx.domainData.domainObj._id);
-      }
+      const paymentPlan = await getPaymentPlanOrThrow(input.id, ctx);
 
-      const { planId, entityId, entityType } = input.data;
-
-      const entity = await fetchEntity(
-        entityType,
-        entityId,
-        domain._id.toString(),
-      );
-      if (!entity) {
-        throw new NotFoundException("Entity");
-      }
-
-      checkEntityPermission(entityType, ctx.user.permissions);
-
-      const paymentPlan = await PaymentPlanModel.findOne({
-        domain: domain._id,
-        planId,
-      });
-      if (!paymentPlan) {
-        throw new NotFoundException("Payment plan");
-      }
-
-      if (entity.defaultPaymentPlan === paymentPlan.planId) {
+      if (paymentPlan.isDefault) {
         throw new ConflictException(
-          responses.default_payment_plan_cannot_be_archived,
+          "Cannot archive default payment plan. Please set another plan as default first.",
         );
       }
 
-      paymentPlan.archived = true;
-      await paymentPlan.save();
+      paymentPlan.status = PaymentPlanStatusEnum.ARCHIVED;
+      const saved = await paymentPlan.save();
 
-      return paymentPlan;
+      return jsonify(saved.toObject());
     }),
 
-  changeDefaultPlan: protectedProcedure
+  setDefault: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
     .input(
-      getFormDataSchema({
-        planId: z.string().min(1, "Plan ID is required"),
-        entityId: z.string().min(1, "Entity ID is required"),
-        entityType: z.nativeEnum(Constants.MembershipEntityType),
+      z.object({
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
-      if (!domain) {
-        throw new ConflictException("Domain", ctx.domainData.domainObj._id);
-      }
-      const { planId, entityId, entityType } = input.data;
+      const paymentPlan = await getPaymentPlanOrThrow(input.id, ctx);
 
-      const entity = await fetchEntity(
-        entityType,
-        entityId,
-        domain._id.toString(),
+      if (paymentPlan.status === PaymentPlanStatusEnum.ARCHIVED) {
+        throw new ConflictException(
+          "Cannot set archived payment plan as default",
+        );
+      }
+
+      if (!paymentPlan.entity?.entityType || !paymentPlan.entity?.entityIdStr) {
+        throw new ValidationException(
+          "Payment plan must be associated with an entity to be set as default",
+        );
+      }
+
+      await PaymentPlanModel.updateMany(
+        {
+          orgId: ctx.domainData.domainObj.orgId,
+          "entity.entityType": paymentPlan.entity.entityType,
+          "entity.entityIdStr": paymentPlan.entity.entityIdStr,
+          _id: { $ne: input.id },
+        },
+        {
+          $set: { isDefault: false },
+        },
       );
-      if (!entity) {
-        throw new NotFoundException("Entity");
-      }
 
-      checkEntityPermission(entityType, ctx.user.permissions);
+      paymentPlan.isDefault = true;
+      const saved = await paymentPlan.save();
 
-      const paymentPlan = await PaymentPlanModel.findOne({
-        domain: domain._id,
-        planId,
-        archived: false,
-      });
-      if (!paymentPlan) {
-        throw new NotFoundException("Payment plan");
-      }
-
-      entity.defaultPaymentPlan = paymentPlan.planId;
-      await entity.save();
-
-      return paymentPlan;
+      return jsonify(saved.toObject());
     }),
 });

@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@workspace/common-logic": "workspace:*",
-    "@workspace/common-models": "workspace:*",
     "@workspace/utils": "workspace:*",
     "bullmq": "^5.56.9",
     "cors": "^2.8.5",

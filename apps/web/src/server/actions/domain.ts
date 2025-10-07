@@ -2,6 +2,7 @@
 
 import { authOptions } from "@/lib/auth/options";
 import DomainManager, { getDomainData } from "@/server/lib/domain";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { checkPermission } from "@workspace/utils";
 import { getServerSession } from "next-auth";
 
@@ -11,7 +12,7 @@ export async function clearDomainManagerCache() {
     if (!session?.user) {
       throw new Error("User not found when execute clearDomainManagerCache()");
     }
-    if (!checkPermission(session.user.permissions, ["setting:manage"])) {
+    if (!checkPermission(session.user.permissions, [UIConstants.permissions.manageSettings])) {
       throw new Error(
         "User not have permission to execute clearDomainManagerCache()",
       );

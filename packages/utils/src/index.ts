@@ -4,9 +4,6 @@ export { default as checkPermission } from "./check-permissions";
 export { default as debounce } from "./debounce";
 export { default as formatCurrency } from "./format-currency";
 export { default as generateUniqueId } from "./generate-unique-id";
-export { default as getGraphQLQueryFields } from "./get-graphql-query-fields";
-export { default as getGraphQLQueryStringFromObject } from "./get-graphql-query-string-from-object";
-export { getPlanPrice } from "./get-plan-price";
-export { isVideo } from "./is-video";
 export { default as jwtUtils } from "./jwt-utils";
 export { truncate } from "./truncate";
+

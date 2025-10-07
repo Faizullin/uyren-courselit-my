@@ -1,66 +1,27 @@
 import { Log } from "@/lib/logger";
-import ReviewModel from "@/models/lms/Review";
 import { NotFoundException } from "@/server/api/core/exceptions";
-import { checkOwnershipWithoutModel } from "@/server/api/core/permissions";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
-  MainContextType,
   protectedProcedure,
-  publicProcedure,
+  publicProcedure
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import {
-  mediaWrappedFieldValidator,
-  textEditorContentValidator,
+  documentIdValidator,
+  mediaWrappedFieldValidator
 } from "@/server/api/core/validators";
 import { deleteMedia } from "@/server/services/media";
-import { InternalReview } from "@/models/lms/Review";
-import { Media, UIConstants } from "@workspace/common-models";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { ReviewModel } from "@workspace/common-logic/models/review";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
 import { checkPermission } from "@workspace/utils";
-import mongoose, { RootFilterQuery } from "mongoose";
+import { FilterQuery, RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
-const checkReviewOwnership = (
-  review: InternalReview | null,
-  ctx: {
-    user: {
-      _id: mongoose.Types.ObjectId | string;
-      userId: mongoose.Types.ObjectId | string;
-    };
-  },
-) => {
-  if (!review || !review.authorId) return false;
-
-  return (
-    review.authorId!.toString() === ctx.user.userId ||
-    review.authorId!.toString() === ctx.user._id?.toString()
-  );
-};
-
-const getReviewOrThrow = async (
-  reviewId: string | undefined,
-  ctx: MainContextType,
-  reviewIdParam?: string,
-) => {
-  const id = reviewId || reviewIdParam;
-  if (!id) {
-    throw new Error("Review ID is required");
-  }
-
-  const review = await ReviewModel.findOne({
-    reviewId: id,
-    domain: ctx.domainData.domainObj._id,
-  }).lean();
-
-  if (!review) {
-    throw new NotFoundException("Review", String(id));
-  }
-
-  return review;
-};
 
 export const reviewRouter = router({
   list: protectedProcedure
@@ -76,9 +37,9 @@ export const reviewRouter = router({
         filter: z
           .object({
             published: z.boolean().optional(),
-            isFeatured: z.boolean().optional(),
+            featured: z.boolean().optional(),
             targetType: z.string().optional(),
-            targetId: z.string().optional(),
+            targetId: documentIdValidator().optional(),
           })
           .optional()
           .default({}),
@@ -86,7 +47,7 @@ export const reviewRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const query: RootFilterQuery<typeof ReviewModel> = {
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       };
 
       if (
@@ -94,23 +55,23 @@ export const reviewRouter = router({
           UIConstants.permissions.manageAnyCourse,
         ])
       ) {
-        query.authorId = ctx.user.userId;
+        query.authorId = ctx.user._id;
       }
 
       if (input.filter.published !== undefined) {
         query.published = input.filter.published;
       }
 
-      if (input.filter.isFeatured !== undefined) {
-        query.isFeatured = input.filter.isFeatured;
+      if (input.filter.featured !== undefined) {
+        query.featured = input.filter.featured;
       }
 
       if (input.filter.targetType) {
-        query.targetType = input.filter.targetType;
+        query["target.entityType"] = input.filter.targetType;
       }
 
       if (input.filter.targetId) {
-        query.targetId = input.filter.targetId;
+        query["target.entityId"] = input.filter.targetId;
       }
 
       if (input.search?.q) query.$text = { $search: input.search.q };
@@ -127,15 +88,8 @@ export const reviewRouter = router({
       const [items, total] = await Promise.all([
         ReviewModel.find(query)
           .populate<{
-            author: {
-              userId: string;
-              name: string;
-              avatar?: any;
-            };
-          }>({
-            path: "author",
-            select: "userId name avatar -_id",
-          })
+            author: Pick<IUserHydratedDocument, "username" | "fullName" | "avatar">;
+          }>("author", "username fullName avatar")
           .skip(paginationMeta.skip)
           .limit(paginationMeta.take)
           .sort(sortObject)
@@ -145,11 +99,11 @@ export const reviewRouter = router({
           : Promise.resolve(null),
       ]);
 
-      return {
+      return jsonify({
         items,
         total,
         meta: paginationMeta,
-      };
+      });
     }),
 
   getByReviewId: protectedProcedure
@@ -163,40 +117,28 @@ export const reviewRouter = router({
     .query(async ({ ctx, input }) => {
       const review = await ReviewModel.findOne({
         reviewId: input.reviewId,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          author: {
-            userId: string;
-            name: string;
-            avatar?: any;
-          };
-        }>({
-          path: "author",
-          select: "userId name avatar -_id",
-        })
+          author: Pick<IUserHydratedDocument, "username" | "fullName" | "avatar">;
+        }>("author", "username fullName avatar")
         .lean();
 
       if (!review) {
-        throw new NotFoundException("Review", String(input.reviewId));
+        throw new NotFoundException("Review", input.reviewId);
       }
 
-      if (ctx.user && !input.asGuest) {
-        const isOwner =
-          checkPermission(ctx.user.permissions, [
-            UIConstants.permissions.manageAnyCourse,
-          ]) || checkReviewOwnership(review, ctx);
+      const hasAccess = checkPermission(ctx.user.permissions, [
+        UIConstants.permissions.manageAnyCourse,
+      ]);
 
-        if (isOwner) {
-          return review;
+      if (!hasAccess && review.authorId !== ctx.user._id) {
+        if (!review.published) {
+          throw new NotFoundException("Review", input.reviewId);
         }
       }
 
-      if (!review.published) {
-        throw new NotFoundException("Review", String(input.reviewId));
-      }
-
-      return review;
+      return jsonify(review);
     }),
 
   create: protectedProcedure
@@ -209,51 +151,34 @@ export const reviewRouter = router({
     )
     .input(
       getFormDataSchema({
-        title: z
-          .string()
-          .min(1, "Title is required")
-          .max(200, "Title too long"),
-        content: textEditorContentValidator(),
-        rating: z
-          .number()
-          .min(1, "Rating must be at least 1")
-          .max(10, "Rating cannot exceed 10"),
-        targetType: z
-          .string()
-          .min(1, "Target type is required")
-          .default("website"),
-        targetId: z.string().optional(),
-        published: z.boolean().optional().default(false),
-        isFeatured: z.boolean().optional().default(false),
+        title: z.string().min(1).max(200),
+        content: z.string(),
+        rating: z.number().min(1).max(10),
+        targetType: z.string().min(1),
+        targetId: documentIdValidator().optional(),
+        published: z.boolean().default(false),
+        featured: z.boolean().default(false),
         featuredImage: mediaWrappedFieldValidator().optional(),
-        tags: z.array(z.string()).optional().default([]),
-        authorId: z.string().nullable().optional(),
+        tags: z.array(documentIdValidator()).default([]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const reviewData: any = {
-        domain: ctx.domainData.domainObj._id,
-        title: input.data.title,
-        content: input.data.content,
-        rating: input.data.rating,
-        targetType: input.data.targetType,
-        targetId: input.data.targetId,
-        published: input.data.published,
-        isFeatured: input.data.isFeatured,
-        featuredImage: input.data.featuredImage,
-        tags: input.data.tags,
-      };
-
-      // Set authorId - if provided use that, otherwise use current user
-      reviewData.authorId = input.data.authorId ?? ctx.user.userId;
-
-      const review = await ReviewModel.create(reviewData);
+      const review = await ReviewModel.create({
+        ...input.data,
+        orgId: ctx.domainData.domainObj.orgId,
+        authorId: ctx.user._id,
+        target: {
+          entityType: input.data.targetType,
+          entityId: input.data.targetId,
+          entityIdStr: input.data.targetId,
+        },
+      });
 
       Log.info("Review created", {
-        reviewId: review.reviewId,
-        userId: ctx.user.userId,
+        reviewId: review._id,
+        userId: ctx.user._id,
       });
-      return review;
+      return jsonify(review.toObject());
     }),
 
   update: protectedProcedure
@@ -266,44 +191,37 @@ export const reviewRouter = router({
     )
     .input(
       getFormDataSchema({
-        reviewId: z.string().min(1, "Review ID is required"),
-        title: z
-          .string()
-          .min(1, "Title is required")
-          .max(200, "Title too long")
-          .optional(),
-        content: textEditorContentValidator().optional(),
-        rating: z
-          .number()
-          .min(1, "Rating must be at least 1")
-          .max(10, "Rating cannot exceed 10")
-          .optional(),
-        targetType: z.string().min(1, "Target type is required").optional(),
-        targetId: z.string().optional(),
+        title: z.string().min(1).max(200).optional(),
+        content: z.string().optional(),
+        rating: z.number().min(1).max(10).optional(),
+        targetType: z.string().min(1).optional(),
+        targetId: documentIdValidator().optional(),
         published: z.boolean().optional(),
-        isFeatured: z.boolean().optional(),
+        featured: z.boolean().optional(),
         featuredImage: mediaWrappedFieldValidator().optional(),
-        tags: z.array(z.string()).optional(),
-        authorId: z.string().nullable().optional(),
+        tags: z.array(documentIdValidator()).optional(),
+        authorId: documentIdValidator().optional(),
+      }, {
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const review = await getReviewOrThrow(
-        undefined,
-        ctx as any,
-        input.data.reviewId,
-      );
+      const review = await ReviewModel.findOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!review) throw new NotFoundException("Review", input.id);
 
       if (
         !checkPermission(ctx.user.permissions, [
           UIConstants.permissions.manageAnyCourse,
         ]) &&
-        !checkReviewOwnership(review, ctx)
+        !review.authorId.equals(ctx.user._id)
       ) {
         throw new Error("You don't have permission to update this review");
       }
 
-      const updateData: any = {};
+      const updateData: FilterQuery<typeof ReviewModel> = {};
       if (input.data.title !== undefined) updateData.title = input.data.title;
       if (input.data.content !== undefined)
         updateData.content = input.data.content;
@@ -315,28 +233,21 @@ export const reviewRouter = router({
         updateData.targetId = input.data.targetId;
       if (input.data.published !== undefined)
         updateData.published = input.data.published;
-      if (input.data.isFeatured !== undefined)
-        updateData.isFeatured = input.data.isFeatured;
+      if (input.data.featured !== undefined)
+        updateData.featured = input.data.featured;
       if (input.data.featuredImage !== undefined)
         updateData.featuredImage = input.data.featuredImage;
       if (input.data.tags !== undefined) updateData.tags = input.data.tags;
       if (input.data.authorId !== undefined)
         updateData.authorId = input.data.authorId;
 
-      const updatedReview = await ReviewModel.findOneAndUpdate(
-        {
-          reviewId: input.data.reviewId,
-          domain: ctx.domainData.domainObj._id,
-        },
-        { $set: updateData },
-        { new: true },
-      );
+      const saved = await review.save();
 
       Log.info("Review updated", {
-        reviewId: input.data.reviewId,
-        userId: ctx.user.userId,
+        reviewId: saved._id,
+        userId: ctx.user._id,
       });
-      return updatedReview;
+      return jsonify(saved.toObject());
     }),
 
   delete: protectedProcedure
@@ -349,98 +260,60 @@ export const reviewRouter = router({
     )
     .input(
       z.object({
-        reviewId: z.string().min(1, "Review ID is required"),
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const review = await getReviewOrThrow(
-        undefined,
-        ctx as any,
-        input.reviewId,
-      );
+      const review = await ReviewModel.findOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!review) throw new NotFoundException("Review", input.id);
 
       if (
         !checkPermission(ctx.user.permissions, [
           UIConstants.permissions.manageAnyCourse,
         ]) &&
-        !checkReviewOwnership(review, ctx)
+        !review.authorId.equals(ctx.user._id)
       ) {
         throw new Error("You don't have permission to delete this review");
       }
 
       if (review.featuredImage) {
-        await deleteMedia(review.featuredImage.mediaId);
+        await deleteMedia(review.featuredImage);
       }
 
-      await ReviewModel.deleteOne({
-        reviewId: input.reviewId,
-        domain: ctx.domainData.domainObj._id,
-      });
+      await ReviewModel.findByIdAndDelete(input.id);
 
       Log.info("Review deleted", {
-        reviewId: input.reviewId,
-        userId: ctx.user.userId,
+        reviewId: input.id,
+        userId: ctx.user._id,
       });
       return { success: true };
     }),
 
-  publicGetByReviewId: publicProcedure
+  publicGetById: publicProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        reviewId: z.string(),
+        id: documentIdValidator(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const review = await ReviewModel.findOne({
-        reviewId: input.reviewId,
-        domain: ctx.domainData.domainObj._id,
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
         published: true,
       })
         .populate<{
-          author: {
-            userId: string;
-            name: string;
-            avatar?: any;
-          };
-        }>({
-          path: "authorId",
-          select: "userId name avatar -_id",
-        })
+          author: Pick<IUserHydratedDocument, "username" | "fullName" | "avatar">;
+        }>("author", "username fullName avatar")
         .lean();
 
       if (!review) {
-        throw new NotFoundException("Review", String(input.reviewId));
+        throw new NotFoundException("Review", input.id);
       }
 
-      return {
-        reviewId: review.reviewId,
-        title: review.title,
-        content: review.content,
-        rating: review.rating,
-        targetType: review.targetType,
-        targetId: review.targetId,
-        featuredImage: review.featuredImage
-          ? formatMedia(review.featuredImage)
-          : null,
-        tags: review.tags,
-        author: review.author,
-        createdAt: review.createdAt,
-      };
+      return jsonify(review);
     }),
 });
-
-const formatMedia = (media: Media) => {
-  if (!media) return null;
-  return {
-    mediaId: media.mediaId,
-    url: media.url,
-    thumbnail: media.thumbnail,
-    originalFileName: media.originalFileName,
-    mimeType: media.mimeType,
-    size: media.size,
-    access: media.access,
-    caption: media.caption,
-    storageProvider: media.storageProvider,
-  };
-};

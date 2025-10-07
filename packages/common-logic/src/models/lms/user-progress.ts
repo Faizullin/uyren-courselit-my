@@ -1,0 +1,83 @@
+import mongoose from "mongoose";
+import { createModel } from "../../lib/create-model";
+import { orgaizationIdField } from "../organization";
+
+export enum UserLessonProgressStatus {
+    COMPLETED = "completed",
+    IN_PROGRESS = "in_progress",
+    NOT_STARTED = "not_started",
+}
+
+interface IUserLessonProgress {
+    lessonId: mongoose.Types.ObjectId;
+    status: UserLessonProgressStatus;
+    completedAt?: Date;
+}
+
+interface IUserProgress {
+    orgId: mongoose.Types.ObjectId;
+    userId: mongoose.Types.ObjectId;
+    courseId: mongoose.Types.ObjectId;
+    enrollmentId: mongoose.Types.ObjectId;
+    lessons: IUserLessonProgress[];
+}
+
+const UserLessonProgressSchema = new mongoose.Schema<IUserLessonProgress>(
+    {
+        lessonId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Lesson",
+            required: true
+        },
+        status: {
+            type: String,
+            enum: UserLessonProgressStatus,
+            required: true
+        },
+        completedAt: {
+            type: Date,
+            required: false
+        }
+    },
+    {
+        _id: false,
+        timestamps: false,
+    },
+);
+
+
+export const UserProgressSchema = new mongoose.Schema<IUserProgress>(
+    {
+        orgId: orgaizationIdField(),
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+            index: true
+        },
+        courseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Course",
+            required: true
+        },
+        enrollmentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Enrollment",
+            required: true
+        },
+        lessons: {
+            type: [UserLessonProgressSchema],
+            required: true
+        }
+    },
+    {
+        timestamps: true,
+    },
+);
+
+UserProgressSchema.index({ userId: 1, courseId: 1 });
+UserProgressSchema.index({ enrollmentId: 1 });
+UserProgressSchema.index({ orgId: 1, courseId: 1 });
+UserProgressSchema.index({ userId: 1, orgId: 1 });
+
+export const UserProgressModel = createModel('UserProgress', UserProgressSchema);

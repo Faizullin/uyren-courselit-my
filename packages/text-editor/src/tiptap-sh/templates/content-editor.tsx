@@ -12,6 +12,7 @@ import Typography from "@tiptap/extension-typography";
 import Underline from "@tiptap/extension-underline";
 import { AnyExtension, Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { ITextEditorContent } from "@workspace/common-logic";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMemo } from "react";
 import { TipTapFloatingMenu } from "../extensions/floating-menu";
@@ -27,6 +28,7 @@ import { memo } from "react";
 export type ContentEditorProps = {
   initialContent?: string;
   onChange?: (content: string) => void;
+  onTextEditorContentChange?: (content: ITextEditorContent) => void;
   onEditor?: (
     editor: Editor | null,
     meta: {
@@ -46,6 +48,7 @@ export type ContentEditorRef = Editor;
 export function ContentEditor({
   initialContent,
   onChange,
+  onTextEditorContentChange,
   onEditor,
   placeholder,
   editable = true,
@@ -122,6 +125,11 @@ export function ContentEditor({
       if (onChange) {
         const currentContent = editor.getHTML();
         onChange(currentContent);
+      }
+      
+      if (onTextEditorContentChange) {
+        const textEditorContent = editor.commands.getMyContent();
+        onTextEditorContentChange(textEditorContent);
       }
     },
     onCreate: ({ editor }: { editor: Editor }) => {

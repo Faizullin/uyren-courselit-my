@@ -1,6 +1,6 @@
 import { Log } from "@/lib/logger";
-import DomainModel, { type Domain } from "@/models/Domain";
-import { connectToDatabase } from "@workspace/common-logic";
+import { connectToDatabase, DomainModel, IDomain } from "@workspace/common-logic";
+import { HydratedDocument } from "mongoose";
 import { headers } from "next/headers";
 import { parseHost } from "./domain-utils";
 import { BaseCacheManager, RedisNotUsedError } from "./redis";
@@ -12,14 +12,7 @@ export {
   parseHost
 } from "./domain-utils";
 
-const mainIdentifiers = [
-  "main",
-  "localhost",
-  "127.0.0.1",
-  "85.202.193.94",
-  "uyrenai.kz",
-  // "uyren-courselit-my-1.loca.lt",
-];
+type IDomainInstance = HydratedDocument<IDomain>;
 
 export async function getDomainHeaders() {
   const headersList = await headers();
@@ -38,7 +31,7 @@ export async function getDomainData(
   defaultHeaders?: Awaited<ReturnType<typeof getDomainHeaders>>,
 ) {
   const domainHeaders = defaultHeaders || (await getDomainHeaders());
-  let domainObj: Domain | null = null;
+  let domainObj: IDomainInstance | null = null;
 
   try {
     if (domainHeaders.identifier === "main") {
@@ -58,41 +51,21 @@ export async function getDomainData(
 }
 
 export class DomainManager extends BaseCacheManager {
-  private static readonly CACHE_TTL = 3600;
   private static readonly CACHE_PREFIX = "domain:";
   private static readonly MANAGER_NAME = "DomainManager";
 
-  private static formatDomainForClient(domain: Domain): Omit<
-    Domain,
-    "settings"
-  > & {
-    settings: Omit<
-      Domain["settings"],
-      | "stripeSecret"
-      | "stripeWebhookSecret"
-      | "paypalSecret"
-      | "paytmSecret"
-      | "razorpaySecret"
-      | "razorpayWebhookSecret"
-      | "lemonsqueezyWebhookSecret"
-    >;
-  } {
+  private static formatDomainForClient(domain: IDomainInstance) {
     if (!domain) return domain as any;
-    const { settings, ...rest } = domain;
-    const safeSettings = { ...settings };
+    const { siteInfo, ...rest } = domain;
+    const safePaymentMethods = { ...siteInfo.paymentMethods };
 
-    delete safeSettings.stripeSecret;
-    delete safeSettings.stripeWebhookSecret;
-    delete safeSettings.paypalSecret;
-    delete safeSettings.paytmSecret;
-    delete safeSettings.razorpaySecret;
-    delete safeSettings.razorpayWebhookSecret;
-    delete safeSettings.lemonsqueezyWebhookSecret;
+    delete safePaymentMethods.stripe.stripeSecret;
+    delete safePaymentMethods.stripe.stripeWebhookSecret;
 
-    return { ...rest, settings: safeSettings };
+    return { ...rest, paymentMethods: safePaymentMethods };
   }
 
-  static async getDomainByHost(host: string): Promise<Domain | null> {
+  static async getDomainByHost(host: string): Promise<IDomainInstance | null> {
     const { cleanHost: clean, subdomain } = parseHost(host);
     if (!clean) return null;
 
@@ -103,12 +76,12 @@ export class DomainManager extends BaseCacheManager {
     return await this.getDomainByCustomDomain(clean);
   }
 
-  static async getDomainByName(name: string) {
+  static async getDomainByName(name: string): Promise<IDomainInstance | null> {
     const cacheKey = `${this.CACHE_PREFIX}name:${name}`;
 
     return await this.handleRedisOperation(
       async () => {
-        const cached = await this.getFromCache<Domain>(cacheKey, this.MANAGER_NAME);
+        const cached = await this.getFromCache<IDomainInstance>(cacheKey, this.MANAGER_NAME);
         if (cached) {
           return this.formatDomainForClient(cached);
         }
@@ -116,24 +89,21 @@ export class DomainManager extends BaseCacheManager {
       },
       async () => {
         await connectToDatabase();
-        const domain = await DomainModel.findOne({ name, deleted: false });
+        const domain = await DomainModel.findOne({ name, });
         if (domain) {
-          const domainJSON = domain.toJSON();
-          await this.setDomainCache(domainJSON);
-          return this.formatDomainForClient(domainJSON);
+          await this.setDomainCache(domain);
+          return this.formatDomainForClient(domain);
         }
         return null;
-      },
-      this.MANAGER_NAME
+      }
     );
   }
 
-  static async getDomainByCustomDomain(customDomain: string) {
+  static async getDomainByCustomDomain(customDomain: string): Promise<IDomainInstance | null> {
     const cacheKey = `${this.CACHE_PREFIX}custom:${customDomain}`;
-
     return await this.handleRedisOperation(
       async () => {
-        const cached = await this.getFromCache<Domain>(cacheKey, this.MANAGER_NAME);
+        const cached = await this.getFromCache<IDomainInstance>(cacheKey, this.MANAGER_NAME);
         if (cached) {
           return this.formatDomainForClient(cached);
         }
@@ -141,23 +111,21 @@ export class DomainManager extends BaseCacheManager {
       },
       async () => {
         await connectToDatabase();
-        const domain = await DomainModel.findOne({ customDomain, deleted: false });
+        const domain = await DomainModel.findOne({ customDomain });
         if (domain) {
-          const domainJSON = domain.toJSON();
-          await this.setDomainCache(domainJSON);
-          return this.formatDomainForClient(domainJSON);
+          await this.setDomainCache(domain);
+          return this.formatDomainForClient(domain);
         }
         return null;
-      },
-      this.MANAGER_NAME
+      }
     );
   }
 
-  static async setDomainCache(domain: Domain): Promise<void> {
+  static async setDomainCache(domain: IDomainInstance) {
     return await this.cache(domain);
   }
 
-  private static async cache(domain: Domain): Promise<void> {
+  private static async cache(domain: IDomainInstance) {
     try {
       const promises = [];
       if (domain.name) {
@@ -165,8 +133,8 @@ export class DomainManager extends BaseCacheManager {
           this.setCache(
             `${this.CACHE_PREFIX}name:${domain.name}`,
             domain,
-            this.CACHE_TTL,
-            this.MANAGER_NAME
+            undefined,
+            this.MANAGER_NAME,
           )
         );
       }
@@ -175,7 +143,7 @@ export class DomainManager extends BaseCacheManager {
           this.setCache(
             `${this.CACHE_PREFIX}custom:${domain.customDomain}`,
             domain,
-            this.CACHE_TTL,
+            undefined,
             this.MANAGER_NAME
           )
         );
@@ -189,8 +157,9 @@ export class DomainManager extends BaseCacheManager {
     }
   }
 
-  static async removeFromCache(domain: Domain): Promise<void> {
-    const keys = [`${this.CACHE_PREFIX}id:${domain._id}`];
+
+  static async removeFromCache(domain: IDomainInstance) {
+    const keys = [];
     if (domain.name) keys.push(`${this.CACHE_PREFIX}name:${domain.name}`);
     if (domain.customDomain)
       keys.push(`${this.CACHE_PREFIX}custom:${domain.customDomain}`);

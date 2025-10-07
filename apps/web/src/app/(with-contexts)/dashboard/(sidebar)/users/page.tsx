@@ -3,7 +3,6 @@ import UsersHub from "./_components/users-hub";
 
 export async function generateMetadata(
   {
-    params,
     searchParams,
   }: {
     params: any;

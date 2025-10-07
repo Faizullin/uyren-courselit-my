@@ -6,6 +6,7 @@ import { userModuleRouter } from "./routers/user";
 import { activityModuleRouter } from "./routers/activity";
 import { mediaModuleRouter } from "./routers/media";
 import { paymentModuleRouter } from "./routers/payment";
+import { chatModuleRouter } from "./routers/chat";
 
 /**
  * This is the primary router for your server.
@@ -20,6 +21,7 @@ export const appRouter = router({
   activityModule: activityModuleRouter,
   mediaModule: mediaModuleRouter,
   paymentModule: paymentModuleRouter,
+  chatModule: chatModuleRouter,
 });
 
 // export type definition of API

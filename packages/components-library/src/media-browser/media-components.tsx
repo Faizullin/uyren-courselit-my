@@ -1,7 +1,7 @@
 "use client";
 
-import { Media } from "@workspace/common-models";
-import { Badge } from "@workspace/ui/components/badge";  
+import { IAttachmentMedia } from "@workspace/common-logic";
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import {
@@ -44,9 +44,9 @@ import { toast } from "sonner";
 // ============================================================================
 
 type FileKind = "image" | "video" | "audio" | "document" | "json";
- type ViewMode = "grid" | "list";
+type ViewMode = "grid" | "list";
 
- const getFileType = (mimeType: string | null | undefined): FileKind => {
+const getFileType = (mimeType: string | null | undefined): FileKind => {
     if (!mimeType || typeof mimeType !== 'string') return "document";
     if (mimeType.startsWith("image/")) return "image";
     if (mimeType.startsWith("video/")) return "video";
@@ -63,7 +63,7 @@ const formatSize = (bytes?: number): string => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
- const getFileIcon = (kind: FileKind) => {
+const getFileIcon = (kind: FileKind) => {
     const iconClass = "w-4 h-4";
     switch (kind) {
         case "image": return <FileImage className={iconClass} />;
@@ -80,16 +80,16 @@ const ACCEPTED_EXT = "image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.z
 // ============================================================================
 
 interface MediaCardProps {
-    media: Media;
-    onSelect?: (media: Media) => void;
-    onView?: (media: Media) => void;
-    onDownload?: (media: Media) => void;
-    onDelete?: (media: Media) => void | Promise<void>;
+    media: IAttachmentMedia;
+    onSelect?: (media: IAttachmentMedia) => void;
+    onView?: (media: IAttachmentMedia) => void;
+    onDownload?: (media: IAttachmentMedia) => void;
+    onDelete?: (media: IAttachmentMedia) => void | Promise<void>;
     deleting?: boolean;
     compact?: boolean;
 }
 
- const MediaCard = memo(function MediaCard({
+const MediaCard = memo(function MediaCard({
     media,
     onSelect,
     onView,
@@ -197,15 +197,15 @@ interface MediaCardProps {
 // ============================================================================
 
 interface MediaGridProps {
-    items: Media[];
+    items: IAttachmentMedia[];
     isLoading: boolean;
     isError: boolean;
     errorText?: string;
     onRetry?: () => void;
-    onSelect?: (media: Media) => void;
-    onView?: (media: Media) => void;
-    onDownload?: (media: Media) => void;
-    onDelete?: (media: Media) => void | Promise<void>;
+    onSelect?: (media: IAttachmentMedia) => void;
+    onView?: (media: IAttachmentMedia) => void;
+    onDownload?: (media: IAttachmentMedia) => void;
+    onDelete?: (media: IAttachmentMedia) => void | Promise<void>;
     deleting?: boolean;
     emptyAction?: React.ReactNode;
     compact?: boolean;
@@ -290,16 +290,16 @@ function MediaGrid({
 // ============================================================================
 
 interface MediaListProps {
-        items: Media[];
-    onSelect?: (media: Media) => void;
-    onView?: (media: Media) => void;
-    onDownload?: (media: Media) => void;
-    onDelete?: (media: Media) => void | Promise<void>;
+    items: IAttachmentMedia[];
+    onSelect?: (media: IAttachmentMedia) => void;
+    onView?: (media: IAttachmentMedia) => void;
+    onDownload?: (media: IAttachmentMedia) => void;
+    onDelete?: (media: IAttachmentMedia) => void | Promise<void>;
     deleting?: boolean;
     compact?: boolean;
 }
 
- function MediaList({
+function MediaList({
     items,
     onSelect,
     onView,
@@ -308,19 +308,19 @@ interface MediaListProps {
     deleting,
     compact = false,
 }: MediaListProps) {
-    const handleSelect = useCallback((media: Media) => {
+    const handleSelect = useCallback((media: IAttachmentMedia) => {
         if (onSelect) onSelect(media);
     }, [onSelect]);
 
-    const handleView = useCallback((media: Media) => {
+    const handleView = useCallback((media: IAttachmentMedia) => {
         if (onView) onView(media);
     }, [onView]);
 
-    const handleDownload = useCallback((media: Media) => {
+    const handleDownload = useCallback((media: IAttachmentMedia) => {
         if (onDownload) onDownload(media);
     }, [onDownload]);
 
-    const handleDelete = useCallback(async (media: Media) => {
+    const handleDelete = useCallback(async (media: IAttachmentMedia) => {
         if (onDelete) await onDelete(media);
     }, [onDelete]);
 
@@ -448,7 +448,7 @@ interface MediaFiltersProps {
     showViewToggle?: boolean;
 }
 
- function MediaFilters({
+function MediaFilters({
     typeValue,
     setTypeValue,
     searchTermValue,
@@ -544,7 +544,7 @@ interface PaginationBarProps {
     disabled?: boolean;
 }
 
- function PaginationBar({
+function PaginationBar({
     page,
     total,
     perPage,
@@ -622,14 +622,14 @@ interface PaginationBarProps {
 // ============================================================================
 
 interface UploadAreaProps {
-    onUploaded: (attachment: Media) => void;
-    uploadFile?: (file: File) => Promise<Media>;
+    onUploaded: (attachment: IAttachmentMedia) => void;
+    uploadFile?: (file: File) => Promise<IAttachmentMedia>;
     className?: string;
     compact?: boolean;
     acceptedTypes?: string;
 }
 
- function UploadArea({
+function UploadArea({
     onUploaded,
     uploadFile,
     className = "",

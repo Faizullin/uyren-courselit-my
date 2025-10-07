@@ -1,18 +1,18 @@
-import { Media } from "@workspace/common-models";
+import { IAttachmentMedia } from "@workspace/common-logic";
 
-const PdfViewer = (props: { media: Media }) => {
+const PdfViewer = (props: { media: IAttachmentMedia }) => {
   return <div>PdfViewer</div>;
 };
 
-const TextViewer = (props: { media: Media }) => {
+const TextViewer = (props: { media: IAttachmentMedia }) => {
   return <div>TextViewer</div>;
 };
 
-const UnknownViewer = (props: { media: Media }) => {
+const UnknownViewer = (props: { media: IAttachmentMedia }) => {
   return <div>UnknownViewer</div>;
 };
 
-const FileContentViewer = (media: Media) => {
+const FileContentViewer = (media: IAttachmentMedia) => {
   switch (media.mimeType) {
     case "application/pdf":
       return <PdfViewer media={media} />;

@@ -1,4 +1,3 @@
-import { IQuestion, QuestionModel, QuizModel } from "@/models/lms";
 import {
   NotFoundException,
   ValidationException,
@@ -11,26 +10,26 @@ import {
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
+import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
-import {
-  UIConstants,
-  BASIC_PUBLICATION_STATUS_TYPE,
-} from "@workspace/common-models";
-import { RootFilterQuery } from "mongoose";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { IQuizQuestion, QuestionTypeEnum, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz";
+import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 import { QuestionProviderFactory } from "../question-bank/_providers";
-import { ObjectId } from "mongodb";
 
 const findOrAssertQuiz = async (quizId: string, ctx: MainContextType) => {
   const quiz = await QuizModel.findOne({
     _id: quizId,
-    domain: ctx.domainData.domainObj._id,
+    orgId: ctx.domainData.domainObj.orgId,
   });
-  if (!quiz) throw new NotFoundException("Quiz not found");
+  if (!quiz) throw new NotFoundException("Quiz", quizId);
   return quiz;
 };
 
-const getQuestionProvider = (questionType: IQuestion["type"]) => {
+const getQuestionProvider = (questionType: IQuizQuestion["type"]) => {
   const provider = QuestionProviderFactory.getProvider(questionType);
   if (!provider) {
     throw new ValidationException(`Unsupported question type: ${questionType}`);
@@ -38,55 +37,47 @@ const getQuestionProvider = (questionType: IQuestion["type"]) => {
   return provider;
 };
 
-const { permissions } = UIConstants;
-
-// Only support question types that have providers
-const supportedQuestionTypes = ["multiple_choice", "short_answer"] as const;
 
 export const quizQuestionsRouter = router({
-  listQuestions: protectedProcedure
+  list: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       ListInputSchema.extend({
         filter: z.object({
           quizId: documentIdValidator(),
-          type: z.enum(supportedQuestionTypes).optional(),
+          type: z.nativeEnum(QuestionTypeEnum).optional(),
         }),
       }),
     )
     .query(async ({ ctx, input }) => {
       const quiz = await findOrAssertQuiz(input.filter.quizId, ctx as any);
-      const query: RootFilterQuery<typeof QuestionModel> = {
-        domain: ctx.domainData.domainObj._id,
+      const query: RootFilterQuery<typeof QuizQuestionModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
         _id: { $in: quiz.questionIds },
         ...(input.filter?.type ? { type: input.filter.type } : {}),
       };
-      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const paginationMeta = paginate(input.pagination);
       const [items, total] = await Promise.all([
-        QuestionModel.find(query)
-          .skip(input.pagination?.skip || 0)
-          .limit(input.pagination?.take || 20)
+        QuizQuestionModel.find(query)
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { createdAt: -1 },
           )
           .lean(),
-        includeCount ? QuestionModel.countDocuments(query) : Promise.resolve(0),
+        paginationMeta.includePaginationCount ? QuizQuestionModel.countDocuments(query) : Promise.resolve(0),
       ]);
-      return {
+      return jsonify({
         items,
         total,
-        meta: {
-          includePaginationCount: input.pagination?.includePaginationCount,
-          skip: input.pagination?.skip || 0,
-          take: input.pagination?.take || 20,
-        },
-      };
+        meta: paginationMeta,
+      });
     }),
 
   publicListQuestions: protectedProcedure
@@ -95,57 +86,53 @@ export const quizQuestionsRouter = router({
       ListInputSchema.extend({
         filter: z.object({
           quizId: documentIdValidator(),
-          type: z.enum(supportedQuestionTypes).optional(),
+          type: z.nativeEnum(QuestionTypeEnum).optional(),
         }),
       }),
     )
     .query(async ({ ctx, input }) => {
       const quiz = await QuizModel.findOne({
         _id: input.filter.quizId,
-        domain: ctx.domainData.domainObj._id,
-        status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
+        orgId: ctx.domainData.domainObj.orgId,
+        publicationStatus: PublicationStatusEnum.PUBLISHED,
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
 
-      const query: RootFilterQuery<typeof QuestionModel> = {
-        domain: ctx.domainData.domainObj._id,
+      const query: RootFilterQuery<typeof QuizQuestionModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
         _id: { $in: quiz.questionIds },
         ...(input.filter?.type ? { type: input.filter.type } : {}),
       };
-      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const paginationMeta2 = paginate(input.pagination);
       const [items, total] = await Promise.all([
-        QuestionModel.find(query)
-          .skip(input.pagination?.skip || 0)
-          .limit(input.pagination?.take || 20)
+        QuizQuestionModel.find(query)
+          .skip(paginationMeta2.skip)
+          .limit(paginationMeta2.take)
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { createdAt: -1 },
           )
           .lean(),
-        includeCount ? QuestionModel.countDocuments(query) : Promise.resolve(0),
+        paginationMeta2.includePaginationCount ? QuizQuestionModel.countDocuments(query) : Promise.resolve(0),
       ]);
-      return {
+      return jsonify({
         items,
         total,
-        meta: {
-          includePaginationCount: input.pagination?.includePaginationCount,
-          skip: input.pagination?.skip || 0,
-          take: input.pagination?.take || 20,
-        },
-      };
+        meta: paginationMeta2,
+      });
     }),
 
-  createQuestion: protectedProcedure
+  create: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       getFormDataSchema({
         text: z.string().min(1),
-        type: z.enum(supportedQuestionTypes),
+        type: z.nativeEnum(QuestionTypeEnum),
         points: z.number().min(0),
         explanation: z.string().optional(),
         options: z
@@ -164,9 +151,9 @@ export const quizQuestionsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
-      const question = await QuestionModel.create({
+      const question = await QuizQuestionModel.create({
         ...input.data,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
         teacherId: ctx.user._id,
       });
       const newQuestionIds = Array.from(
@@ -179,9 +166,9 @@ export const quizQuestionsRouter = router({
       return question;
     }),
 
-  updateQuestion: protectedProcedure
+  update: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       z.object({
         id: documentIdValidator(),
@@ -191,12 +178,12 @@ export const quizQuestionsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
-      if (!quiz.questionIds.includes(new ObjectId(input.id)))
+      if (!quiz.questionIds.includes(new mongoose.Types.ObjectId(input.id)))
         throw new NotFoundException("Question not found");
 
-      const question = await QuestionModel.findOne({
+      const question = await QuizQuestionModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
       if (!question) throw new NotFoundException("Question not found");
 
@@ -211,7 +198,7 @@ export const quizQuestionsRouter = router({
       const pointsDifference = newPoints - oldPoints;
 
       // Update question with validated data
-      await QuestionModel.findByIdAndUpdate(input.id, validatedData, {
+      await QuizQuestionModel.findByIdAndUpdate(input.id, validatedData, {
         new: true,
       });
 
@@ -222,13 +209,13 @@ export const quizQuestionsRouter = router({
         });
       }
 
-      const updated = await QuestionModel.findById(input.id);
+      const updated = await QuizQuestionModel.findById(input.id);
       return updated;
     }),
 
-  deleteQuestion: protectedProcedure
+  delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       z.object({
         id: documentIdValidator(),
@@ -237,12 +224,12 @@ export const quizQuestionsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
-      if (!quiz.questionIds.includes(new ObjectId(input.id)))
+      if (!quiz.questionIds.includes(new mongoose.Types.ObjectId(input.id)))
         throw new NotFoundException("Question not found");
 
-      const question = await QuestionModel.findOne({
+      const question = await QuizQuestionModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
       if (!question) throw new NotFoundException("Question not found");
 
@@ -250,13 +237,13 @@ export const quizQuestionsRouter = router({
         $pull: { questionIds: question._id },
         $inc: { totalPoints: -(question.points || 0) },
       });
-      await QuestionModel.findByIdAndDelete(input.id);
+      await QuizQuestionModel.findByIdAndDelete(input.id);
       return { success: true };
     }),
 
-  getQuestionById: protectedProcedure
+  getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       z.object({
         id: documentIdValidator(),
@@ -265,12 +252,12 @@ export const quizQuestionsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
-      if (!quiz.questionIds.includes(new ObjectId(input.id)))
+      if (!quiz.questionIds.includes(new mongoose.Types.ObjectId(input.id)))
         throw new NotFoundException("Question not found");
 
-      const question = await QuestionModel.findOne({
+      const question = await QuizQuestionModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
       if (!question) throw new NotFoundException("Question not found");
       return question;

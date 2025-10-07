@@ -1,22 +1,32 @@
-import { IQuestion } from "@/models/lms/Question";
+import {
+  IQuizQuestion,
+  QuestionTypeEnum,
+} from "@workspace/common-logic/models/lms/quiz";
 import { QuestionAnswer } from "./BaseQuestionProvider";
 import { MultipleChoiceProvider } from "./MultipleChoiceProvider";
 import { ShortAnswerProvider } from "./ShortAnswerProvider";
 
 export class QuestionProviderFactory {
   private static providers = {
-    multiple_choice: new MultipleChoiceProvider(),
-    short_answer: new ShortAnswerProvider(),
+    [QuestionTypeEnum.MULTIPLE_CHOICE]: new MultipleChoiceProvider(),
+    [QuestionTypeEnum.SHORT_ANSWER]: new ShortAnswerProvider(),
   };
 
-  static getProvider(type: keyof typeof this.providers) {
+  static getProvider(type: QuestionTypeEnum) {
     return this.providers[type];
   }
 
-  static validateQuestion(question: any): {
+  static validateQuestion(question: Partial<IQuizQuestion>): {
     isValid: boolean;
     errors: string[];
   } {
+    if (!question.type) {
+      return {
+        isValid: false,
+        errors: ["Question type is required"],
+      };
+    }
+
     const provider = this.getProvider(question.type);
     if (!provider) {
       return {
@@ -24,34 +34,34 @@ export class QuestionProviderFactory {
         errors: [`Unsupported question type: ${question.type}`],
       };
     }
-    return provider.validateQuestion(question);
+    return provider.validateQuestion(question as any);
   }
 
   static calculateScore(
-    type: keyof typeof this.providers,
+    type: QuestionTypeEnum,
     answer: QuestionAnswer,
-    question: any,
+    question: IQuizQuestion,
   ): number {
     const provider = this.getProvider(type);
     if (!provider) return 0;
 
-    return provider.calculateScore(answer, question);
+    return provider.calculateScore(answer, question as any);
   }
 
   static processQuestionForDisplay(
-    type: keyof typeof this.providers,
-    question: any,
+    type: QuestionTypeEnum,
+    question: IQuizQuestion,
     hideAnswers: boolean = true,
-  ): Partial<any> {
+  ): Partial<IQuizQuestion> {
     const provider = this.getProvider(type);
     if (!provider) return question;
 
-    return provider.processQuestionForDisplay(question, hideAnswers);
+    return provider.processQuestionForDisplay(question as any, hideAnswers);
   }
 
   static getDefaultSettings(
-    type: keyof typeof this.providers,
-  ): Record<string, any> {
+    type: QuestionTypeEnum,
+  ): Record<string, unknown> {
     const provider = this.getProvider(type);
     if (!provider) return {};
 
@@ -59,7 +69,7 @@ export class QuestionProviderFactory {
   }
 
   static getQuestionMetadata(
-    type: keyof typeof this.providers,
+    type: QuestionTypeEnum,
   ): { type: string; displayName: string; description: string } | null {
     const provider = this.getProvider(type);
     if (!provider) return null;

@@ -1,16 +1,8 @@
-import constants from "@/config/constants";
-import { internal, responses } from "@/config/strings";
-import { Log } from "@/lib/logger";
-import CourseModel from "@/models/Course";
-import LessonModel from "@/models/Lesson";
-import MembershipModel from "@/models/Membership";
-import UserModel from "@/models/User";
 import {
+  AuthorizationException,
   ConflictException,
   NotFoundException,
-  AuthorizationException,
 } from "@/server/api/core/exceptions";
-import { checkOwnershipWithoutModel } from "@/server/api/core/permissions";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
@@ -20,8 +12,7 @@ import {
 } from "@/server/api/core/procedures";
 import {
   getFormDataSchema,
-  ListInputSchema,
-  PaginationSchema,
+  ListInputSchema
 } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
@@ -31,286 +22,126 @@ import {
   textEditorContentValidator,
 } from "@/server/api/core/validators";
 import { deleteMedia } from "@/server/services/media";
-import { InternalCourse } from "@workspace/common-logic";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
-  Constants,
-  Drip,
-  Group,
-  Lesson,
-  Media,
-  PaymentPlan,
-  UIConstants,
-} from "@workspace/common-models";
-import { checkPermission, generateUniqueId, slugify } from "@workspace/utils";
-import mongoose, { RootFilterQuery } from "mongoose";
-import { ActivityType } from "node_modules/@workspace/common-models/src/constants";
+  CourseLevelEnum,
+  CourseModel,
+  CourseStatusEnum,
+  ICourseChapter,
+  ICourseHydratedDocument,
+} from "@workspace/common-logic/models/lms/course";
+import { LessonModel } from "@workspace/common-logic/models/lms/lesson";
+import { IPaymentPlanHydratedDocument } from "@workspace/common-logic/models/payment/payment-plan";
+import { ITagHydratedDocument } from "@workspace/common-logic/models/post/tag";
+import { IThemeHydratedDocument } from "@workspace/common-logic/models/theme";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+import { checkPermission, slugify } from "@workspace/utils";
+import mongoose, { FilterQuery } from "mongoose";
 import { z } from "zod";
-import { getActivities } from "../../activity/helpers";
-import { getPlans, getInternalPaymentPlan } from "../../community/helpers";
-import { activateMembership } from "../../payment/helpers";
-import { recordActivity } from "@/lib/record-activity";
 import {
   deleteAllLessons,
   getCourseOrThrow,
-  getPrevNextCursor,
-  syncCourseLessons,
+  syncCourseLessons
 } from "./helpers";
 
-const { permissions } = UIConstants;
+// TODO: Add chapter reordering (like Frappe LMS update_chapter_index)
+// TODO: Add SCORM package support (like Frappe LMS upsert_chapter with is_scorm_package)
+// TODO: Add course deletion with cascade (like Frappe LMS delete_course)
+// TODO: Add course progress distribution analytics (like Frappe LMS get_course_progress_distribution)
 
-async function formatCourse(
-  courseId: string | InternalCourse,
-  ctx: {
-    domainData: { domainObj: { _id: mongoose.Types.ObjectId } };
+const addChapter = async ({
+  course,
+  data,
+}: {
+  course: ICourseHydratedDocument;
+  data: {
+    title: string;
+    description?: string;
   },
-) {
-  const find = async () => {
-    if (typeof courseId === "string") {
-      const course = await CourseModel.findOne({
-        courseId,
-        domain: ctx.domainData.domainObj._id,
-      }).lean();
-
-      if (!course) {
-        throw new Error("Course not found");
-      }
-      return course;
-    } else {
-      return courseId;
-    }
-  };
-  let course = await find();
-
-  const paymentPlans = await getPlans({
-    planIds: course!.paymentPlans,
-    domainId: ctx.domainData.domainObj._id,
-  });
-
-  if (
-    [Constants.CourseType.COURSE, Constants.CourseType.DOWNLOAD].includes(
-      course.type as any,
-    )
-  ) {
-    const { nextLesson } = await getPrevNextCursor(
-      course.courseId,
-      ctx.domainData.domainObj._id,
-    );
-    (course as any).firstLesson = nextLesson;
-  }
-
-  const result = {
-    ...course,
-    paymentPlans,
-  };
-  return result;
-}
-
-const addGroup = async ({
-  courseId,
-  name,
-  collapsed,
-  ctx,
-}: {
-  courseId: string;
-  name: string;
-  collapsed: boolean;
-  ctx: MainContextType;
 }) => {
-  const course = await getCourseOrThrow(undefined, ctx, courseId);
-  if (
-    course.type === Constants.CourseType.DOWNLOAD &&
-    course.groups.length === 1
-  ) {
-    throw new ConflictException(responses.download_course_cannot_have_groups);
+  if (course.chapters.some((ch) => ch.title === data.title)) {
+    throw new ConflictException("Chapter with this title already exists");
   }
-
-  if (course.groups.some((group) => group.name === name)) {
-    throw new ConflictException(responses.existing_group);
-  }
-
-  const maximumRank = course.groups?.reduce(
-    (acc: number, value: { rank: number }) =>
-      value.rank > acc ? value.rank : acc,
-    0,
-  );
-  course.groups.push({
-    rank: maximumRank + 1000,
-    name,
-    groupId: generateUniqueId(),
-    collapsed,
-    lessonsOrder: [],
+  const maxOrder = course.chapters.reduce((max, ch) => Math.max(max, ch.order), -1);
+  course.chapters.push({
+    _id: new mongoose.Types.ObjectId(),
+    title: data.title,
+    description: data.description,
+    order: maxOrder + 1,
+    lessonOrderIds: [],
   });
   await course.save();
-
-  return await formatCourse(course.courseId, ctx);
+  return course;
 };
 
-const removeGroup = async (
-  id: string,
-  courseId: string,
-  ctx: MainContextType,
-) => {
-  const course = await getCourseOrThrow(undefined, ctx, courseId);
-  const group = course.groups?.find((group) => group.groupId === id);
-
-  if (!group) {
-    throw new ConflictException("Group not found");
-  }
-
-  if (
-    course.type === Constants.CourseType.DOWNLOAD &&
-    course.groups?.length === 1
-  ) {
-    throw new ConflictException(
-      responses.download_course_last_group_cannot_be_removed,
-    );
-  }
-
-  const countOfAssociatedLessons = await LessonModel.countDocuments({
-    courseId,
-    groupId: group.groupId,
-    domain: ctx.domainData.domainObj._id,
-  });
-
-  if (countOfAssociatedLessons > 0) {
-    throw new ConflictException(responses.group_not_empty);
-  }
-
-  course.groups = course.groups.filter((group) => group.groupId !== id);
-
-  await course.save();
-
-  await UserModel.updateMany(
-    {
-      domain: ctx.domainData.domainObj._id,
-    },
-    {
-      $pull: {
-        "purchases.$[elem].accessibleGroups": id,
-      },
-    },
-    {
-      arrayFilters: [{ "elem.courseId": courseId }],
-    },
-  );
-
-  await syncCourseLessons(course.courseId, ctx);
-  return await formatCourse(course.courseId, ctx);
-};
-
-const updateGroup = async ({
-  groupId,
-  courseId,
-  name,
-  rank,
-  collapsed,
-  lessonsOrder,
-  drip,
+const removeChapter = async ({
+  course,
+  chapter,
   ctx,
 }: {
-  groupId: string;
-  courseId: string;
-  name?: string;
-  rank?: number;
-  collapsed?: boolean;
-  lessonsOrder?: string[];
-  drip?: Drip;
+  course: ICourseHydratedDocument;
+  chapter: ICourseChapter;
   ctx: MainContextType;
 }) => {
-  const course = await getCourseOrThrow(undefined, ctx, courseId);
+  if (chapter.lessonOrderIds && chapter.lessonOrderIds.length > 0) {
+    throw new ConflictException("Cannot delete chapter with lessons");
+  }
 
+  course.chapters = course.chapters.filter((ch) => !ch._id.equals(chapter._id));
+  await course.save();
+  return course;
+};
+
+const updateCourseChapter = async ({
+  chapter,
+  course,
+  data,
+  ctx,
+}: {
+  chapter: ICourseChapter;
+  course: ICourseHydratedDocument;
+  data: {
+    title?: string;
+    description?: string;
+    lessonOrderIds?: mongoose.Types.ObjectId[];
+  };
+  ctx: MainContextType;
+}) => {
   const $set: any = {};
-  if (name) {
-    const existingName = (group: Group) =>
-      group.name === name && group.groupId.toString() !== groupId;
-
-    if (course.groups?.some(existingName)) {
-      throw new ConflictException(responses.existing_group);
+  if (data.title) {
+    if (course.chapters?.some(((ch) => {
+      return ch.title === data.title && !ch._id.equals(chapter._id)
+    }))) {
+      throw new ConflictException("Chapter with this title already exists");
     }
 
-    $set["groups.$.name"] = name;
+    $set["chapters.$.title"] = data.title;
   }
 
-  if (rank) {
-    $set["groups.$.rank"] = rank;
-  }
-  
-  if (lessonsOrder) {
-    $set["groups.$.lessonsOrder"] = Array.from(new Set(lessonsOrder));
+  if (data.description !== undefined) {
+    $set["chapters.$.description"] = data.description;
   }
 
-  if (typeof collapsed === "boolean") {
-    $set["groups.$.collapsed"] = collapsed;
+  if (data.lessonOrderIds) {
+    $set["chapters.$.lessonOrderIds"] = Array.from(new Set(data.lessonOrderIds));
   }
-
 
   const updatedCourse = await CourseModel.findOneAndUpdate(
     {
-      domain: ctx.domainData.domainObj._id,
-      courseId: course.courseId,
-      "groups.groupId": groupId,
+      orgId: ctx.domainData.domainObj.orgId,
+      _id: course._id,
+      "chapters._id": chapter._id,
     },
     { $set },
     { new: true },
   );
 
-  if (updatedCourse) {
-    await syncCourseLessons(updatedCourse.courseId, ctx);
+  if (!updatedCourse) {
+    throw new ConflictException("Chapter not found");
   }
-
+  await syncCourseLessons({ course: updatedCourse, ctx });
   return updatedCourse;
-};
-const setupCourse = async ({
-  title,
-  type,
-  ctx,
-}: {
-  title: string;
-  type: "course" | "download";
-  ctx: MainContextType;
-}) => {
-  const course = await CourseModel.create({
-    domain: ctx.domainData.domainObj._id,
-    title: title,
-    cost: 0,
-    costType: constants.costFree,
-    privacy: constants.unlisted,
-    creatorId: ctx.user.userId,
-    creatorName: ctx.user.name,
-    slug: slugify(title.toLowerCase()),
-    type: type,
-    duration: 0,
-    level: "beginner",
-  });
-  await addGroup({
-    courseId: course.courseId,
-    name: internal.default_group_name,
-    collapsed: false,
-    ctx,
-  });
-
-  return course;
-};
-const setupBlog = async ({
-  title,
-  ctx,
-}: {
-  title: string;
-  ctx: MainContextType;
-}) => {
-  const course = await CourseModel.create({
-    domain: ctx.domainData.domainObj._id,
-    title: title,
-    cost: 0,
-    costType: constants.costFree,
-    privacy: constants.unlisted,
-    creatorId: ctx.user.userId,
-    creatorName: ctx.user.name,
-    slug: slugify(title.toLowerCase()),
-    type: constants.blog,
-  });
-
-  return course;
 };
 
 export const courseRouter = router({
@@ -323,33 +154,18 @@ export const courseRouter = router({
       ]),
     )
     .input(
-      ListInputSchema.extend({
-        filter: z
-          .object({
-            type: z.string().optional(),
-          })
-          .optional()
-          .default({}),
-      }),
+      ListInputSchema,
     )
     .query(async ({ ctx, input }) => {
-      const query: Partial<Omit<InternalCourse, "type">> & {
-        $text?: Record<string, unknown>;
-        type?: string | { $in: string[] };
-      } = {
-        domain: ctx.domainData.domainObj._id,
+      const query: FilterQuery<ICourseHydratedDocument> = {
+        orgId: ctx.domainData.domainObj.orgId
       };
       if (
         !checkPermission(ctx.user.permissions, [
           UIConstants.permissions.manageAnyCourse,
         ])
       ) {
-        query.creatorId = `${ctx.user.userId || ctx.user._id}`;
-      }
-      if (input.filter.type) {
-        query.type = { $in: [input.filter.type] };
-      } else {
-        query.type = { $in: [constants.download, constants.course] };
+        query.ownerId = ctx.user._id;
       }
       if (input.search?.q) query.$text = { $search: input.search.q };
       const paginationMeta = paginate(input.pagination);
@@ -361,352 +177,62 @@ export const courseRouter = router({
         [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
       };
       const [items, total] = await Promise.all([
-        CourseModel.find(query as any)
+        CourseModel.find(query)
+          .populate<{
+            owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          }>("owner", "username firstName lastName fullName email")
+          .populate<{
+            tags: Pick<ITagHydratedDocument, "name">[];
+          }>("tags", "name")
           .skip(paginationMeta.skip)
           .limit(paginationMeta.take)
           .sort(sortObject)
           .lean(),
         paginationMeta.includePaginationCount
-          ? CourseModel.countDocuments(query as any)
+          ? CourseModel.countDocuments(query)
           : Promise.resolve(null),
       ]);
-
-      const data = await Promise.all(
-        items.map(async (course) => ({
-          ...course,
-          customers: await MembershipModel.countDocuments({
-            entityId: course.courseId,
-            entityType: Constants.MembershipEntityType.COURSE,
-            domain: ctx.domainData.domainObj._id,
-          }),
-          sales: (
-            await getActivities({
-              entityId: course.courseId,
-              type: ActivityType.PURCHASED,
-              duration: "lifetime",
-              ctx: ctx as any,
-            })
-          ).count,
-        })),
-      );
-
-      return {
-        items: data,
+      return jsonify({
+        items,
         total,
         meta: paginationMeta,
-      };
+      });
     }),
 
-  getByCourseId: protectedProcedure
+  getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        courseId: z.string(),
-        asGuest: z.boolean().optional().default(false),
+        id: documentIdValidator(),
         withLessons: z.boolean().optional().default(false),
       }),
     )
     .query(async ({ ctx, input }) => {
       const course = await CourseModel.findOne({
-        courseId: input.courseId,
-        domain: ctx.domainData.domainObj._id,
-      }).lean();
-
-      if (!course) {
-        throw new NotFoundException("Course", String(input.courseId));
-      }
-
-      if (ctx.user && !input.asGuest) {
-        const isOwner =
-          checkPermission(ctx.user.permissions, [
-            UIConstants.permissions.manageAnyCourse,
-          ]) || checkOwnershipWithoutModel(course, ctx);
-
-        if (isOwner) {
-          return await formatCourse(course.courseId, ctx);
-        }
-      }
-
-      if (!course.published) {
-        throw new NotFoundException("Course", String(input.courseId));
-      }
-      return await formatCourse(course.courseId, ctx);
-    }),
-
-  getByCourseDetailed: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      z.object({
-        courseId: z.string(),
-        asGuest: z.boolean().optional().default(false),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const course = await CourseModel.findOne({
-        courseId: input.courseId,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        _id: input.id,
       })
         .populate<{
-          attachedLessons: Array<
-            Pick<Lesson, "lessonId" | "type" | "title" | "groupId"> & {
-              id: string;
-            }
-          >;
-        }>({
-          path: "attachedLessons",
-          select: "lessonId type title groupId -_id",
-        })
+          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+        }>("owner", "username firstName lastName fullName email")
         .populate<{
-          attachedPaymentPlans: Array<PaymentPlan>;
-        }>({
-          path: "attachedPaymentPlans",
-          // select: "planId name type -_id",
-        })
+          paymentPlans: Pick<IPaymentPlanHydratedDocument, "name" | "type" | "status">[];
+        }>("paymentPlans", "name type status")
         .populate<{
-          attachedTheme: {
-            _id: string;
-            name: string;
-          };
-        }>({
-          path: "attachedTheme",
-          select: "name _id",
-        })
+          tags: Pick<ITagHydratedDocument, "name">[];
+        }>("tags", "name")
+        .populate<{
+          theme: Pick<IThemeHydratedDocument, "name">;
+        }>("theme", "name")
         .lean();
 
       if (!course) {
-        throw new NotFoundException("Course", String(input.courseId));
+        throw new NotFoundException("Course", input.id);
       }
-
-      if (ctx.user && !input.asGuest) {
-        const isOwner =
-          checkPermission(ctx.user.permissions, [
-            UIConstants.permissions.manageAnyCourse,
-          ]) || checkOwnershipWithoutModel(course, ctx);
-
-        if (isOwner) {
-          return course;
-        }
-      }
-
       if (!course.published) {
-        throw new NotFoundException("Course", String(input.courseId));
+        throw new NotFoundException("Course", input.id);
       }
-
-      return course;
-    }),
-
-  getMembers: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(
-      createPermissionMiddleware([
-        UIConstants.permissions.manageCourse,
-        UIConstants.permissions.manageAnyCourse,
-      ]),
-    )
-    .input(
-      ListInputSchema.extend({
-        filter: z.object({
-          courseId: z.string(),
-          status: z.nativeEnum(Constants.MembershipStatus).optional(),
-        }),
-        pagination: PaginationSchema.extend({
-          take: z.number().max(10000).optional(),
-        }).optional(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const course = await getCourseOrThrow(
-        undefined,
-        ctx,
-        input.filter.courseId,
-      );
-
-      const query: RootFilterQuery<typeof MembershipModel> = {
-        domain: ctx.domainData.domainObj._id,
-        entityId: course.courseId,
-        entityType: Constants.MembershipEntityType.COURSE,
-      };
-
-      if (input.filter.status) {
-        query.status = input.filter.status;
-      }
-      if (input.search?.q) {
-        query.$or = [
-          { "user.name": { $regex: input.search?.q, $options: "i" } },
-          { "user.email": { $regex: input.search?.q, $options: "i" } },
-        ];
-      }
-
-      const paginationMeta = paginate(input.pagination);
-      const orderBy = input.orderBy || {
-        field: "createdAt",
-        direction: "desc",
-      };
-      const sortObject: Record<string, 1 | -1> = {
-        [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
-      };
-      const [items, total] = await Promise.all([
-        MembershipModel.find(query)
-          .skip(paginationMeta.skip)
-          .limit(paginationMeta.take)
-          .sort(sortObject)
-          .lean(),
-        paginationMeta.includePaginationCount
-          ? MembershipModel.countDocuments(query as any)
-          : Promise.resolve(null),
-      ]);
-
-      return {
-        items: await Promise.all(
-          items.map(async (member) => {
-            const user = await UserModel.findOne({
-              domain: ctx.domainData.domainObj._id,
-              userId: member.userId,
-            }).lean();
-            const purchase = user?.purchases?.find(
-              (purchase) => purchase.courseId === course.courseId,
-            );
-            return {
-              membershipId: member.membershipId,
-              userId: member.userId,
-              status: member.status,
-              subscriptionMethod: member.subscriptionMethod,
-              subscriptionId: member.subscriptionId,
-              joiningReason: member.joiningReason,
-              completedLessons: purchase?.completedLessons,
-              createdAt: purchase?.createdAt,
-              updatedAt: purchase?.updatedAt,
-              downloaded: purchase?.downloaded,
-              user: user
-                ? {
-                    userId: user.userId,
-                    email: user.email,
-                    name: user.name,
-                    avatar: user.avatar,
-                  }
-                : undefined,
-            };
-          }),
-        ),
-        total,
-        meta: paginationMeta,
-      };
-    }),
-
-  approveMember: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(
-      createPermissionMiddleware([
-        UIConstants.permissions.manageCourse,
-        UIConstants.permissions.manageAnyCourse,
-      ]),
-    )
-    .input(
-      getFormDataSchema({
-        courseId: z.string(),
-        userId: z.string(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const course = await getCourseOrThrow(
-        undefined,
-        ctx,
-        input.data.courseId,
-      );
-      const membership = await MembershipModel.findOne({
-        domain: ctx.domainData.domainObj._id,
-        entityId: course.courseId,
-        entityType: Constants.MembershipEntityType.COURSE,
-        userId: input.data.userId,
-      });
-      if (!membership) {
-        throw new NotFoundException("Membership", input.data.userId);
-      }
-      if (membership.status === Constants.MembershipStatus.ACTIVE) {
-        return { ok: true };
-      }
-      const paymentPlan = await getInternalPaymentPlan(
-        ctx.domainData.domainObj._id.toString(),
-      );
-      await activateMembership(
-        ctx.domainData.domainObj,
-        membership as any,
-        paymentPlan || null,
-      );
-      return { ok: true };
-    }),
-
-  removeMember: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(
-      createPermissionMiddleware([
-        UIConstants.permissions.manageCourse,
-        UIConstants.permissions.manageAnyCourse,
-      ]),
-    )
-    .input(
-      getFormDataSchema({
-        courseId: z.string(),
-        userId: z.string(),
-        reason: z.string().optional(),
-        forDelete: z.boolean().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const course = await getCourseOrThrow(
-        undefined,
-        ctx,
-        input.data.courseId,
-      );
-      const membership = await MembershipModel.findOne({
-        domain: ctx.domainData.domainObj._id,
-        entityId: course.courseId,
-        entityType: Constants.MembershipEntityType.COURSE,
-        userId: input.data.userId,
-      });
-      if (!membership) {
-        throw new NotFoundException("Membership", input.data.userId);
-      }
-
-      if (input.data.forDelete) {
-        const hasElevated = checkPermission(ctx.user.permissions, [
-          UIConstants.permissions.manageAnyCourse,
-        ]);
-        if (!hasElevated) {
-          throw new AuthorizationException();
-        }
-        await MembershipModel.deleteOne({ _id: (membership as any)._id });
-      } else {
-        membership.status = Constants.MembershipStatus.REJECTED;
-        if (input.data.reason) {
-          membership.rejectionReason = input.data.reason;
-        }
-        await membership.save();
-      }
-
-      await UserModel.updateOne(
-        {
-          domain: ctx.domainData.domainObj._id,
-          userId: input.data.userId,
-        },
-        {
-          $pull: { purchases: { courseId: course.courseId } },
-        },
-      );
-
-      await recordActivity({
-        domain: ctx.domainData.domainObj._id,
-        userId: ctx.user.userId,
-        type: Constants.ActivityType.COURSE_ACCESS_REVOKED as any,
-        entityId: course.courseId,
-        metadata: {
-          targetUserId: input.data.userId,
-          reason: input.data.reason,
-          forDelete: !!input.data.forDelete,
-        },
-      });
-
-      return { ok: true };
+      return jsonify(course);
     }),
 
   create: protectedProcedure
@@ -715,22 +241,25 @@ export const courseRouter = router({
     .input(
       getFormDataSchema({
         title: z.string().min(1).max(255),
-        type: z.nativeEnum(Constants.CourseType),
+        level: z.nativeEnum(CourseLevelEnum).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.data.type === "blog") {
-        return await setupBlog({
-          title: input.data.title,
-          ctx: ctx as any,
-        });
-      } else {
-        return await setupCourse({
-          title: input.data.title,
-          type: input.data.type,
-          ctx: ctx as any,
-        });
-      }
+      const title = input.data.title;
+      const course = await CourseModel.create({
+        orgId: ctx.domainData.domainObj.orgId,
+        title: title,
+        level: input.data.level,
+        slug: slugify(title.toLowerCase()),
+        ownerId: ctx.user._id,
+      });
+      const updatedCourse = await addChapter({
+        course,
+        data: {
+          title: "Section #1",
+        },
+      });
+      return jsonify(updatedCourse.toObject());
     }),
 
   update: protectedProcedure
@@ -738,208 +267,232 @@ export const courseRouter = router({
     .input(
       getFormDataSchema({
         title: z.string().min(1).max(255).optional(),
-        // type: z.nativeEnum(Constants.CourseType).optional(),
+        slug: z.string().optional(),
         published: z.boolean().optional(),
-        privacy: z.nativeEnum(Constants.ProductAccessType).optional(),
         shortDescription: z.string().optional(),
         description: textEditorContentValidator().optional(),
         featuredImage: mediaWrappedFieldValidator().nullable().optional(),
-        themeId: z.string().nullish(),
+        level: z.nativeEnum(CourseLevelEnum).optional(),
+        status: z.nativeEnum(CourseStatusEnum).optional(),
+        durationInWeeks: z.number().optional(),
+        featured: z.boolean().optional(),
+        upcoming: z.boolean().optional(),
         allowEnrollment: z.boolean().optional(),
-      }).extend({
-        courseId: z.string(),
+        allowSelfEnrollment: z.boolean().optional(),
+        paidCourse: z.boolean().optional(),
+        themeId: documentIdValidator().nullish(),
+      }, {
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const course = await getCourseOrThrow(undefined, ctx, input.courseId);
-      checkOwnershipWithoutModel(course, ctx as any);
-      const updateData = input.data;
+      const course = await getCourseOrThrow({ ctx, courseId: input.id });
+      if (!course.ownerId.equals(ctx.user._id)) {
+        throw new AuthorizationException();
+      }
       const updatedCourse = await CourseModel.findOneAndUpdate(
-        { courseId: input.courseId },
-        { $set: updateData },
+        { _id: input.id, orgId: ctx.domainData.domainObj.orgId },
+        { $set: input.data },
         { new: true },
       );
-      return updatedCourse;
+      if (!updatedCourse) {
+        throw new NotFoundException("Course", input.id);
+      }
+      return jsonify(updatedCourse.toObject());
     }),
 
   delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        courseId: z.string(),
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const course = await getCourseOrThrow(undefined, ctx, input.courseId);
-      await deleteAllLessons(course.courseId, ctx);
+      const course = await getCourseOrThrow({
+        ctx,
+        courseId: input.id,
+      });
+      await deleteAllLessons(course, ctx);
       if (course.featuredImage) {
-        try {
-          await deleteMedia(course.featuredImage.mediaId);
-        } catch (err: any) {
-          Log.error(err.message, {
-            stack: err.stack,
-          });
-        }
+        await deleteMedia(course.featuredImage);
       }
       await CourseModel.deleteOne({
-        domain: ctx.domainData.domainObj._id,
-        courseId: course.courseId,
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
-      return true;
+      return {
+        success: true,
+      };
     }),
 
-  addGroup: protectedProcedure
+
+
+
+  addCourseChapter: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       getFormDataSchema({
-        courseId: z.string(),
-        name: z.string().min(1).max(255),
-        collapsed: z.boolean().optional(),
+        title: z.string().min(1).max(255),
+        description: z.string().optional(),
+      }, {
+        courseId: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await addGroup({
-        courseId: input.data.courseId,
-        name: input.data.name,
-        collapsed: input.data.collapsed ?? false,
-        ctx: ctx as any,
+      const course = await getCourseOrThrow({ ctx, courseId: input.courseId });
+      const updatedCourse = await addChapter({
+        course,
+        data: {
+          title: input.data.title,
+          description: input.data.description,
+        },
       });
+      return jsonify(updatedCourse.toObject());
     }),
 
-  updateGroup: protectedProcedure
+  updateCourseChapter: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       getFormDataSchema({
-        groupId: z.string(),
-        courseId: z.string(),
-        name: z.string().optional(),
-        rank: z.number().optional(),
-        collapsed: z.boolean().optional(),
-        lessonsOrder: z.array(z.string()).optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        lessonOrderIds: z.array(documentIdValidator()).optional(),
+      }, {
+        courseId: documentIdValidator(),
+        chapterId: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await updateGroup({
-        groupId: input.data.groupId,
-        courseId: input.data.courseId,
-        name: input.data.name,
-        rank: input.data.rank,
-        collapsed: input.data.collapsed,
-        lessonsOrder: input.data.lessonsOrder,
-        ctx: ctx as any,
+      const course = await getCourseOrThrow({ ctx, courseId: input.courseId });
+      const chapter = course.chapters.find((ch) => ch._id.equals(input.chapterId));
+      if (!chapter) {
+        throw new NotFoundException("Chapter", input.chapterId);
+      }
+      const updatedCourse = await updateCourseChapter({
+        chapter,
+        course,
+        data: {
+          title: input.data.title,
+          description: input.data.description,
+          lessonOrderIds: input.data.lessonOrderIds?.map(id => new mongoose.Types.ObjectId(id)),
+        },
+        ctx,
       });
+      return jsonify(updatedCourse.toObject());
     }),
 
-  removeGroup: protectedProcedure
+  removeCourseChapter: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        groupId: z.string(),
-        courseId: z.string(),
+        chapterId: documentIdValidator(),
+        courseId: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await removeGroup(input.groupId, input.courseId, ctx as any);
+      const course = await getCourseOrThrow({ ctx, courseId: input.courseId });
+      const chapter = course.chapters.find((ch) => ch._id.toString() === input.chapterId);
+      if (!chapter) {
+        throw new ConflictException("Chapter not found");
+      }
+      const updatedCourse = await removeChapter({
+        course,
+        chapter,
+        ctx,
+      });
+      return jsonify(updatedCourse.toObject());
     }),
 
-  publicGetByCourseId: publicProcedure
+  publicGetById: publicProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        courseId: z.string(),
+        id: documentIdValidator(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const course = await CourseModel.findOne({
-        courseId: input.courseId,
-        domain: ctx.domainData.domainObj._id,
-        published: true, // Only published courses
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
       })
         .populate<{
-          attachedLessons: Array<
-            Pick<
-              Lesson,
-              "lessonId" | "type" | "title" | "groupId" | "requiresEnrollment"
-            >
-          >;
-        }>({
-          path: "attachedLessons",
-          select: "lessonId type title groupId requiresEnrollment",
-        })
+          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+        }>("owner", "username firstName lastName fullName email")
+        .populate<{
+          paymentPlans: Pick<IPaymentPlanHydratedDocument, "name" | "type" | "status">[];
+        }>("paymentPlans", "name type status")
+        .populate<{
+          tags: Pick<ITagHydratedDocument, "name">[];
+        }>("tags", "name")
         .lean();
 
       if (!course) {
-        throw new NotFoundException("Course", String(input.courseId));
+        throw new NotFoundException("Course", input.id);
       }
 
-      const paymentPlans = await getPlans({
-        planIds: course.paymentPlans,
-        domainId: ctx.domainData.domainObj._id,
-      });
+      return jsonify(course);
+    }),
 
-      return {
-        courseId: course.courseId,
-        title: course.title,
-        description: course.description,
-        type: course.type,
-        level: course.level,
-        duration: course.duration,
-        cost: course.cost,
-        costType: course.costType,
-        featuredImage: course.featuredImage ? formatMedia(course.featuredImage) : null,
-        published: course.published,
-        isFeatured: course.isFeatured,
-        tags: course.tags,
-        sales: course.sales,
-        creatorId: course.creatorId,
-        creatorName: course.creatorName,
-        slug: course.slug,
-        privacy: course.privacy,
-        themeId: course.themeId?.toString(),
-        defaultPaymentPlan: course.defaultPaymentPlan,
-        attachedPaymentPlans: paymentPlans.map(formatPaymentPlan),
-        attachedLessons: course.attachedLessons.map(formatLesson),
-        createdAt: course.createdAt,
-        groups: course.groups,
-        customers: course.customers,
-        allowEnrollment: course.allowEnrollment,
-      };
+  publicGetByIdDetailed: publicProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      z.object({
+        id: documentIdValidator(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const course = await CourseModel.findOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      })
+        .populate<{
+          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+        }>("owner", "username firstName lastName fullName email")
+        .populate<{
+          paymentPlans: Pick<IPaymentPlanHydratedDocument, "name" | "type" | "status">[];
+        }>("paymentPlans", "name type status")
+        .populate<{
+          tags: Pick<ITagHydratedDocument, "name">[];
+        }>("tags", "name")
+        .lean();
+
+      if (!course) {
+        throw new NotFoundException("Course", input.id);
+      }
+
+      // Fetch all lessons for this course that are published
+      const allLessons = await LessonModel.find({
+        courseId: course._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      })
+        .select("_id title slug type requiresEnrollment media downloadable")
+        .lean();
+
+      // Create a map for quick lesson lookup
+      const lessonMap = new Map(
+        allLessons.map((lesson) => [lesson._id.toString(), lesson])
+      );
+
+      // Build the learning path structure: course > chapters > lessons
+      const chaptersWithLessons = course.chapters
+        .sort((a, b) => a.order - b.order)
+        .map((chapter) => ({
+          _id: chapter._id,
+          title: chapter.title,
+          description: chapter.description,
+          order: chapter.order,
+          lessons: chapter.lessonOrderIds
+            .map((lessonId) => lessonMap.get(lessonId.toString()))
+            .filter(Boolean), // Remove any lessons that don't exist or aren't published
+        }));
+
+      return jsonify({
+        ...course,
+        chapters: chaptersWithLessons,
+      });
     }),
 });
-
-const formatMedia = (media: Media) => {
-  return {
-    mediaId: media.mediaId,
-    url: media.url,
-    thumbnail: media.thumbnail,
-    originalFileName: media.originalFileName,
-    mimeType: media.mimeType,
-    size: media.size,
-    access: media.access,
-    caption: media.caption,
-    storageProvider: media.storageProvider,
-  };
-};
-
-const formatPaymentPlan = (paymentPlan: PaymentPlan) => {
-  return {
-    type: paymentPlan.type,
-    name: paymentPlan.name,
-    planId: paymentPlan.planId,
-    oneTimeAmount: paymentPlan.oneTimeAmount,
-    emiAmount: paymentPlan.emiAmount,
-    emiTotalInstallments: paymentPlan.emiTotalInstallments,
-    subscriptionMonthlyAmount: paymentPlan.subscriptionMonthlyAmount,
-    subscriptionYearlyAmount: paymentPlan.subscriptionYearlyAmount,
-  };
-};
-
-const formatLesson = (lesson: Partial<Lesson>) => {
-  return {
-    title: lesson.title!,
-    type: lesson.type!,
-    groupId: lesson.groupId!,
-    lessonId: lesson.lessonId!,
-    requiresEnrollment: lesson.requiresEnrollment!,
-  };
-};

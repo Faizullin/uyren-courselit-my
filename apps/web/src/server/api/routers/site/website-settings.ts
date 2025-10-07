@@ -100,14 +100,14 @@ export const websiteSettingsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       let websiteSettings = await WebsiteSettingsModel.findOne({
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
 
       if (!websiteSettings) {
         // Create new settings if none exist
         websiteSettings = new WebsiteSettingsModel({
           ...input.data,
-          domain: ctx.domainData.domainObj._id,
+          orgId: ctx.domainData.domainObj.orgId,
         });
       } else {
         // Update existing settings

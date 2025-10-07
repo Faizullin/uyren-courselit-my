@@ -1,4 +1,3 @@
-import { Domain as PublicDomain } from "@workspace/common-models";
 import mongoose from "mongoose";
 import SettingsSchema from "./site-info";
 

@@ -1,12 +1,13 @@
-import { Domain } from "@/models/Domain";
-import UserModel from "@/models/User";
-import { connectToDatabase, InternalUser } from "@workspace/common-logic";
-import { UIConstants } from "@workspace/common-models";
+import { connectToDatabase, IDomain, IUser, UIConstants, UserModel } from "@workspace/common-logic";
 import { checkPermission } from "@workspace/utils";
+import { HydratedDocument } from "mongoose";
 import { Session } from "next-auth";
 import { AuthenticationException, AuthorizationException } from "./exceptions";
 import { assertDomainExist } from "./permissions";
 import { rootProcedure, t } from "./trpc";
+
+type IDomainInstance = HydratedDocument<IDomain>;
+type IUserInstance = HydratedDocument<IUser>;
 
 // Base middleware for role-based access control
 export const createPermissionMiddleware = <T = any>(
@@ -47,7 +48,7 @@ const createRoleMiddleware = (allowedRoles: string[]) => {
 
 export const createDomainRequiredMiddleware = <T = any>() => {
   return t.middleware(async ({ ctx, next }) => {
-    const domainObj = await assertDomainExist(ctx);
+    const domainObj = await assertDomainExist(ctx as MainContextType);
     return next({
       ctx: {
         ...ctx,
@@ -55,7 +56,7 @@ export const createDomainRequiredMiddleware = <T = any>() => {
           ...ctx.domainData,
           domainObj,
         },
-      },
+      } as MainContextType,
     });
   });
 };
@@ -88,18 +89,12 @@ export const adminProcedure = protectedProcedure.use(
 export const teacherProcedure = protectedProcedure.use(
   createRoleMiddleware([UIConstants.roles.admin, UIConstants.roles.instructor]),
 );
-export const studentProcedure = protectedProcedure.use(
-  createRoleMiddleware([
-    UIConstants.roles.admin,
-    UIConstants.roles.instructor,
-    UIConstants.roles.student,
-  ]),
-);
 
 export type MainContextType = {
-  user: InternalUser;
+  user: IUserInstance;
   session: Session | null;
   domainData: {
-    domainObj: Domain;
+    domainObj: IDomainInstance;
+    headers: any;
   };
 };

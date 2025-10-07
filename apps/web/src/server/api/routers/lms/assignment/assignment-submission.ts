@@ -1,4 +1,3 @@
-import { AssignmentSubmissionModel } from "@/models/lms";
 import {
   AuthorizationException,
   NotFoundException,
@@ -8,28 +7,31 @@ import {
   createPermissionMiddleware,
   protectedProcedure,
 } from "@/server/api/core/procedures";
-import { ListInputSchema } from "@/server/api/core/schema";
+import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
+import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
-import { UIConstants } from "@workspace/common-models";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { AssignmentSubmissionModel, AssignmentSubmissionStatusEnum, IAssignmentHydratedDocument } from "@workspace/common-logic/models/lms/assignment";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
-const { permissions } = UIConstants;
 
 export const assignmentSubmissionRouter = router({
-  listSubmissions: protectedProcedure
+  list: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       ListInputSchema.extend({
         filter: z
           .object({
             assignmentId: z.string().optional(),
-            studentId: z.string().optional(),
+            userId: z.string().optional(),
             status: z
-              .enum(["submitted", "graded", "late", "overdue"])
+              .nativeEnum(AssignmentSubmissionStatusEnum)
               .optional(),
           })
           .optional(),
@@ -37,59 +39,42 @@ export const assignmentSubmissionRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const query: RootFilterQuery<typeof AssignmentSubmissionModel> = {
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       };
       if (input.filter?.assignmentId)
         query.assignmentId = input.filter.assignmentId;
-      if (input.filter?.studentId) query.studentId = input.filter.studentId;
+      if (input.filter?.userId) query.userId = input.filter.userId;
       if (input.filter?.status) query.status = input.filter.status;
-
-      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const paginationMeta = paginate(input.pagination);
       const [items, total] = await Promise.all([
         AssignmentSubmissionModel.find(query)
           .populate<{
-            assignment: {
-              _id: string;
-              title: string;
-              totalPoints: number;
-            };
-          }>("assignment", "_id title totalPoints")
+            assignment: Pick<IAssignmentHydratedDocument, "title" | "totalPoints">;
+          }>("assignment", "title totalPoints")
           .populate<{
-            student: {
-              userId: string;
-              name: string;
-              email: string;
-            };
-          }>("student", "userId name email")
-          .skip(input.pagination?.skip || 0)
-          .limit(input.pagination?.take || 20)
+            student: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          }>("student", "username firstName lastName fullName email")
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { submittedAt: -1 },
           )
           .lean(),
-        includeCount
+        paginationMeta.includePaginationCount
           ? AssignmentSubmissionModel.countDocuments(query)
           : Promise.resolve(0),
       ]);
 
-      return {
-        items: items.map((item) => ({
-          ...item,
-          id: item._id.toString(),
-          _id: undefined,
-        })),
+      return jsonify({
+        items,
         total,
-        meta: {
-          includePaginationCount: input.pagination?.includePaginationCount,
-          skip: input.pagination?.skip || 0,
-          take: input.pagination?.take || 20,
-        },
-      };
+        meta: paginationMeta,
+      });
     }),
 
   listMine: protectedProcedure
@@ -98,62 +83,54 @@ export const assignmentSubmissionRouter = router({
       ListInputSchema.extend({
         filter: z
           .object({
-            status: z.enum(["submitted", "graded", "late", "overdue"]).optional(),
+            status: z.nativeEnum(AssignmentSubmissionStatusEnum).optional(),
           })
           .optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const hasAccess = checkPermission(ctx.user.permissions, [
-        permissions.enrollInCourse,
+        UIConstants.permissions.enrollInCourse,
       ]);
-      if (!hasAccess) throw new AuthorizationException("No access");
+      if (!hasAccess) throw new AuthorizationException();
 
       const query: RootFilterQuery<typeof AssignmentSubmissionModel> = {
-        domain: ctx.domainData.domainObj._id,
-        userId: ctx.user.userId,
+        orgId: ctx.domainData.domainObj.orgId,
+        userId: ctx.user._id,
         ...(input.filter?.status ? { status: input.filter.status } : {}),
-      } as any;
+      };
 
-      const includeCount = input.pagination?.includePaginationCount ?? true;
+      const paginationMeta = paginate(input.pagination);
       const [items, total] = await Promise.all([
         AssignmentSubmissionModel.find(query)
-          .populate<{ assignment: { _id: string; title: string; totalPoints: number } }>(
+          .populate<{ assignment: Pick<IAssignmentHydratedDocument, "title" | "totalPoints"> }>(
             "assignment",
-            "_id title totalPoints",
+            "title totalPoints",
           )
-          .skip(input.pagination?.skip || 0)
-          .limit(input.pagination?.take || 20)
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
           .sort(
             input.orderBy
               ? {
-                  [input.orderBy.field]:
-                    input.orderBy.direction === "asc" ? 1 : -1,
-                }
+                [input.orderBy.field]:
+                  input.orderBy.direction === "asc" ? 1 : -1,
+              }
               : { submittedAt: -1 },
           )
           .lean(),
-        includeCount
+        paginationMeta.includePaginationCount
           ? AssignmentSubmissionModel.countDocuments(query)
           : Promise.resolve(0),
       ]);
 
-      return {
-        items: items.map((item) => ({
-          ...item,
-          id: (item as any)._id.toString(),
-          _id: undefined,
-        })),
+      return jsonify({
+        items,
         total,
-        meta: {
-          includePaginationCount: input.pagination?.includePaginationCount,
-          skip: input.pagination?.skip || 0,
-          take: input.pagination?.take || 20,
-        },
-      };
+        meta: paginationMeta,
+      });
     }),
 
-  getSubmissionById: protectedProcedure
+  getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
@@ -163,147 +140,119 @@ export const assignmentSubmissionRouter = router({
     .query(async ({ ctx, input }) => {
       const submission = await AssignmentSubmissionModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          assignment: {
-            _id: string;
-            title: string;
-            totalPoints: number;
-            instructions: string;
-          };
-        }>("assignment", "_id title totalPoints instructions")
+          assignment: Pick<IAssignmentHydratedDocument, "title" | "totalPoints" | "instructions">;
+        }>("assignment", "title totalPoints instructions")
         .populate<{
-          student: {
-            userId: string;
-            name: string;
-            email: string;
-          };
-        }>("student", "userId name email")
+          student: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+        }>("student", "username firstName lastName fullName email")
         .lean();
 
-      if (!submission) throw new NotFoundException("Submission not found");
+      if (!submission) throw new NotFoundException("Submission", input.id);
 
       const hasAccess = checkPermission(ctx.user.permissions, [
-        permissions.manageAnyCourse,
+        UIConstants.permissions.manageAnyCourse,
       ]);
-      if (!hasAccess) throw new AuthorizationException("No access");
+      if (!hasAccess) throw new AuthorizationException();
 
-      return {
-        ...submission,
-        id: submission._id.toString(),
-        _id: undefined,
-      };
+      return jsonify(submission);
     }),
 
-  gradeSubmission: protectedProcedure
+  grade: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
-      z.object({
-        id: documentIdValidator(),
-        data: z.object({
-          score: z.number().min(0),
+      getFormDataSchema({
+        score: z.number().min(0),
+        feedback: z.string().optional(),
+        rubricScores: z.array(z.object({
+          criterion: z.string(),
+          maxScore: z.number().min(0),
           feedback: z.string().optional(),
-          rubricScores: z
-            .array(
-              z.object({
-                criterion: z.string(),
-                score: z.number().min(0),
-                maxScore: z.number().min(0),
-                feedback: z.string().optional(),
-              }),
-            )
-            .optional(),
-        }),
+        })).optional(),
+      }, {
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const submission = await AssignmentSubmissionModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
-      if (!submission) throw new NotFoundException("Submission not found");
+      if (!submission) throw new NotFoundException("Submission", input.id);
 
       submission.score = input.data.score;
       submission.feedback = input.data.feedback;
-      submission.status = "graded";
+      submission.status = AssignmentSubmissionStatusEnum.GRADED;
       submission.gradedAt = new Date();
+      submission.gradedById = ctx.user._id;
 
-      const json = (await submission.save()).toObject() as any;
-      return {
-        ...json,
-        id: json._id.toString(),
-        _id: undefined,
-      };
+      const saved = await submission.save();
+      return jsonify(saved.toObject());
     }),
 
-  createSubmission: protectedProcedure
+  create: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
-      z.object({
-        assignmentId: z.string().min(1),
-        content: z.string().optional(),
+      getFormDataSchema({
+        assignmentId: documentIdValidator(),
+        content: z.string().default(""),
         attachments: z.array(z.string()).default([]),
-        submissionText: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const submission = await AssignmentSubmissionModel.create({
-        ...input,
-        domain: ctx.domainData.domainObj._id,
-        studentId: ctx.user._id,
+        ...input.data,
+        orgId: ctx.domainData.domainObj.orgId,
+        userId: ctx.user._id,
         submittedAt: new Date(),
-        status: "submitted",
+        attemptNumber: 1,
+        status: AssignmentSubmissionStatusEnum.SUBMITTED,
       });
-      return submission;
+      return jsonify(submission.toObject());
     }),
 
-  updateSubmission: protectedProcedure
+  update: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
-      z.object({
+      getFormDataSchema({
+        content: z.string().optional(),
+        attachments: z.array(z.string()).optional(),
+      }, {
         id: documentIdValidator(),
-        data: z.object({
-          content: z.string().optional(),
-          attachments: z.array(z.string()).optional(),
-          submissionText: z.string().optional(),
-        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const submission = await AssignmentSubmissionModel.findOne({
         _id: input.id,
-        domain: ctx.domainData.domainObj._id,
-        studentId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        userId: ctx.user._id,
       });
-      if (!submission) throw new NotFoundException("Submission not found");
+      if (!submission) throw new NotFoundException("Submission", input.id);
 
       Object.keys(input.data).forEach((key) => {
         (submission as any)[key] = (input.data as any)[key];
       });
-      submission.updatedAt = new Date();
-
-      const json = (await submission.save()).toObject() as any;
-      return {
-        ...json,
-        id: json._id.toString(),
-        _id: undefined,
-      };
+      const saved = await submission.save();
+      return jsonify(saved.toObject());
     }),
 
-  deleteSubmission: protectedProcedure
+  delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
-    .input(z.string())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .input(z.object({
+      id: documentIdValidator(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const submission = await AssignmentSubmissionModel.findOne({
-        _id: input,
-        domain: ctx.domainData.domainObj._id,
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
-      if (!submission) throw new NotFoundException("Submission not found");
+      if (!submission) throw new NotFoundException("Submission", input.id);
 
-      await AssignmentSubmissionModel.findByIdAndDelete(input);
+      await AssignmentSubmissionModel.findByIdAndDelete(input.id);
       return { success: true };
     }),
 });

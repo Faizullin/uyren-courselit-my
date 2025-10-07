@@ -1,33 +1,34 @@
 "use client";
 
-import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import Header from "@/components/layout/header";
+import { submitAssignmentAction, uploadFileAction } from "@/server/actions/assignment-submission";
 import { trpc } from "@/utils/trpc";
+import { useMutation } from "@tanstack/react-query";
+import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { CheckCircle2, Clock, Loader2, Paperclip, Upload, X, ChevronLeft } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { submitAssignmentAction, uploadFileAction } from "@/server/actions/assignment-submission";
-import { useMutation } from "@tanstack/react-query";
+import { CheckCircle2, ChevronLeft, Clock, Loader2, Paperclip, Upload, X } from "lucide-react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function Page() {
   const params = useParams<{ id: string }>();
   const id = params?.id as string;
   const router = useRouter();
 
-  const { data: assignment } = trpc.lmsModule.assignmentModule.assignment.getById.useQuery({ id }, { enabled: !!id });
-  const submissionsQuery = trpc.lmsModule.assignmentModule.assignmentSubmission.listMine.useQuery({
+  const loadAssignmentQuery = trpc.lmsModule.assignmentModule.assignment.getById.useQuery({ id }, { enabled: !!id });
+  const loadSubmissionsQuery = trpc.lmsModule.assignmentModule.assignmentSubmission.listMine.useQuery({
     filter: {},
     pagination: { skip: 0, take: 20 },
   });
 
-  const submissions = (submissionsQuery.data?.items || []).filter((s: any) => s.assignment?._id?.toString?.() === id);
+  const submissions = (loadSubmissionsQuery.data?.items || []).filter((s) => s.assignmentId === id);
 
   const [submissionText, setSubmissionText] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<string[]>([]);
@@ -39,7 +40,7 @@ export default function Page() {
     setAttachedFiles([]);
   }, [id]);
 
-  const isSubmitted = submissions.some((s: any) => s.status === "submitted" || s.status === "graded");
+  const isSubmitted = submissions.some((s) => s.status === AssignmentSubmissionStatusEnum.SUBMITTED || s.status === AssignmentSubmissionStatusEnum.GRADED);
 
   const uploadMutation = useMutation({
     mutationFn: uploadFileAction,
@@ -52,9 +53,11 @@ export default function Page() {
     mutationFn: submitAssignmentAction,
     onSuccess: () => {
       setConfirmOpen(false);
-      submissionsQuery.refetch();
+      loadSubmissionsQuery.refetch();
     }
   });
+
+  const assignment = useMemo(() => loadAssignmentQuery.data, [loadAssignmentQuery.data]);
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files) return;
@@ -68,9 +71,8 @@ export default function Page() {
 
   const removeAttachedFile = (index: number) => setAttachedFiles(prev => prev.filter((_, i) => i !== index));
 
-  const maxReached = (submissions?.length || 0) >= (assignment?.maxSubmissions ?? 1);
-  const isPastDue = assignment?.dueDate && Date.now() > new Date(assignment.dueDate).getTime();
-  const canSubmit = assignment && !isSubmitted && (!maxReached || assignment?.allowResubmission) && (!isPastDue || assignment?.allowLateSubmission);
+  const isPastDue = assignment?.dueDate && Date.now() > new Date(assignment?.dueDate).getTime();
+  const canSubmit = assignment && !isSubmitted && (!isPastDue || assignment?.allowLateSubmission);
 
   const handleSubmit = async () => {
     if (!id) return;
@@ -84,19 +86,19 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb and Back Navigation */}
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => router.back()}
             className="mb-4 text-brand-primary hover:bg-brand-primary/10"
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
             Back to Assignments
           </Button>
-          
+
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
             <Link href="/assignments" className="hover:text-brand-primary transition-colors">Assignments</Link>
             <span>/</span>
@@ -110,8 +112,8 @@ export default function Page() {
             <h1 className="text-4xl font-bold text-foreground">{assignment?.title || "Assignment"}</h1>
             <div className="flex items-center justify-center gap-4 text-sm flex-wrap">
               {assignment?.dueDate && (
-                <Badge 
-                  variant={isPastDue ? "destructive" : "secondary"} 
+                <Badge
+                  variant={isPastDue ? "destructive" : "secondary"}
                   className={`flex items-center gap-1 ${!isPastDue ? "bg-brand-primary/10 text-brand-primary border-brand-primary/20" : ""}`}
                 >
                   <Clock className="h-3 w-3" />
@@ -119,7 +121,7 @@ export default function Page() {
                 </Badge>
               )}
               <Badge variant="secondary" className="bg-brand-primary/10 text-brand-primary border-brand-primary/20">
-                {assignment?.totalPoints} points
+                {assignment?.totalPoints || 0} points
               </Badge>
               {assignment?.difficulty && (
                 <Badge variant="outline" className="border-brand-primary/30 text-brand-primary">
@@ -144,7 +146,7 @@ export default function Page() {
                       <p className="text-muted-foreground leading-relaxed">{assignment.description}</p>
                     </div>
                   )}
-                  
+
                   {assignment?.instructions && (
                     <div className="space-y-3">
                       <h3 className="font-semibold text-foreground">Instructions</h3>
@@ -153,7 +155,7 @@ export default function Page() {
                       </div>
                     </div>
                   )}
-                  
+
                   {assignment?.requirements?.length && (
                     <div className="space-y-3">
                       <h3 className="font-semibold text-foreground">Tasks</h3>
@@ -192,15 +194,15 @@ export default function Page() {
                   <div className="space-y-3">
                     <label className="font-medium text-foreground">File Attachments</label>
                     <div className="space-y-4">
-                      <Input 
-                        ref={fileInputRef} 
-                        type="file" 
-                        multiple 
-                        onChange={(e) => handleFileUpload(e.target.files)} 
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={(e) => handleFileUpload(e.target.files)}
                         className="border-dashed border-2 border-brand-primary/20 hover:border-brand-primary/40 focus:border-brand-primary h-auto p-4"
                         disabled={isSubmitted || uploadMutation.isPending}
                       />
-                      
+
                       {uploadMutation.isPending && (
                         <div className="flex items-center gap-2 text-sm text-brand-primary">
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -218,19 +220,19 @@ export default function Page() {
                                   <div className="w-8 h-8 bg-brand-primary/10 rounded-full flex items-center justify-center">
                                     <Paperclip className="h-4 w-4 text-brand-primary" />
                                   </div>
-                                  <a 
-                                    className="text-brand-primary hover:text-brand-primary-hover font-medium transition-colors" 
-                                    href={url} 
-                                    target="_blank" 
+                                  <a
+                                    className="text-brand-primary hover:text-brand-primary-hover font-medium transition-colors"
+                                    href={url}
+                                    target="_blank"
                                     rel="noreferrer"
                                   >
                                     File {idx + 1}
                                   </a>
                                 </div>
                                 {!isSubmitted && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => removeAttachedFile(idx)}
                                     className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
                                   >
@@ -255,7 +257,7 @@ export default function Page() {
 
                     <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                       <DialogTrigger asChild>
-                        <Button 
+                        <Button
                           disabled={!canSubmit || submitMutation.isPending}
                           className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-3 font-semibold transition-all duration-300 transform hover:scale-105 ml-auto"
                         >
@@ -285,8 +287,8 @@ export default function Page() {
                           <Button variant="outline" onClick={() => setConfirmOpen(false)}>
                             Cancel
                           </Button>
-                          <Button 
-                            onClick={handleSubmit} 
+                          <Button
+                            onClick={handleSubmit}
                             disabled={submitMutation.isPending}
                             className="bg-brand-primary hover:bg-brand-primary-hover text-white"
                           >
@@ -318,14 +320,14 @@ export default function Page() {
                         {isSubmitted ? "Submitted" : "Not Submitted"}
                       </Badge>
                     </div>
-                    
-                    {assignment?.maxSubmissions && (
+
+                    {assignment?.maxAttempts && (
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Attempts:</span>
-                        <span className="font-medium">{submissions.length} / {assignment.maxSubmissions}</span>
+                        <span className="font-medium">{submissions.length} / {assignment.maxAttempts}</span>
                       </div>
                     )}
-                    
+
                     {assignment?.allowLateSubmission !== undefined && (
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Late Submissions:</span>
@@ -376,7 +378,7 @@ export default function Page() {
           </div>
         </div>
       </div>
-      
+
       <Footer />
     </main>
   );

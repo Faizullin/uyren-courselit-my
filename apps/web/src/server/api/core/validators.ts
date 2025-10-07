@@ -1,6 +1,5 @@
-import { MIMETYPE_IMAGE } from "@/lib/ui/config/constants";
+import { MediaAccessTypeEnum } from "@workspace/common-logic";
 import mongoose from "mongoose";
-import { MediaAccessType } from "node_modules/@workspace/common-models/src/constants";
 import { z } from "zod";
 
 // MongoDB ObjectId validator for documents
@@ -50,7 +49,7 @@ export const mediaWrappedFieldValidator = (zod = z) => {
     originalFileName: z.string(),
     mimeType: z.string(),
     size: z.number(),
-    access: z.nativeEnum(MediaAccessType),
+    access: z.nativeEnum(MediaAccessTypeEnum),
     thumbnail: z.string(),
     // caption is an optional string
     caption: z.string().optional(),

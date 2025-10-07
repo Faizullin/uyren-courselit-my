@@ -13,7 +13,6 @@
     "./vercel-spbs/scripts/*": "./src/vercel-spbs/scripts/*.ts"
   },
   "dependencies": {
-    "@workspace/common-models": "workspace:*",
     "@workspace/common-logic": "workspace:*",
     "@ai-sdk/openai": "^2.0.10",
     "@langchain/community": "^0.3.56",

@@ -7,9 +7,10 @@
     "check-types": "tsc --noEmit"
   },
   "exports": {
-    ".": "./src/index.ts"
+    "./lib/*": "./src/lib/*.ts",
+    "./types/*": "./src/types/*.ts",
+    "./models/*": "./src/models/*.ts"
   },
-  "main": "./src/index.ts",
   "devDependencies": {
     "@types/node": "^20.19.9",
     "@workspace/eslint-config": "workspace:*",
@@ -18,12 +19,8 @@
   },
   "dependencies": {
     "mongoose": "^8.17.0",
-    "@workspace/common-models": "workspace:*",
-    "@workspace/utils": "workspace:*"   
-  }
-  
-  
-  
-  ,
+    "mongodb": "^6.18.0",
+    "@workspace/utils": "workspace:*"
+  },
   "type": "module"
 }

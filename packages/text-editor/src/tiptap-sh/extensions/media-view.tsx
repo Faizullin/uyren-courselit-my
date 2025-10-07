@@ -2,25 +2,29 @@
 
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import { ITextEditorContent } from "@workspace/common-logic";
 import { MediaViewComponent } from "../components/media-view-component";
-import { TextEditorContent } from "@workspace/common-models";
 
 export interface MediaViewOptions {
   HTMLAttributes: Record<string, any>;
 }
 
-type AssetType = TextEditorContent["assets"][number];
+type AssetType = ITextEditorContent["assets"][number];
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     mediaView: {
       setMediaView: (asset: AssetType) => ReturnType;
+      updateMediaView: (assetId: string, updates: Partial<AssetType>) => ReturnType;
+      removeMediaView: (assetId: string) => ReturnType;
     };
   }
 }
 
+const extensionName = "media-view";
+
 export const MediaViewExtension = Node.create<MediaViewOptions>({
-  name: "mediaView",
+  name: extensionName,
   group: "block",
   atom: true,
   draggable: true,
@@ -33,6 +37,9 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
 
   addAttributes() {
     return {
+      assetId: {
+        default: null as string | null,
+      },
       asset: {
         default: null as AssetType | null,
       },
@@ -50,13 +57,14 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
   parseHTML() {
     return [
       {
-        tag: 'div[data-type="media-view"]',
+        tag: `div[data-type="${extensionName}"]`,
         getAttrs: (node) => {
           if (typeof node === "string") return {};
 
           const element = node as HTMLElement;
 
           try {
+            const assetId = element.getAttribute("data-asset-id");
             const assetRaw = element.getAttribute("data-asset");
             const displayRaw = element.getAttribute("data-display");
 
@@ -91,7 +99,7 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
               }
             }
 
-            return { asset, display };
+            return { assetId, asset, display };
           } catch (err) {
             console.error("Failed to parse media-view attributes:", err);
             return {};
@@ -102,8 +110,9 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { asset, display } = HTMLAttributes;
+    const { assetId, asset, display } = HTMLAttributes;
 
+    const safeAssetId = assetId || "null";
     const safeAsset =
       asset && typeof asset === "object" ? JSON.stringify(asset) : "null";
     const safeDisplay =
@@ -112,7 +121,8 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
     return [
       "div",
       mergeAttributes(this.options.HTMLAttributes, {
-        "data-type": "media-view",
+        "data-type": extensionName,
+        "data-asset-id": safeAssetId,
         "data-asset": safeAsset,
         "data-display": safeDisplay,
         "data-width": display?.width || "100%",
@@ -131,20 +141,37 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
     return {
       setMediaView:
         (asset: AssetType) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: "mediaView",
-            attrs: {
-              asset: asset,
-              display: {
-                width: "100%",
-                height: null,
-                align: "center" as "left" | "center" | "right",
-                aspectRatio: null as number | null,
+          ({ commands }) => {
+            const assetId = asset.media?._id?.toString() || `asset_${Date.now()}`;
+            
+            return commands.insertContent({
+              type: extensionName,
+              attrs: {
+                assetId,
+                asset: asset,
+                display: {
+                  width: "100%",
+                  height: null,
+                  align: "center" as "left" | "center" | "right",
+                  aspectRatio: null as number | null,
+                },
               },
-            },
-          });
-        },
+            });
+          },
+
+      updateMediaView:
+        (assetId: string, updates: Partial<AssetType>) =>
+          ({ commands }) => {
+            return commands.updateAttributes(extensionName, {
+              asset: updates,
+            });
+          },
+
+      removeMediaView:
+        (assetId: string) =>
+          ({ commands }) => {
+            return commands.deleteNode(extensionName);
+          },
     };
   },
 });

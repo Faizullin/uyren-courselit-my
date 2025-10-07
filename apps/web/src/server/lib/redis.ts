@@ -1,5 +1,5 @@
-import Redis from "ioredis";
 import { Log } from "@/lib/logger";
+import Redis from "ioredis";
 
 export const redis = new Redis({
   host: process.env.REDIS_HOST || "localhost",
@@ -49,15 +49,15 @@ export abstract class BaseCacheManager {
   }
 
   protected static async setCache(
-    cacheKey: string, 
-    data: any, 
-    ttl: number, 
-    managerName: string
+    cacheKey: string,
+    data: any,
+    ttl?: number,
+    managerName?: string
   ): Promise<void> {
     try {
-      this.checkRedisAvailability(managerName);
+      this.checkRedisAvailability(managerName || "BaseCacheManager");
       const dataJson = JSON.stringify(data);
-      await redis.setex(cacheKey, ttl, dataJson);
+      await redis.setex(cacheKey, ttl || this.DEFAULT_CACHE_TTL, dataJson);
     } catch (error) {
       if (error instanceof RedisNotUsedError) {
         throw error;
@@ -82,8 +82,7 @@ export abstract class BaseCacheManager {
 
   protected static async handleRedisOperation<T>(
     operation: () => Promise<T>,
-    fallbackOperation: () => Promise<T>,
-    managerName: string
+    fallbackOperation: () => Promise<T>
   ): Promise<T> {
     try {
       return await operation();

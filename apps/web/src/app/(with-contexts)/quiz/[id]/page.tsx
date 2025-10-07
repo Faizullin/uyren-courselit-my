@@ -3,6 +3,8 @@ import {
   getUserQuizAttempts,
 } from "@/server/actions/quiz-attempt";
 import { trpcCaller } from "@/server/api/caller";
+import { NotFoundException } from "@/server/api/core/exceptions";
+import { IQuizAttemptHydratedDocument, QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -11,21 +13,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { BarChart3, Clock, Eye, Target, ArrowLeft } from "lucide-react";
+import { ArrowLeft, BarChart3, Clock, Eye, Target } from "lucide-react";
 import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import QuizActions from "./_components/quiz-actions";
-import { NotFoundException } from "@/server/api/core/exceptions";
 import { cache } from "react";
+import QuizActions from "./_components/quiz-actions";
 
 interface QuizPageProps {
   params: Promise<{ id: string }>;
 }
 
-const getCachedData = cache(async (quizId: string) => {
-  return await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizId({
-    quizId,
+const getCachedData = cache(async (id: string) => {
+  return await trpcCaller.lmsModule.quizModule.quiz.protectedGetById({
+    id,
   });
 });
 
@@ -34,7 +35,6 @@ export async function generateMetadata(
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { id } = await params;
-  
   const quiz = await getCachedData(id);
 
   if (!quiz) {
@@ -42,7 +42,6 @@ export async function generateMetadata(
       title: `Quiz Not Found | Quizzes | LMS | ${(await parent)?.title?.absolute}`,
     };
   }
-
   return {
     title: `${quiz.title} | Quizzes | LMS | ${(await parent)?.title?.absolute}`,
     description: quiz.description || `Take the ${quiz.title} quiz`,
@@ -56,7 +55,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
     const quiz = await getCachedData(id);
 
     let attemptStats = null;
-    let userAttempts: any[] = [];
+    let userAttempts: IQuizAttemptHydratedDocument[] = [];
 
     try {
       [attemptStats, userAttempts] = await Promise.all([
@@ -68,7 +67,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
     }
 
     const currentAttempt = userAttempts.find(
-      (attempt) => attempt.status === "in_progress",
+      (attempt) => attempt.status === QuizAttemptStatusEnum.IN_PROGRESS,
     );
 
     const getRemainingAttempts = () => {
@@ -223,25 +222,24 @@ export default async function QuizPage({ params }: QuizPageProps) {
                   <div className="space-y-3">
                     {userAttempts.slice(0, 3).map((attempt) => (
                       <div
-                        key={attempt._id}
+                        key={`${attempt._id}`}
                         className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors duration-300"
                       >
                         <div className="flex items-center gap-4">
                           <div
-                            className={`w-3 h-3 rounded-full ${
-                              attempt.status === "completed"
-                                ? "bg-green-500"
-                                : attempt.status === "in_progress"
-                                  ? "bg-brand-primary"
-                                  : "bg-muted-foreground"
-                            }`}
+                            className={`w-3 h-3 rounded-full ${attempt.status === QuizAttemptStatusEnum.COMPLETED
+                              ? "bg-green-500"
+                              : attempt.status === QuizAttemptStatusEnum.IN_PROGRESS
+                                ? "bg-brand-primary"
+                                : "bg-muted-foreground"
+                              }`}
                           />
                           <span className="text-sm font-medium text-foreground">
                             {new Date(attempt.startedAt).toLocaleDateString()}
                           </span>
                           <Badge
                             variant={
-                              attempt.status === "completed"
+                              attempt.status === QuizAttemptStatusEnum.COMPLETED
                                 ? "default"
                                 : "secondary"
                             }
@@ -256,7 +254,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
                               {Math.round(attempt.percentageScore)}%
                             </span>
                           )}
-                          {attempt.status === "in_progress" ? (
+                          {attempt.status === QuizAttemptStatusEnum.IN_PROGRESS ? (
                             <Link href={`/quiz/${id}/attempts/${attempt._id}`}>
                               <Button
                                 variant="outline"
@@ -288,7 +286,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
                   {userAttempts.length > 3 && (
                     <div className="mt-6 text-center">
                       <Link
-                        href={`/quiz/${id}/attempts/${userAttempts[0]._id}/results`}
+                        href={`/quiz/${id}/attempts/${userAttempts[0]!._id}/results`}
                       >
                         <Button
                           variant="outline"
@@ -308,9 +306,9 @@ export default async function QuizPage({ params }: QuizPageProps) {
       </div>
     );
   } catch (error) {
-   if (error instanceof NotFoundException) {
-    notFound();
-   }
-   throw error;
+    if (error instanceof NotFoundException) {
+      notFound();
+    }
+    throw error;
   }
 }

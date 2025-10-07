@@ -1,58 +1,33 @@
-import { parseHost } from "@/server/lib/domain";
-import DomainManager from "@/server/lib/domain";
-import DomainModel from "@/models/Domain";
-import UserModel from "@/models/User";
-
-import { z } from "zod";
 import {
   NotFoundException,
   ResourceExistsException,
-} from "../../core/exceptions";
-import { adminProcedure, publicProcedure } from "../../core/procedures";
-import { getFormDataSchema, ListInputSchema } from "../../core/schema";
-import { router } from "../../core/trpc";
-import { like, paginate } from "../../core/utils";
+} from "@/server/api/core/exceptions";
+import {
+  adminProcedure,
+  publicProcedure,
+} from "@/server/api/core/procedures";
+import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
+import { router } from "@/server/api/core/trpc";
+import { like, paginate } from "@/server/api/core/utils";
 import {
   documentIdValidator,
   documentSlugValidator,
+  mediaWrappedFieldValidator,
   toSlug,
-} from "../../core/validators";
-
-const CreateSchema = getFormDataSchema({
-  name: documentSlugValidator().transform(toSlug),
-  customDomain: z.string().optional(),
-  email: z.string().email("Valid email is required"),
-  settings: z
-    .object({
-      title: z.string().optional(),
-      subtitle: z.string().optional(),
-      logo: z.string().optional(),
-    })
-    .optional(),
-});
-
-const UpdateSchema = getFormDataSchema({
-  name: documentSlugValidator().transform(toSlug).optional(),
-  customDomain: z.string().optional(),
-  email: z.string().email().optional(),
-  settings: z
-    .object({
-      title: z.string().optional(),
-      subtitle: z.string().optional(),
-      logo: z.string().optional(),
-    })
-    .optional(),
-}).extend({
-  id: documentIdValidator(),
-});
+} from "@/server/api/core/validators";
+import DomainManager, { parseHost } from "@/server/lib/domain";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { DomainModel } from "@workspace/common-logic/models/organization";
+import { z } from "zod";
 
 async function ensureUniqueName(name: string, excludeId?: string) {
   const existing = await DomainModel.findOne({
     name,
-    deleted: false,
     ...(excludeId ? { _id: { $ne: excludeId } } : {}),
   });
-  if (existing) throw new ResourceExistsException("Domain", "name", name);
+  if (existing) {
+    throw new ResourceExistsException("Domain", "name", name);
+  }
 }
 
 async function ensureUniqueCustomDomain(
@@ -61,42 +36,14 @@ async function ensureUniqueCustomDomain(
 ) {
   const existing = await DomainModel.findOne({
     customDomain,
-    deleted: false,
     ...(excludeId ? { _id: { $ne: excludeId } } : {}),
   });
-  if (existing)
-    throw new ResourceExistsException("Domain", "customDomain", customDomain);
-}
-
-async function ensureDomainHasUser(domainId: string, currentUser: any) {
-  const userCount = await UserModel.countDocuments({ domain: domainId });
-
-  if (userCount === 0) {
-    // Create a new user with current user's data and admin permissions
-    const newUser = new UserModel({
-      domain: domainId,
-      email: currentUser.email,
-      name: currentUser.name || currentUser.email,
-      active: true,
-      permissions: [
-        "course:manage",
-        "course:manage_any",
-        "course:publish",
-        "course:enroll",
-        "media:manage",
-        "site:manage",
-        "setting:manage",
-        "user:manage",
-        "community:manage",
-      ],
-      roles: ["admin"],
-      subscribedToUpdates: true,
-      lead: "website",
-      avatar: currentUser.avatar,
-      providerData: currentUser.providerData,
-    });
-
-    await newUser.save();
+  if (existing) {
+    throw new ResourceExistsException(
+      "Domain",
+      "customDomain",
+      customDomain,
+    );
   }
 }
 
@@ -115,18 +62,13 @@ export const domainRouter = router({
     .query(async ({ input }) => {
       const q = input?.search?.q;
       const baseWhere: any = {
-        deleted: false,
         ...(input?.filter?.name ? { name: like(input.filter.name) } : {}),
         ...(input?.filter?.customDomain
           ? { customDomain: like(input.filter.customDomain) }
           : {}),
         ...(q
           ? {
-              $or: [
-                { name: like(q) },
-                { customDomain: like(q) },
-                { email: like(q) },
-              ],
+              $or: [{ name: like(q) }, { customDomain: like(q) }],
             }
           : {}),
       };
@@ -151,27 +93,39 @@ export const domainRouter = router({
           : Promise.resolve(null),
       ]);
 
-      return {
+      return jsonify({
         items,
         total,
         meta: paginationMeta,
-      };
+      });
     }),
 
   getById: adminProcedure
-    .input(documentIdValidator())
+    .input(z.object({ id: documentIdValidator() }))
     .query(async ({ input }) => {
-      const domain = await DomainModel.findOne({
-        _id: input,
-        deleted: false,
-      });
+      const domain = await DomainModel.findById(input.id).lean();
 
-      if (!domain) throw new NotFoundException("Domain", input);
-      return domain.toObject();
+      if (!domain) {
+        throw new NotFoundException("Domain", input.id);
+      }
+
+      return jsonify(domain);
     }),
 
   create: adminProcedure
-    .input(CreateSchema)
+    .input(
+      getFormDataSchema({
+        name: documentSlugValidator().transform(toSlug),
+        customDomain: z.string().optional(),
+        siteInfo: z
+          .object({
+            title: z.string().optional(),
+            subtitle: z.string().optional(),
+            currencyISOCode: z.string().length(3).optional(),
+          })
+          .optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       await ensureUniqueName(input.data.name);
 
@@ -179,34 +133,45 @@ export const domainRouter = router({
         await ensureUniqueCustomDomain(input.data.customDomain);
       }
 
-      const domain = new DomainModel({
+      const domain = await DomainModel.create({
         name: input.data.name,
         customDomain: input.data.customDomain,
-        email: input.data.email,
-        settings: input.data.settings || {},
+        orgId: ctx.user.orgId,
+        siteInfo: input.data.siteInfo || {},
       });
 
-      const saved = await domain.save();
-      const domainObj = saved.toObject();
-
-      // Ensure domain has at least one user (the current user)
-      await ensureDomainHasUser(domainObj._id.toString(), ctx.user);
-
-      await DomainManager.removeFromCache(domainObj);
-      await DomainManager.setDomainCache(domainObj);
-
-      return domainObj;
+      return jsonify(domain.toObject());
     }),
 
   update: adminProcedure
-    .input(UpdateSchema)
-    .mutation(async ({ input, ctx }) => {
-      const existing = await DomainModel.findOne({
-        _id: input.id,
-        deleted: false,
-      });
+    .input(
+      getFormDataSchema(
+        {
+          name: documentSlugValidator().transform(toSlug).optional(),
+          customDomain: z.string().optional(),
+          siteInfo: z
+            .object({
+              title: z.string().min(1).max(120).optional(),
+              subtitle: z.string().min(1).max(200).optional(),
+              logo: mediaWrappedFieldValidator().nullable().optional(),
+              currencyISOCode: z.string().length(3).optional(),
+              codeInjectionHead: z.string().max(50000).optional(),
+              codeInjectionBody: z.string().max(50000).optional(),
+              mailingAddress: z.string().min(1).max(500).optional(),
+            })
+            .optional(),
+        },
+        {
+          id: documentIdValidator(),
+        },
+      ),
+    )
+    .mutation(async ({ input }) => {
+      const existing = await DomainModel.findById(input.id);
 
-      if (!existing) throw new NotFoundException("Domain", input.id);
+      if (!existing) {
+        throw new NotFoundException("Domain", input.id);
+      }
 
       if (input.data.name) {
         await ensureUniqueName(input.data.name, input.id);
@@ -218,80 +183,70 @@ export const domainRouter = router({
 
       await DomainManager.removeFromCache(existing.toObject());
 
-      const updated = await DomainModel.findByIdAndUpdate(
-        input.id,
-        input.data,
-        {
-          new: true,
-        },
-      );
+      if (input.data.siteInfo) {
+        Object.assign(existing.siteInfo, input.data.siteInfo);
+        delete (input.data as any).siteInfo;
+      }
 
-      const updatedObj = updated!.toObject();
+      Object.keys(input.data).forEach((key) => {
+        (existing as any)[key] = (input.data as any)[key];
+      });
 
-      await ensureDomainHasUser(updatedObj._id.toString(), ctx.user);
+      await DomainManager.removeFromCache(existing.toObject());
+      const saved = await existing.save();
 
-      await DomainManager.removeFromCache(updatedObj);
-      await DomainManager.setDomainCache(updatedObj);
-
-      return updatedObj;
+      return jsonify(saved.toObject());
     }),
 
   delete: adminProcedure
     .input(z.object({ id: documentIdValidator() }))
     .mutation(async ({ input }) => {
-      const existing = await DomainModel.findOne({
-        _id: input.id,
-        deleted: false,
-      });
+      const existing = await DomainModel.findById(input.id);
 
-      if (!existing) throw new NotFoundException("Domain", input.id);
+      if (!existing) {
+        throw new NotFoundException("Domain", input.id);
+      }
 
-      // Soft delete
-      const deleted = await DomainModel.findByIdAndUpdate(
-        input.id,
-        { deleted: true },
-        { new: true },
-      )!;
-
-      const deletedObj = deleted!.toObject();
+      const deletedObj = existing.toObject();
       await DomainManager.removeFromCache(deletedObj);
 
-      return deletedObj;
+      await DomainModel.deleteOne({ _id: input.id });
+
+      return { success: true };
     }),
 
-  // Get current domain context from tRPC context
   getCurrentDomain: publicProcedure.query(async ({ ctx }) => {
-    return {
+    return jsonify({
       domainData: ctx.domainData,
-    };
+    });
   }),
 
-  // Public endpoints
   publicGetByHost: publicProcedure
     .input(z.object({ host: z.string() }))
     .query(async ({ input }) => {
       const { cleanHost, subdomain } = parseHost(input.host);
-      if (!cleanHost) throw new NotFoundException("Domain", input.host);
+      if (!cleanHost) {
+        throw new NotFoundException("Domain", input.host);
+      }
 
       let domain = null;
 
-      // Check subdomain pattern first
       if (subdomain) {
         domain = await DomainModel.findOne({
           name: subdomain,
-          deleted: false,
-        });
+        }).lean();
       }
 
-      // If not found as subdomain, check custom domain
       if (!domain) {
         domain = await DomainModel.findOne({
           customDomain: cleanHost,
-          deleted: false,
-        });
+        }).lean();
       }
 
-      if (!domain) throw new NotFoundException("Domain", input.host);
-      return domain.toObject();
+      if (!domain) {
+        throw new NotFoundException("Domain", input.host);
+      }
+
+      return jsonify(domain);
     }),
 });

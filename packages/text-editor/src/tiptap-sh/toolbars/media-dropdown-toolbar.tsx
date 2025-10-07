@@ -1,6 +1,6 @@
 "use client";
 
-import { TextEditorContent } from "@workspace/common-models";
+import { ITextEditorContent } from "@workspace/common-logic";
 import {
   MediaBrowserNiceDialog,
   NiceModal,
@@ -28,7 +28,7 @@ import {
 import { useCallback, useState } from "react";
 import { useToolbar } from "./toolbar-provider";
 
-type AssetType = TextEditorContent["assets"][number];
+type AssetType = ITextEditorContent["assets"][number];
 
 export function MediaDropdownToolbar({ className }: { className?: string }) {
   const { editor } = useToolbar();
@@ -49,6 +49,8 @@ export function MediaDropdownToolbar({ className }: { className?: string }) {
             caption: result.data.caption || result.data.originalFileName || "",
             media: result.data,
           };
+          
+          // Insert the media view
           editor.chain().focus().setMediaView(asset).run();
         }
 

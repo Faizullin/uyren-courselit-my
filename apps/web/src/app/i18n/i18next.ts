@@ -28,13 +28,7 @@ i18next
     lng: undefined, // let detect the language on client side
     fallbackNS: defaultNS,
     defaultNS,
-    // detection: {
-    //     order: ['path', 'htmlTag', 'cookie', 'navigator']
-    // },
     preload: runsOnServerSide ? languages : [],
-    // backend: {
-    //   projectId: '01b2e5e8-6243-47d1-b36f-963dbb8bcae3'
-    // }
     backend: {
       backends: [LocalStorageBackend, HttpBackend],
     },

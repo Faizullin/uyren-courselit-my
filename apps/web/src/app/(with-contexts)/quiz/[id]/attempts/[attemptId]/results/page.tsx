@@ -42,14 +42,9 @@ export default async function QuizAttemptResultsPage({
   const { id, attemptId } = await params;
 
   try {
-    const quiz = await trpcCaller.lmsModule.quizModule.quiz.publicGetByQuizId({
-      quizId: id,
+    const quiz = await trpcCaller.lmsModule.quizModule.quiz.protectedGetById({
+      id,
     });
-
-    if (!quiz) {
-      notFound();
-    }
-
     let attempt = null;
 
     try {

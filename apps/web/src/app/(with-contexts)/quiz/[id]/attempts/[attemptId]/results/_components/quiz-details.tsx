@@ -5,7 +5,6 @@ import {
   getQuizAttemptDetails,
   saveTeacherFeedback,
 } from "@/server/actions/quiz-attempt";
-import { UIConstants } from "@workspace/common-models";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -45,6 +44,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 
 interface QuizDetailsProps {
   attemptId: string;

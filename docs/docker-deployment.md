@@ -257,6 +257,16 @@ docker stats
 3. **Secret management**: Use environment variables, never commit secrets
 4. **Network isolation**: Use Docker networks for service communication
 
+---
+**Tip for Windows PowerShell users:**
+
+To set environment variables `FAIZULLIN` and `UYREN_COURSELIT` inline and run Docker Compose in a single command:
+
+```powershell
+$env:FAIZULLIN="your_faizullin_value"; $env:UYREN_COURSELIT="your_uyren_courselit_value"; docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+Replace the values as needed for your deployment.
 ## Performance Optimization
 
 1. **Resource limits**: Set appropriate memory and CPU limits

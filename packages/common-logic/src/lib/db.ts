@@ -1,4 +1,3 @@
-// lib/mongodb.js
 import mongoose, { ConnectOptions } from "mongoose";
 
 // Define the type for the cached mongoose connection
@@ -18,7 +17,7 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function connectToDatabase() {
+export async function connectToDatabase() {
   if (cached.conn) {
     return cached.conn;
   }
@@ -44,5 +43,3 @@ async function connectToDatabase() {
   cached.conn = await cached.promise;
   return cached.conn;
 }
-
-export default connectToDatabase;

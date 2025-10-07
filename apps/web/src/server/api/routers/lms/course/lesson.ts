@@ -1,17 +1,8 @@
-import constants from "@/config/constants";
-import { responses } from "@/config/strings";
-import CourseModel from "@/models/Course";
-import LessonModel, { Lesson } from "@/models/Lesson";
-import { AssignmentModel, QuizModel } from "@/models/lms";
-import MembershipModel from "@/models/Membership";
 import {
   AuthenticationException,
   AuthorizationException,
-  ConflictException,
-  NotFoundException,
-  ValidationException,
+  NotFoundException
 } from "@/server/api/core/exceptions";
-import { checkOwnershipWithoutModel } from "@/server/api/core/permissions";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
@@ -19,307 +10,360 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/core/procedures";
-import { getFormDataSchema } from "@/server/api/core/schema";
+import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
+import { paginate } from "@/server/api/core/utils";
 import {
+  documentIdValidator,
   mediaWrappedFieldValidator,
   textEditorContentValidator,
 } from "@/server/api/core/validators";
+import { jsonify } from "@workspace/common-logic/lib/response";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
-  BASIC_PUBLICATION_STATUS_TYPE,
-  Constants,
-  UIConstants,
-} from "@workspace/common-models";
+  CourseModel,
+  ICourseHydratedDocument,
+} from "@workspace/common-logic/models/lms/course";
+import { EnrollmentModel, EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment";
+import {
+  ILessonHydratedDocument,
+  LessonModel,
+  LessonTypeEnum,
+} from "@workspace/common-logic/models/lms/lesson";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
 import { checkPermission } from "@workspace/utils";
-import { RootFilterQuery } from "mongoose";
+import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
-import { getPrevNextCursor, syncCourseLessons } from "./helpers";
+import { getCourseOrThrow } from "./helpers";
 
-const { permissions } = UIConstants;
+// TODO: Add lesson reordering within chapters (like Frappe LMS update_lesson_index)
+// TODO: Add video watch duration tracking (like Frappe LMS track_video_watch_duration)
+// TODO: Add lesson progress tracking with save_progress integration
 
-const getLessonOrThrow = async (id: string, ctx: MainContextType) => {
+const getLessonOrThrow = async (
+  id: string,
+  ctx: MainContextType,
+) => {
   const lesson = await LessonModel.findOne({
-    lessonId: id,
-    domain: ctx.domainData.domainObj._id,
+    _id: id,
+    orgId: ctx.domainData.domainObj.orgId,
   });
 
   if (!lesson) {
     throw new NotFoundException("Lesson", id);
   }
 
-  if (!checkPermission(ctx.user.permissions, [permissions.manageAnyCourse])) {
-    if (!checkOwnershipWithoutModel(lesson, ctx)) {
-      throw new NotFoundException("Lesson", id);
-    } else {
-      if (!checkPermission(ctx.user.permissions, [permissions.manageCourse])) {
-        throw new AuthorizationException(
-          "You are not allowed to update this lesson",
-        );
+  if (!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+    if (!lesson.ownerId.equals(ctx.user._id)) {
+      if (!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageCourse])) {
+        throw new AuthorizationException();
       }
     }
   }
 
-  return lesson;
-};
-type LessonValidatorProps = {
-  type?: Lesson["type"];
-  content?: Lesson["content"];
-  media?: Lesson["media"];
-};
-export const lessonValidator = (lessonData: LessonValidatorProps) => {
-  if (lessonData.content) {
-    validateTextContent(lessonData);
-  }
-};
-function validateTextContent(lessonData: LessonValidatorProps) {
-  const content = lessonData.content;
-
-  if ([constants.text, constants.embed].includes(lessonData.type as any)) {
-    if (
-      lessonData.type === constants.text &&
-      content &&
-      typeof content === "object"
-    ) {
-      return;
-    }
-
-    throw new ValidationException(responses.content_cannot_be_null);
-  }
-
-}
-const updateLesson = async ({
-  lessonData,
-  ctx,
-}: {
-  lessonData: Partial<
-    Pick<
-      Lesson,
-      | "title"
-      | "content"
-      | "media"
-      | "downloadable"
-      | "requiresEnrollment"
-      | "type"
-    >
-  > & { lessonId: string };
-  ctx: MainContextType;
-}) => {
-  let lesson = await getLessonOrThrow(lessonData.lessonId, ctx);
-  lessonData.lessonId = lessonData.lessonId;
-
-  lessonData.type = lesson.type;
-  lessonValidator(lessonData as LessonValidatorProps);
-
-  for (const key of Object.keys(lessonData)) {
-    (lesson as any)[key] = (lessonData as any)[key];
-  }
-
-  lesson = await (lesson as any).save();
   return lesson;
 };
 
 export const lessonRouter = router({
+  list: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([
+        UIConstants.permissions.manageCourse,
+        UIConstants.permissions.manageAnyCourse,
+      ]),
+    )
+    .input(ListInputSchema.extend({
+      courseId: documentIdValidator().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const query: RootFilterQuery<typeof LessonModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
+      };
+
+      if (!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+        query.ownerId = ctx.user._id;
+      }
+
+      if (input.courseId) {
+        query.courseId = new mongoose.Types.ObjectId(input.courseId);
+      }
+
+      if (input.search?.q) {
+        query.$text = { $search: input.search.q };
+      }
+
+      const paginationMeta = paginate(input.pagination);
+      const orderBy = input.orderBy || {
+        field: "createdAt",
+        direction: "desc",
+      };
+      const sortObject: Record<string, 1 | -1> = {
+        [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
+      };
+
+      const [items, total] = await Promise.all([
+        LessonModel.find(query)
+          .populate<{
+            owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          }>("owner", "username firstName lastName fullName email")
+          .populate<{
+            course: Pick<ICourseHydratedDocument, "title">;
+          }>("course", "title")
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
+          .sort(sortObject)
+          .lean(),
+        paginationMeta.includePaginationCount
+          ? LessonModel.countDocuments(query)
+          : Promise.resolve(null),
+      ]);
+
+      return jsonify({
+        items,
+        total,
+        meta: paginationMeta,
+      });
+    }),
+
   getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        lessonId: z.string().min(1),
+        id: documentIdValidator(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      return getLessonOrThrow(input.lessonId, ctx as MainContextType);
+      const lesson = await LessonModel.findOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj.orgId,
+      })
+        .populate<{
+          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+        }>("owner", "username firstName lastName fullName email")
+        .populate<{
+          course: Pick<ICourseHydratedDocument, "title">;
+        }>("course", "title")
+        .lean();
+
+      if (!lesson) {
+        throw new NotFoundException("Lesson", input.id);
+      }
+
+      return jsonify(lesson);
     }),
+
   create: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       getFormDataSchema({
-        title: z.string().min(1).max(100),
+        title: z.string().min(1).max(255),
+        slug: z.string().optional(),
         content: textEditorContentValidator(),
-        type: z.nativeEnum(Constants.LessonType),
-        downloadable: z.boolean(),
-        requiresEnrollment: z.boolean(),
+        type: z.nativeEnum(LessonTypeEnum),
+        downloadable: z.boolean().default(false),
+        requiresEnrollment: z.boolean().default(true),
+        published: z.boolean().default(false),
         media: mediaWrappedFieldValidator().optional(),
-        groupId: z.string().min(1),
-        courseId: z.string().min(1),
+        courseId: documentIdValidator(),
+        chapterId: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      lessonValidator(input.data);
-
-      const course = await CourseModel.findOne({
+      const course = await getCourseOrThrow({
+        ctx,
         courseId: input.data.courseId,
-        domain: ctx.domainData.domainObj._id,
       });
-      if (!course) throw new NotFoundException("Course", input.data.courseId);
-      if (course.isBlog)
-        throw new ConflictException(responses.cannot_add_to_blogs); // TODO: refactor this
-      const group = course.groups.find(
-        (group) => group.groupId === input.data.groupId,
+
+      // Verify chapter exists
+      const chapter = course.chapters.find(
+        (ch) => ch._id.toString() === input.data.chapterId,
       );
-      if (!group) throw new NotFoundException("Group", input.data.groupId);
+      if (!chapter) {
+        throw new NotFoundException("Chapter", input.data.chapterId);
+      }
+
+      const { chapterId, ...lessonData } = input.data;
+
       const lesson = await LessonModel.create({
-        domain: ctx.domainData.domainObj._id,
-        title: input.data.title,
-        type: input.data.type,
-        content: input.data.content,
-        media: input.data.media,
-        downloadable: input.data.downloadable,
-        creatorId: ctx.user._id, // TODO: refactor this
-        courseId: course.courseId,
-        groupId: input.data.groupId,
-        requiresEnrollment: input.data.requiresEnrollment,
+        ...lessonData,
+        orgId: ctx.domainData.domainObj.orgId,
+        ownerId: ctx.user._id,
       });
-      
-      await syncCourseLessons(course.courseId, ctx as any);
-      return lesson;
+
+      // Add lesson to chapter's lessonOrderIds
+      chapter.lessonOrderIds.push(lesson._id);
+      await course.save();
+
+      return jsonify(lesson.toObject());
     }),
+
   update: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       getFormDataSchema({
-        title: z.string().min(1).max(100).optional(),
+        title: z.string().min(1).max(255).optional(),
+        slug: z.string().optional(),
         content: textEditorContentValidator().optional(),
-        type: z.nativeEnum(Constants.LessonType).optional(),
+        type: z.nativeEnum(LessonTypeEnum).optional(),
         downloadable: z.boolean().optional(),
         requiresEnrollment: z.boolean().optional(),
+        published: z.boolean().optional(),
         media: mediaWrappedFieldValidator().nullable().optional(),
-      }).extend({
-        id: z.string().min(1),
+      }, {
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return updateLesson({
-        lessonData: {
-          title: input.data.title,
-          content: input.data.content,
-          type: input.data.type,
-          downloadable: input.data.downloadable,
-          requiresEnrollment: input.data.requiresEnrollment,
-          media: input.data.media as any,
-          lessonId: input.id,
-        },
-        ctx: ctx as MainContextType,
+      const lesson = await getLessonOrThrow(input.id, ctx);
+
+      Object.keys(input.data).forEach((key) => {
+        (lesson as any)[key] = (input.data as any)[key];
       });
+
+      const savedLesson = await lesson.save();
+      return jsonify(savedLesson.toObject());
     }),
+
   delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       z.object({
-        lessonId: z.string().min(1),
+        id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const lesson = await getLessonOrThrow(input.lessonId, ctx as any);
-      let course = await CourseModel.findOne({
-        domain: ctx.domainData.domainObj._id,
-      }).elemMatch("lessons", { $eq: lesson.lessonId });
+      const lesson = await getLessonOrThrow(input.id, ctx);
+
+      // Find course and remove lesson from all chapters
+      const course = await CourseModel.findOne({
+        _id: lesson.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+
       if (!course) {
-        throw new NotFoundException("Course", lesson.courseId);
+        throw new NotFoundException("Course", lesson.courseId.toString());
       }
+
+      // Remove lesson from all chapters' lessonOrderIds
+      course.chapters.forEach((chapter) => {
+        chapter.lessonOrderIds = chapter.lessonOrderIds.filter(
+          (id) => !id.equals(lesson._id),
+        );
+      });
+
+      await course.save();
 
       await LessonModel.deleteOne({
         _id: lesson._id,
-        domain: ctx.domainData.domainObj._id,
+        orgId: ctx.domainData.domainObj.orgId,
       });
 
-      await syncCourseLessons(lesson.courseId, ctx as any);
-      return true;
-    }),
-
-  searchAssignmentEntities: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageAnyCourse]))
-    .input(
-      z.object({
-        search: z.string().optional(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const { search } = input;
-      const assignmentQuery: RootFilterQuery<typeof AssignmentModel> = {
-        domain: ctx.domainData.domainObj._id,
-        status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
-      };
-      const quizQuery: RootFilterQuery<typeof QuizModel> = {
-        domain: ctx.domainData.domainObj._id,
-        status: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
-      };
-      if (search) {
-        assignmentQuery.title = { $regex: search, $options: "i" };
-        quizQuery.title = { $regex: search, $options: "i" };
-      }
-      const assignments = await AssignmentModel.find(assignmentQuery);
-      const quizzes = await QuizModel.find(quizQuery);
-      return {
-        assignments,
-        quizzes,
-      };
+      return { success: true };
     }),
 
   publicGetById: publicProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       z.object({
-        courseId: z.string().min(1),
-        lessonId: z.string().min(1),
+        courseId: documentIdValidator(),
+        lessonId: documentIdValidator(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const course = await CourseModel.findOne({
-        courseId: input.courseId,
-        domain: ctx.domainData.domainObj._id,
+        _id: input.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
       });
+
       if (!course) {
-        throw new NotFoundException("Course", input.lessonId);
+        throw new NotFoundException("Course", input.courseId);
       }
+
       const lesson = await LessonModel.findOne({
+        _id: input.lessonId,
         courseId: input.courseId,
-        lessonId: input.lessonId,
-        domain: ctx.domainData.domainObj._id,
-      });
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      }).lean();
+
       if (!lesson) {
         throw new NotFoundException("Lesson", input.lessonId);
       }
+
+      // Check enrollment requirement
       if (lesson.requiresEnrollment) {
-        if (!ctx.session?.user) {
-          throw new AuthenticationException("You are not authenticated");
+        if (!ctx.user) {
+          throw new AuthenticationException();
         }
-        const membership = await MembershipModel.findOne({
-          userId: ctx.session.user.userId,
-          entityId: lesson.courseId,
-          entityType: "course",
-          domain: ctx.domainData.domainObj._id,
-          status: Constants.MembershipStatus.ACTIVE,
+
+        const enrollment = await EnrollmentModel.findOne({
+          userId: ctx.user._id,
+          courseId: lesson.courseId,
+          orgId: ctx.domainData.domainObj.orgId,
         });
-        if (
-          !membership &&
-          !checkPermission(ctx.session.user.permissions, [
-            permissions.manageCourse,
+
+        if (!enrollment || enrollment.status !== EnrollmentStatusEnum.ACTIVE) {
+          if (!checkPermission(ctx.user.permissions, [
+            UIConstants.permissions.manageCourse,
+            UIConstants.permissions.manageAnyCourse,
           ])
-        ) {
-          throw new AuthorizationException(
-            "You are not allowed to access this lesson",
-          );
+          ) {
+            throw new AuthorizationException();
+          }
         }
       }
-      const { nextLesson, prevLesson } = await getPrevNextCursor(
-        lesson.courseId,
-        ctx.domainData.domainObj._id,
-        lesson.lessonId,
+
+      // Find prev/next lessons in the course structure
+      let prevLesson: Pick<ILessonHydratedDocument, "_id" | "title"> | null = null;
+      let nextLesson: Pick<ILessonHydratedDocument, "_id" | "title"> | null = null;
+
+      // Get all lessons from all chapters in order
+      const allLessonIds: mongoose.Types.ObjectId[] = [];
+      course.chapters
+        .sort((a, b) => a.order - b.order)
+        .forEach((chapter) => {
+          allLessonIds.push(...chapter.lessonOrderIds);
+        });
+
+      const currentIndex = allLessonIds.findIndex((id) =>
+        id.equals(lesson._id),
       );
-      return {
-        lessonId: lesson.lessonId,
-        title: lesson.title,
-        type: lesson.type,
-        content: lesson.content,
-        media: lesson.media,
-        downloadable: lesson.downloadable,
-        requiresEnrollment: lesson.requiresEnrollment,
+
+      if (currentIndex > 0) {
+        const prevLessonDoc = await LessonModel.findOne({
+          _id: allLessonIds[currentIndex - 1],
+          published: true,
+        })
+          .select("_id title")
+          .lean();
+        if (prevLessonDoc) {
+          prevLesson = prevLessonDoc;
+        }
+      }
+
+      if (currentIndex < allLessonIds.length - 1) {
+        const nextLessonDoc = await LessonModel.findOne({
+          _id: allLessonIds[currentIndex + 1],
+          published: true,
+        })
+          .select("_id title")
+          .lean();
+        if (nextLessonDoc) {
+          nextLesson = nextLessonDoc;
+        }
+      }
+
+      return jsonify({
+        ...lesson,
         meta: {
-          nextLesson: nextLesson || null,
-          prevLesson: prevLesson || null,
+          nextLesson,
+          prevLesson,
         },
-      };
+      });
     }),
 });

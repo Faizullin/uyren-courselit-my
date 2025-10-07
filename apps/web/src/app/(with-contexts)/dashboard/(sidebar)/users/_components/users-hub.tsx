@@ -1,255 +1,209 @@
 "use client";
 
 import DashboardContent from "@/components/admin/dashboard-content";
+import HeaderTopbar from "@/components/admin/layout/header-topbar";
 import LoadingScreen from "@/components/admin/loading-screen";
 import { useProfile } from "@/components/contexts/profile-context";
-import {
-  TOAST_TITLE_ERROR
-} from "@/lib/ui/config/strings";
+import { DataTable } from "@/components/data-table/data-table";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { useDataTable } from "@/components/data-table/use-data-table";
 import { formattedLocaleDate } from "@/lib/ui/lib/utils";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
-import { Constants, UIConstants } from "@workspace/common-models";
-import { TableBody, useToast } from "@workspace/components-library";
+import { type ColumnDef } from "@tanstack/react-table";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
+import { Card, CardContent } from "@workspace/ui/components/card";
 import { Input } from "@workspace/ui/components/input";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import {
-  Table,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
+import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { checkPermission } from "@workspace/utils";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-const { permissions } = UIConstants;
 
 type UserItemType =
   GeneralRouterOutputs["userModule"]["user"]["list"]["items"][number];
+type QueryParams = Parameters<
+  typeof trpc.userModule.user.list.useQuery
+>[0];
 
 export default function UsersHub() {
   const { t } = useTranslation(["dashboard", "common"]);
   const breadcrumbs = [{ label: t("sidebar.users"), href: "#" }];
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, _] = useState(10);
-  const [users, setUsers] = useState<UserItemType[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [count, setCount] = useState(0);
-  const { toast } = useToast();
-
   const { profile } = useProfile();
 
-  // Use tRPC query instead of GraphQL
-  const {
-    data: usersData,
-    isLoading,
-    error,
-  } = trpc.userModule.user.list.useQuery({
-    pagination: {
-      skip: (page - 1) * rowsPerPage,
-      take: rowsPerPage,
-    },
-    search: {
-      q: searchQuery || undefined,
-    },
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [parsedData, setParsedData] = useState<Array<UserItemType>>([]);
+  const [parsedPagination, setParsedPagination] = useState({
+    pageCount: 1,
   });
 
-  // Update local state when tRPC data changes
-  useEffect(() => {
-    if (usersData) {
-      setUsers(usersData.items || []);
-      setCount(usersData.total || 0);
-      setLoading(false);
+  const getUserNamePreview = (user?: UserItemType) => {
+    if (!user?.firstName || !user?.lastName) return user?.email?.charAt(0) || "";
+    return (user.firstName.charAt(0) + user.lastName.charAt(0)).toUpperCase();
+  };
+
+  const columns: ColumnDef<UserItemType>[] = useMemo(() => {
+    return [
+      {
+        accessorKey: "username",
+        header: t("users.table.name"),
+        cell: ({ row }) => {
+          const user = row.original;
+          const username = user.username || user.email;
+          const fullName = user.fullName;
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar>
+                <AvatarImage
+                  src={
+                    user.avatar
+                      ? user.avatar.url
+                      : "/courselit_backdrop_square.webp"
+                  }
+                />
+                <AvatarFallback>
+                  {getUserNamePreview(user)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <Link href={`/dashboard/users/${user._id}`}>
+                  <span className="font-medium text-base">
+                    {fullName}
+                  </span>
+                </Link>
+                <div className="text-xs text-muted-foreground">
+                  {user.email}  
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "active",
+        header: t("users.table.status"),
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <Badge variant={user.active ? "default" : "secondary"}>
+              {user.active ? "Active" : "Restricted"}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: t("users.table.joined"),
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <div className="text-sm text-muted-foreground">
+              {user.createdAt ? formattedLocaleDate(user.createdAt) : ""}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "updatedAt",
+        header: t("users.table.last_active"),
+        cell: ({ row }) => {
+          const user = row.original;
+          return (
+            <div className="text-sm text-muted-foreground">
+              {user.updatedAt !== user.createdAt && user.updatedAt
+                ? formattedLocaleDate(user.updatedAt)
+                : ""}
+            </div>
+          );
+        },
+      },
+    ];
+  }, [t]);
+
+  const { table } = useDataTable({
+    columns,
+    data: parsedData,
+    pageCount: parsedPagination.pageCount,
+    enableGlobalFilter: false,
+  });
+
+  const tableState = table.getState();
+
+  const queryParams = useMemo(() => {
+    const parsed: QueryParams = {
+      pagination: {
+        skip: tableState.pagination.pageIndex * tableState.pagination.pageSize,
+        take: tableState.pagination.pageSize,
+      },
+    };
+
+    if (tableState.sorting[0]) {
+      parsed.orderBy = {
+        field: tableState.sorting[0].id,
+        direction: tableState.sorting[0].desc ? "desc" : "asc",
+      };
     }
-  }, [usersData]);
 
-  // Handle loading state
-  useEffect(() => {
-    setLoading(isLoading);
-  }, [isLoading]);
-
-  // Handle errors
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: TOAST_TITLE_ERROR,
-        description: error.message,
-        variant: "destructive",
-      });
+    if (debouncedSearchQuery) {
+      parsed.search = {
+        q: debouncedSearchQuery,
+      };
     }
-  }, [error, toast]);
 
-  // Handle search query changes
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-    setPage(1); // Reset to first page when searching
-  }, []);
+    return parsed;
+  }, [
+    tableState.sorting,
+    tableState.pagination,
+    debouncedSearchQuery,
+  ]);
 
-  const getUserNamePreview = useCallback((user?: UserItemType) => {
-    if (!user?.name) return "";
-    return (
-      user.name ? user.name.charAt(0) : user.email.charAt(0)
-    ).toUpperCase();
-  }, []);
+  const loadUsersQuery = trpc.userModule.user.list.useQuery(queryParams);
 
-  if (!checkPermission(profile.permissions!, [permissions.manageUsers])) {
+  useEffect(() => {
+    if (!loadUsersQuery.data) return;
+    const parsed = loadUsersQuery.data.items || [];
+    setParsedData(parsed);
+    setParsedPagination({
+      pageCount: Math.ceil(
+        (loadUsersQuery.data.total || 0) / loadUsersQuery.data.meta.take,
+      ),
+    });
+  }, [loadUsersQuery.data]);
+
+  if (!checkPermission(profile.permissions!, [UIConstants.permissions.manageUsers])) {
     return <LoadingScreen />;
   }
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-semibold mb-4">
-          {t("sidebar.users")}
-        </h1>
-      </div>
-      <div className="w-full mt-4 space-y-8">
-        <div className="mb-4">
-          <Input
-            placeholder={t("users.search_placeholder")}
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="text-muted-foreground font-medium">
-                {t("users.table.name")}
-              </TableHead>
-              <TableHead className="text-muted-foreground font-medium">
-                {t("users.table.status")}
-              </TableHead>
-              <TableHead className="text-muted-foreground font-medium">
-                {t("users.table.products")}
-              </TableHead>
-              <TableHead className="text-muted-foreground font-medium">
-                {t("users.table.communities")}
-              </TableHead>
-              <TableHead
-                align="right"
-                className="text-muted-foreground font-medium hidden lg:table-cell"
-              >
-                {t("users.table.joined")}
-              </TableHead>
-              <TableHead
-                align="right"
-                className="text-muted-foreground font-medium hidden lg:table-cell"
-              >
-                {t("users.table.last_active")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading
-              ? Array(5)
-                  .fill(0)
-                  .map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <div className="space-y-1.5">
-                            <Skeleton className="h-5 w-[200px]" />
-                            <Skeleton className="h-3.5 w-[150px]" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-6 w-20" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-8" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-8" />
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Skeleton className="h-4 w-[100px] ml-auto" />
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Skeleton className="h-4 w-[100px] ml-auto" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-              : users.map((user, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="py-2">
-                      <div className="flex items-center gap-2">
-                        <Avatar>
-                          <AvatarImage
-                            src={
-                              user.avatar
-                                ? user.avatar.url
-                                : "/courselit_backdrop_square.webp"
-                            }
-                          />
-                          <AvatarFallback>
-                            {getUserNamePreview(user)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <Link href={`/dashboard/users/${user.userId}`}>
-                            <span className="font-medium text-base">
-                              {user.name ? user.name : user.email}
-                            </span>
-                          </Link>
-                          <div className="text-xs text-muted-foreground">
-                            {user.email}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.active ? "default" : "secondary"}>
-                        {user.active ? "Active" : "Restricted"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {
-                        user.content.filter(
-                          (content: any) =>
-                            content.entityType.toLowerCase() ===
-                            Constants.MembershipEntityType.COURSE,
-                        ).length
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {
-                        user.content.filter(
-                          (content: any) =>
-                            content.entityType.toLowerCase() ===
-                            Constants.MembershipEntityType.COMMUNITY,
-                        ).length
-                      }
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {user.createdAt
-                        ? formattedLocaleDate(user.createdAt)
-                        : ""}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {user.updatedAt !== user.createdAt
-                        ? user.updatedAt
-                          ? formattedLocaleDate(user.updatedAt)
-                          : ""
-                        : ""}
-                    </TableCell>
-                  </TableRow>
-                ))}
-          </TableBody>
-        </Table>
+      <div className="flex flex-col gap-4">
+        <HeaderTopbar
+          header={{
+            title: t("sidebar.users"),
+          }}
+        />
+        <Card>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <Input
+                placeholder={t("table.search_placeholder")}
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="h-8 w-40 lg:w-56"
+              />
+              <DataTable table={table}>
+                <DataTableToolbar table={table} />
+              </DataTable>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardContent>
   );

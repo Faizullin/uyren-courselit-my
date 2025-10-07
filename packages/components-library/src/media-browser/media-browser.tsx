@@ -1,6 +1,5 @@
 "use client";
 
-import { Media } from "@workspace/common-models";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -23,10 +22,11 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import NiceModal, { NiceModalHocProps } from "../nice-modal";
 import MediaComponents from "./media-components";
+import { IAttachmentMedia } from "@workspace/common-logic";
 // Main MediaBrowser component (merged into MediaDialog)
 const MediaBrowserContent: React.FC<{
-  onSelect: (media: Media) => void;
-  onUpload?: (media: Media) => void;
+  onSelect: (media: IAttachmentMedia) => void;
+  onUpload?: (media: IAttachmentMedia) => void;
   onTotalChange?: (total: number) => void;
   type?: string;
   initialFileType?: string;
@@ -37,7 +37,7 @@ const MediaBrowserContent: React.FC<{
     initialFileType ?? "all",
   );
   const [currentPage, setCurrentPage] = useState(0);
-  const [media, setMedia] = useState<Media[]>([]);
+  const [media, setMedia] = useState<IAttachmentMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState(0);
@@ -171,7 +171,7 @@ const MediaBrowserContent: React.FC<{
 // Enhanced File Upload Component with better design
 const FileUploadTab: React.FC<{
   type?: string;
-  onUpload?: (media: Media) => void;
+  onUpload?: (media: IAttachmentMedia) => void;
   onComplete?: (media: Media) => void;
 }> = ({ type = "page", onUpload, onComplete }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -225,7 +225,7 @@ const FileUploadTab: React.FC<{
           }
         });
 
-        const uploadPromise = new Promise<Media>((resolve, reject) => {
+        const uploadPromise = new Promise<IAttachmentMedia>((resolve, reject) => {
           xhr.onload = () => {
             if (xhr.status === 200) {
               try {
@@ -409,7 +409,7 @@ const FileUploadTab: React.FC<{
 const MediaBrowserComponent = (
   props: {
     selectMode?: boolean;
-    selectedMedia?: Media | null;
+    selectedMedia?: IAttachmentMedia | null;
     initialFileType?: string;
   } & NiceModalHocProps,
 ) => {
@@ -417,10 +417,10 @@ const MediaBrowserComponent = (
   const { visible, hide, resolve } = NiceModal.useModal();
   const [activeTab, setActiveTab] = useState("browse");
   const [internalSelectedMedia, setInternalSelectedMedia] =
-    useState<Media | null>(selectedMedia || null);
+    useState<IAttachmentMedia | null>(selectedMedia || null);
   const [total, setTotal] = useState(0);
 
-  const handleMediaSelect = (media: Media) => {
+  const handleMediaSelect = (media: IAttachmentMedia) => {
     setInternalSelectedMedia(media);
   };
 
@@ -430,14 +430,14 @@ const MediaBrowserComponent = (
   };
 
   const handleSubmit = useCallback(
-    (media: Media) => {
+    (media: IAttachmentMedia) => {
       resolve({ reason: "submit", data: media });
       hide();
     },
     [hide],
   );
 
-  const handleUploadComplete = (media: Media) => {
+  const handleUploadComplete = (media: IAttachmentMedia) => {
     setActiveTab("browse");
     if (selectMode) {
       setInternalSelectedMedia(media);
@@ -530,5 +530,5 @@ const MediaBrowserComponent = (
 // Create the modal with proper typing
 export const MediaBrowserNiceDialog = NiceModal.create<
   React.ComponentProps<typeof MediaBrowserComponent> & NiceModalHocProps,
-  { reason: "cancel"; data: null } | { reason: "submit"; data: Media }
+  { reason: "cancel"; data: null } | { reason: "submit"; data: IAttachmentMedia }
 >(MediaBrowserComponent);
