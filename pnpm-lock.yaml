@@ -343,9 +343,6 @@ importers:
       '@workspace/common-models':
         specifier: workspace:*
         version: link:../common-models
-      '@workspace/text-editor':
-        specifier: workspace:*
-        version: link:../text-editor
       ai:
         specifier: ^5.0.10
         version: 5.0.28(zod@3.25.76)
