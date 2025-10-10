@@ -73,7 +73,6 @@ export const AssignmentLinkNodeExtension = Node.create({
     const { label, obj, link } = HTMLAttributes;
     const safeObj =
       obj && typeof obj === "object" ? JSON.stringify(obj) : "null";
-    console.log("safeObj", obj, safeObj);
 
     return [
       "assignment-link",

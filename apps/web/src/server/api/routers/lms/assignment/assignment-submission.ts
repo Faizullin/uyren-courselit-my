@@ -13,8 +13,9 @@ import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { AssignmentSubmissionModel, AssignmentSubmissionStatusEnum, IAssignmentHydratedDocument } from "@workspace/common-logic/models/lms/assignment";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+import { AssignmentSubmissionModel, IAssignmentHydratedDocument } from "@workspace/common-logic/models/lms/assignment.model";
+import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -143,7 +144,7 @@ export const assignmentSubmissionRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          assignment: Pick<IAssignmentHydratedDocument, "title" | "totalPoints" | "instructions">;
+          assignment: Pick<IAssignmentHydratedDocument, "_id" | "title" | "totalPoints" | "instructions">;
         }>("assignment", "title totalPoints instructions")
         .populate<{
           student: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;

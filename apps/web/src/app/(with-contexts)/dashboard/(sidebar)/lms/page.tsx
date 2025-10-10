@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next";
-import DashboardContent from "@/components/admin/dashboard-content";
+import DashboardContent from "@/components/dashboard/dashboard-content";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,

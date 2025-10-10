@@ -1,8 +1,9 @@
 "use client";
 
 import { Metadata, ResolvingMetadata } from "next";
-import DashboardContent from "@/components/admin/dashboard-content";
-import HeaderTopbar from "@/components/admin/layout/header-topbar";
+import DashboardContent from "@/components/dashboard/dashboard-content";
+import { CreateButton } from "@/components/dashboard/layout/create-button";
+import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/components/data-table/use-data-table";
@@ -26,7 +27,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { Input } from "@workspace/ui/components/input";
 import { useDebounce } from "@workspace/ui/hooks/use-debounce";
-import { Archive, Edit, MoreHorizontal, Plus, Star, User } from "lucide-react";
+import { Archive, Edit, MoreHorizontal, Star, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ReviewFormDialog } from "./_components/review-form-dialog";
@@ -64,7 +65,7 @@ export default function Page() {
           "Are you sure you want to delete this review? This action cannot be undone.",
         )
       ) {
-        deleteMutation.mutate({ reviewId: review.reviewId });
+        deleteMutation.mutate({ id: review._id });
       }
     },
     [deleteMutation],
@@ -82,7 +83,7 @@ export default function Page() {
   const handleEditReview = useCallback(async (review: ItemType) => {
     const result = await NiceModal.show(ReviewFormDialog, {
       mode: "edit",
-      reviewId: review.reviewId,
+      id: review._id,
     });
     if (result.reason === "submit") {
       loadListQuery.refetch();
@@ -358,13 +359,10 @@ export default function Page() {
             subtitle: t("lms.modules.reviews.description"),
           }}
           rightAction={
-            <Button
+            <CreateButton
               onClick={handleCreateReview}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Review
-            </Button>
+              text="Add Review"
+            />
           }
         />
         <Card>

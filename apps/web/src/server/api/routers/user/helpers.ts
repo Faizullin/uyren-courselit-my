@@ -1,38 +1,25 @@
-import constants from "@/config/constants";
 import { checkForInvalidPermissions } from "@/lib/check-invalid-permissions";
 import { recordActivity } from "@/lib/models/record-activity";
-// import { triggerSequences } from "@/lib/models/trigger-sequences";
-import DomainModel, { Domain } from "@/models/Domain";
-import UserModel from "@/models/User";
-import { UIConstants } from "@workspace/common-models";
-import { checkPermission } from "@workspace/utils";
-import {
-  AuthorizationException,
-  NotFoundException,
-} from "../../core/exceptions";
-import { MainContextType } from "../../core/procedures";
-
-const { permissions } = UIConstants;
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
+import { IOrganizationHydratedDocument } from "@workspace/common-logic/models/organization.model";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 
 export async function createUser({
-  domain,
-  name,
+  organization,
+  fullName,
   email,
-  lead,
+  avatar,
   superAdmin = false,
   subscribedToUpdates = true,
   invited,
   permissions = [],
   providerData,
 }: {
-  domain: Domain;
-  name?: string;
+  organization: IOrganizationHydratedDocument;
+  fullName?: string;
   email: string;
-  lead?:
-  | typeof constants.leadWebsite
-  | typeof constants.leadNewsletter
-  | typeof constants.leadApi
-  | typeof constants.leadDownload;
+  avatar?: IAttachmentMedia;
   superAdmin?: boolean;
   subscribedToUpdates?: boolean;
   invited?: boolean;
@@ -48,31 +35,31 @@ export async function createUser({
   }
 
   const rawResult = await UserModel.findOneAndUpdate(
-    { domain: domain._id, email },
+    { orgId: organization._id, email },
     {
       $setOnInsert: {
-        domain: domain._id,
-        name,
+        orgId: organization._id,
+        fullName,
         email: email.toLowerCase(),
         active: true,
-        purchases: [],
+        avatar,
         permissions: superAdmin
           ? [
-            constants.permissions.manageCourse,
-            constants.permissions.manageAnyCourse,
-            constants.permissions.publishCourse,
-            constants.permissions.manageMedia,
-            constants.permissions.manageSite,
-            constants.permissions.manageSettings,
-            constants.permissions.manageUsers,
-            constants.permissions.manageCommunity,
+            UIConstants.permissions.manageCourse,
+            UIConstants.permissions.manageAnyCourse,
+            UIConstants.permissions.publishCourse,
+            UIConstants.permissions.manageMedia,
+            UIConstants.permissions.manageSite,
+            UIConstants.permissions.manageSettings,
+            UIConstants.permissions.manageUsers,
+            UIConstants.permissions.manageCommunity,
           ]
           : [
-            constants.permissions.enrollInCourse,
-            constants.permissions.manageMedia,
+            UIConstants.permissions.enrollInCourse,
+            UIConstants.permissions.manageMedia,
             ...permissions,
           ],
-        lead: lead || constants.leadWebsite,
+        roles: superAdmin ? [UIConstants.roles.admin] : [],
         subscribedToUpdates,
         invited,
         providerData,
@@ -90,42 +77,21 @@ export async function createUser({
     // }
 
     await recordActivity({
-      domain: domain._id,
-      userId: createdUser.userId,
+      orgId: organization._id,
+      userId: createdUser._id,
       type: "user_created",
+      message: `User ${createdUser.username} created`,
     });
 
     if (createdUser.subscribedToUpdates) {
-      // await triggerSequences({
-      //   user: createdUser,
-      //   event: Constants.EventType.SUBSCRIBER_ADDED,
-      // });
-
       await recordActivity({
-        domain: domain!._id,
-        userId: createdUser.userId,
+        orgId: organization._id,
+        userId: createdUser._id,
         type: "newsletter_subscribed",
+        message: `User ${createdUser.username} subscribed to updates`,
       });
     }
   }
 
   return createdUser;
 }
-
-export const addTags = async (tags: string[], ctx: MainContextType) => {
-  const domainObj = await DomainModel.findById(ctx.domainData.domainObj._id);
-  if (!domainObj) {
-    throw new NotFoundException("Domain not found");
-  }
-  if (!checkPermission(ctx.user.permissions, [permissions.manageUsers])) {
-    throw new AuthorizationException();
-  }
-  for (let tag of tags) {
-    if (!domainObj.tags.includes(tag)) {
-      domainObj.tags.push(tag);
-    }
-  }
-  await domainObj.save();
-
-  return domainObj.tags;
-};

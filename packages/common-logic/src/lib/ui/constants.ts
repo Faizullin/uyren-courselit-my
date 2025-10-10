@@ -13,7 +13,7 @@ const permissions = {
 export const roles = {
     admin: "admin",
     instructor: "instructor",
-    user: "user",
+    student: "student",
 };
 
 export const UIConstants = {

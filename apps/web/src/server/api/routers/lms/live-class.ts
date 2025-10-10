@@ -18,14 +18,13 @@ import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   ILiveClassHydratedDocument,
   LiveClassModel,
-  LiveClassStatusEnum,
-  LiveClassTypeEnum,
-} from "@workspace/common-logic/models/lms/live-class";
+} from "@workspace/common-logic/models/lms/live-class.model";
+import { LiveClassStatusEnum, LiveClassTypeEnum } from "@workspace/common-logic/models/lms/live-class.types";
 import {
   LiveClassParticipantModel,
-  ParticipantStatusEnum,
-} from "@workspace/common-logic/models/lms/live-class-participant";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/lms/live-class-participant.model";
+import { ParticipantStatusEnum } from "@workspace/common-logic/models/lms/live-class-participant.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";

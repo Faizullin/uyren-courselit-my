@@ -17,7 +17,7 @@ import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   DomainModel,
   ISiteInfo,
-} from "@workspace/common-logic/models/organization";
+} from "@workspace/common-logic/models/organization.model";
 import { checkPermission } from "@workspace/utils";
 import { z } from "zod";
 

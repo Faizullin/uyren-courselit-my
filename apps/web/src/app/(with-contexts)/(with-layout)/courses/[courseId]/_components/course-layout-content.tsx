@@ -3,8 +3,7 @@
 import { useParams, usePathname } from "next/navigation";
 import CourseLessonsSidebar from "../../_components/course-lessons-sidebar";
 import { useProfile } from "@/components/contexts/profile-context";
-import { trpc } from "@/utils/trpc";
-import { Constants } from "@workspace/common-models";
+import { trpc } from "@/utils/trpc";  
 
 interface CourseLayoutContentProps {
   courseData: any;

@@ -16,7 +16,18 @@
     "code_injection": "Code injection",
     "api_keys": "API Keys",
     "website_settings": "Website Settings",
-    "schools": "Schools"
+    "schools": "Schools",
+    "instructor_dashboard": "Instructor Dashboard",
+    "student_dashboard": "Student",
+    "my_courses": "My Courses",
+    "my_assignments": "My Assignments",
+    "my_schedule": "My Schedule",
+    "my_grades": "My Grades",
+    "admin": "Admin",
+    "database": "Database",
+    "redis": "Redis",
+    "notifications": "Notifications",
+    "profile": "Profile"
   },
   "overview": {
     "title": "Welcome",
@@ -36,6 +47,14 @@
     "title": "Learning Management System",
     "subtitle": "Manage your educational content, assessments, and student progress",
     "modules": {
+      "courses": {
+        "title": "Courses",
+        "description": "Create and manage your courses"
+      },
+      "cohorts": {
+        "title": "Cohorts",
+        "description": "Organize students into groups and cohorts"
+      },
       "quizzes": {
         "title": "Quizzes",
         "description": "Create and manage interactive quizzes to test student knowledge"
@@ -47,6 +66,14 @@
       "assignments": {
         "title": "Assignments",
         "description": "Track student progress with structured assignments and submissions"
+      },
+      "live_classes": {
+        "title": "Live Classes",
+        "description": "Schedule and manage live virtual classes"
+      },
+      "schedule": {
+        "title": "Schedule",
+        "description": "View and manage class schedules"
       },
       "themes": {
         "title": "Themes",

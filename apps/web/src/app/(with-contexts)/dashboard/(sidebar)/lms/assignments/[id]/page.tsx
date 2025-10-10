@@ -1,7 +1,7 @@
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { AssignmentModel } from "@workspace/common-logic/models/lms/assignment.model";
 import { Metadata, ResolvingMetadata } from "next";
-import { AssignmentModel } from "@/models/lms";
-import { connectToDatabase } from "@workspace/common-logic";
-import AssignmentClientWrapper from "./_components/assignment-client-wrapper";
+import AssignmentClientWrapper from "../_components/assignment-client-wrapper";
 
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> },
@@ -24,10 +24,10 @@ async function getAssignmentData(id: string) {
     const assignment = await AssignmentModel.findById(id).lean();
     return assignment
       ? JSON.parse(
-          JSON.stringify({
-            ...assignment,
-          }),
-        )
+        JSON.stringify({
+          ...assignment,
+        }),
+      )
       : null;
   } catch (error) {
     console.error("Error fetching assignment:", error);

@@ -11,7 +11,6 @@ import MediaModel from "@/models/Media";
 import MembershipModel from "@/models/Membership";
 import UserModel from "@/models/User";
 import { ListInputSchema } from "@/server/api/core/schema";
-import { connectToDatabase } from "@workspace/common-logic";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -22,7 +21,6 @@ const MODEL_REGISTRY = {
     quizzes: QuizModel,
     media: MediaModel,
     assignments: AssignmentModel,
-    communities: CommunityModel,
     lessons: LessonModel,
     domains: DomainModel,
     activities: ActivityModel,
@@ -102,7 +100,6 @@ function getSearchFields(model: string): string[] {
         quizzes: ["title", "description"],
         media: ["originalFileName", "caption"],
         assignments: ["title", "description"],
-        communities: ["name", "description"],
         lessons: ["title", "description"],
         domains: ["name"],
         activities: ["type"],

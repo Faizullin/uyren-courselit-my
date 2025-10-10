@@ -12,7 +12,7 @@ import Typography from "@tiptap/extension-typography";
 import Underline from "@tiptap/extension-underline";
 import { AnyExtension, Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { ITextEditorContent } from "@workspace/common-logic";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMemo } from "react";
 import { TipTapFloatingMenu } from "../extensions/floating-menu";

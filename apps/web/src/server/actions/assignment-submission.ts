@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth/options";
 import { getDomainData } from "@/server/lib/domain";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
-import { AssignmentModel, AssignmentPeerReviewModel, AssignmentSubmissionModel, AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment";
-import { UserModel } from "@workspace/common-logic/models/user";
+import { AssignmentModel, AssignmentPeerReviewModel, AssignmentSubmissionModel } from "@workspace/common-logic/models/lms/assignment.model";
+import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
 import { AuthenticationException, NotFoundException } from "../api/core/exceptions";
@@ -23,7 +24,7 @@ async function getActionContext(): Promise<MainContextType> {
     throw new AuthenticationException("User not authenticated");
   }
 
-  const user = await UserModel.findById(session.user.userId);
+  const user = await UserModel.findById(session.user.id);
   if (!user) {
     throw new AuthenticationException("User not found");
   }
@@ -36,8 +37,11 @@ async function getActionContext(): Promise<MainContextType> {
   return {
     user: user,
     session: session,
-    domainData,
-  };
+    domainData: {
+      ...domainData,
+      domainObj: domainData.domainObj!
+    },
+  } as MainContextType;
 }
 
 const validateAssignment = async (assignmentId: string, ctx: MainContextType) => {

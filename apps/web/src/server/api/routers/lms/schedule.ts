@@ -14,19 +14,17 @@ import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { ICohortHydratedDocument } from "@workspace/common-logic/models/lms/cohort";
+import { ICohortHydratedDocument } from "@workspace/common-logic/models/lms/cohort.model";
 import {
   EnrollmentModel,
-  EnrollmentStatusEnum,
-} from "@workspace/common-logic/models/lms/enrollment";
+} from "@workspace/common-logic/models/lms/enrollment.model";
+import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
 import {
   IScheduleEventHydratedDocument,
-  RecurrenceTypeEnum,
   ScheduleEventModel,
-  ScheduleStatusEnum,
-  ScheduleTypeEnum,
-} from "@workspace/common-logic/models/lms/schedule";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/lms/schedule.model";
+import { RecurrenceTypeEnum, ScheduleStatusEnum, ScheduleTypeEnum } from "@workspace/common-logic/models/lms/schedule.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -240,10 +238,10 @@ export const scheduleRouter = router({
         },
         location: input.data.locationName
           ? {
-              name: input.data.locationName,
-              online: input.data.locationOnline,
-              meetingUrl: input.data.locationMeetingUrl,
-            }
+            name: input.data.locationName,
+            online: input.data.locationOnline,
+            meetingUrl: input.data.locationMeetingUrl,
+          }
           : undefined,
         instructorId: input.data.instructorId,
         cohortId: input.data.cohortId,

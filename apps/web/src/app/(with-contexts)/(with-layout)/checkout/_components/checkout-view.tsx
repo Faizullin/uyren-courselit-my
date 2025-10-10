@@ -4,7 +4,6 @@ import { useSiteInfo } from "@/components/contexts/site-info-context";
 import { trpc } from "@/utils/trpc";
 import { loadStripe } from "@stripe/stripe-js";
 import { useMutation } from "@tanstack/react-query";
-import { Constants } from "@workspace/common-models";
 import { useToast } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -69,9 +68,9 @@ export default function CheckoutView() {
     data: course,
     isLoading: isCourseLoading,
     error: courseError,
-  } = trpc.lmsModule.courseModule.course.publicGetByCourseId.useQuery(
-    { courseId: courseId! },
-    { enabled: !!courseId && courseType === "course" },
+  } = trpc.lmsModule.courseModule.course.publicGetById.useQuery(
+    { id: courseId! },
+    { enabled: !!courseId   },
   );
 
   // Fetch current user's membership status for this course
@@ -633,11 +632,10 @@ export default function CheckoutView() {
                 return (
                   <Card
                     key={plan.planId}
-                    className={`cursor-pointer transition-all duration-300 bg-card border border-transparent hover:border-brand-primary/20 hover:bg-card/80 hover:shadow-xl ${
-                      selectedPlan === plan.planId
+                    className={`cursor-pointer transition-all duration-300 bg-card border border-transparent hover:border-brand-primary/20 hover:bg-card/80 hover:shadow-xl ${selectedPlan === plan.planId
                         ? "ring-2 ring-brand-primary shadow-lg border-brand-primary/20"
                         : ""
-                    } ${plan.popular ? "border-brand-primary/40" : ""}`}
+                      } ${plan.popular ? "border-brand-primary/40" : ""}`}
                     onClick={() => handlePlanSelect(plan.planId)}
                   >
                     <CardHeader className="text-center pb-4">
@@ -652,9 +650,9 @@ export default function CheckoutView() {
                           {priceInfo.isFree
                             ? t("checkout_free")
                             : formatCurrency(
-                                priceInfo.amount,
-                                siteInfo.currencyISOCode,
-                              )}
+                              priceInfo.amount,
+                              siteInfo.currencyISOCode,
+                            )}
                         </span>
                         {priceInfo.period && (
                           <span className="text-sm text-muted-foreground">
@@ -763,9 +761,9 @@ export default function CheckoutView() {
                           {getPlanPrice(selectedPlanData).isFree
                             ? t("checkout_free")
                             : formatCurrency(
-                                getPlanPrice(selectedPlanData).amount,
-                                siteInfo.currencyISOCode,
-                              )}
+                              getPlanPrice(selectedPlanData).amount,
+                              siteInfo.currencyISOCode,
+                            )}
                         </span>
                       </div>
                     </div>
@@ -785,9 +783,9 @@ export default function CheckoutView() {
                           {getPlanPrice(selectedPlanData).isFree
                             ? t("checkout_free")
                             : formatCurrency(
-                                getPlanPrice(selectedPlanData).amount,
-                                siteInfo.currencyISOCode,
-                              )}
+                              getPlanPrice(selectedPlanData).amount,
+                              siteInfo.currencyISOCode,
+                            )}
                         </span>
                       </div>
                     </div>
@@ -814,7 +812,7 @@ export default function CheckoutView() {
                           </>
                         ) : !canProceedWithCheckout ? (
                           membershipStatus ===
-                          Constants.MembershipStatus.ACTIVE ? (
+                            Constants.MembershipStatus.ACTIVE ? (
                             "Already Enrolled"
                           ) : (
                             "Payment Pending"

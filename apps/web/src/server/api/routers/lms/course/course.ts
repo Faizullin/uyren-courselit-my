@@ -25,25 +25,23 @@ import { deleteMedia } from "@/server/services/media";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
-  CourseLevelEnum,
   CourseModel,
-  CourseStatusEnum,
-  ICourseChapter,
   ICourseHydratedDocument,
-} from "@workspace/common-logic/models/lms/course";
-import { LessonModel } from "@workspace/common-logic/models/lms/lesson";
-import { IPaymentPlanHydratedDocument } from "@workspace/common-logic/models/payment/payment-plan";
-import { ITagHydratedDocument } from "@workspace/common-logic/models/post/tag";
-import { IThemeHydratedDocument } from "@workspace/common-logic/models/theme";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/lms/course.model";
+import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
+import { IPaymentPlanHydratedDocument } from "@workspace/common-logic/models/payment/payment-plan.model";
+import { ITagHydratedDocument } from "@workspace/common-logic/models/post/tag.model";
+import { IThemeHydratedDocument } from "@workspace/common-logic/models/theme.model";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission, slugify } from "@workspace/utils";
-import mongoose, { FilterQuery } from "mongoose";
+import mongoose, { FilterQuery, RootFilterQuery } from "mongoose";
 import { z } from "zod";
 import {
   deleteAllLessons,
   getCourseOrThrow,
   syncCourseLessons
 } from "./helpers";
+import { CourseLevelEnum, CourseStatusEnum, ICourseChapter } from "@workspace/common-logic/models/lms/course.types";
 
 // TODO: Add chapter reordering (like Frappe LMS update_chapter_index)
 // TODO: Add SCORM package support (like Frappe LMS upsert_chapter with is_scorm_package)
@@ -153,9 +151,13 @@ export const courseRouter = router({
         UIConstants.permissions.manageAnyCourse,
       ]),
     )
-    .input(
-      ListInputSchema,
-    )
+    .input(ListInputSchema.extend({
+      filter: z.object({
+        published: z.boolean().optional(),
+        level: z.nativeEnum(CourseLevelEnum).optional(),
+        status: z.nativeEnum(CourseStatusEnum).optional(),
+      }).optional(),
+    }))
     .query(async ({ ctx, input }) => {
       const query: FilterQuery<ICourseHydratedDocument> = {
         orgId: ctx.domainData.domainObj.orgId
@@ -167,6 +169,10 @@ export const courseRouter = router({
       ) {
         query.ownerId = ctx.user._id;
       }
+      if (input.filter?.published) query.published = input.filter.published;
+      if (input.filter?.level) query.level = input.filter.level;
+      if (input.filter?.status) query.status = input.filter.status;
+      if (input.filter?.published) query.published = input.filter.published;
       if (input.search?.q) query.$text = { $search: input.search.q };
       const paginationMeta = paginate(input.pagination);
       const orderBy = input.orderBy || {
@@ -229,9 +235,6 @@ export const courseRouter = router({
       if (!course) {
         throw new NotFoundException("Course", input.id);
       }
-      if (!course.published) {
-        throw new NotFoundException("Course", input.id);
-      }
       return jsonify(course);
     }),
 
@@ -241,7 +244,9 @@ export const courseRouter = router({
     .input(
       getFormDataSchema({
         title: z.string().min(1).max(255),
+        courseCode: z.string().min(1).max(50),
         level: z.nativeEnum(CourseLevelEnum).optional(),
+        language: z.string().default("en"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -249,9 +254,19 @@ export const courseRouter = router({
       const course = await CourseModel.create({
         orgId: ctx.domainData.domainObj.orgId,
         title: title,
+        courseCode: input.data.courseCode,
         level: input.data.level,
+        language: input.data.language,
         slug: slugify(title.toLowerCase()),
         ownerId: ctx.user._id,
+        durationInWeeks: 0,
+        published: false,
+        featured: false,
+        upcoming: false,
+        allowEnrollment: false,
+        allowSelfEnrollment: false,
+        paidCourse: false,
+        status: CourseStatusEnum.IN_PROGRESS,
       });
       const updatedCourse = await addChapter({
         course,
@@ -402,6 +417,53 @@ export const courseRouter = router({
         ctx,
       });
       return jsonify(updatedCourse.toObject());
+    }),
+
+  publicList: publicProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(ListInputSchema.extend({
+      filter: z.object({
+        level: z.nativeEnum(CourseLevelEnum).optional(),
+        status: z.nativeEnum(CourseStatusEnum).optional(),
+        language: z.string().optional(),
+      }).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const query: RootFilterQuery<typeof CourseModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
+      };
+      if (input.filter?.level) query.level = input.filter.level;
+      if (input.filter?.status) query.status = input.filter.status;
+      if (input.filter?.language) query.language = input.filter.language;
+      const paginationMeta = paginate(input.pagination);
+      const orderBy = input.orderBy || {
+        field: "createdAt",
+        direction: "desc",
+      };
+      const sortObject: Record<string, 1 | -1> = {
+        [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
+      };
+      const [items, total] = await Promise.all([
+        CourseModel.find(query)
+          .populate<{
+            owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          }>("owner", "username firstName lastName fullName email")
+          .populate<{
+            tags: Pick<ITagHydratedDocument, "name">[];
+          }>("tags", "name")
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
+          .sort(sortObject)
+          .lean(),
+        paginationMeta.includePaginationCount
+          ? CourseModel.countDocuments(query)
+          : Promise.resolve(null),
+      ]);
+      return jsonify({
+        items,
+        total,
+        meta: paginationMeta,
+      });
     }),
 
   publicGetById: publicProcedure

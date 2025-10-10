@@ -10,13 +10,13 @@ import { documentIdValidator } from "@/server/api/core/validators";
 import { NotFoundException, AuthorizationException } from "@/server/api/core/exceptions";
 import {
   ChatMessageModel,
-  ChatMessageTypeEnum,
-  ChatMessageStatusEnum,
-} from "@workspace/common-logic/models/chats/chat-message";
-import { ChatRoomModel } from "@workspace/common-logic/models/chats/chat-room";
-import { ChatParticipantModel, ChatParticipantStatusEnum } from "@workspace/common-logic/models/chats/chat-participant";
+} from "@workspace/common-logic/models/chats/chat-message.model";
+import { ChatRoomModel } from "@workspace/common-logic/models/chats/chat-room.model";
+import { ChatParticipantModel } from "@workspace/common-logic/models/chats/chat-participant.model";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { RootFilterQuery } from "mongoose";
+import { ChatMessageStatusEnum, ChatMessageTypeEnum } from "@workspace/common-logic/models/chats/chat-message.types";
+import { ChatParticipantStatusEnum } from "@workspace/common-logic/models/chats/chat-participant.types";
 
 const CreateMessageSchema = getFormDataSchema({
   roomId: documentIdValidator(),

@@ -1,30 +1,18 @@
-import constants from "@/config/constants";
-import { responses } from "@/config/strings";
 import { authOptions } from "@/lib/auth/options";
 import { getDomainData } from "@/server/lib/domain";
 import { Log } from "@/lib/logger";
-import DomainModel from "@/models/Domain";
-import InvoiceModel from "@/models/Invoice";
-import MembershipModel from "@/models/Membership";
-import { getMembership } from "@/server/api/routers/user/user";
 import { getPaymentMethodFromSettings } from "@/server/services/payment";
-import {
-  Community,
-  Constants,
-  Course,
-  MembershipEntityType
-} from "@workspace/common-models";
 import { generateUniqueId } from "@workspace/utils";
 import { getServerSession } from "next-auth";
 import { NextRequest } from "next/server";
 import { activateMembership, getEntity, getPaymentPlan, getUser } from "../helpers";
+import { DomainModel } from "@workspace/common-logic/models/organization.model";
+import { PaymentPlanTypeEnum } from "@workspace/common-logic/models/payment/payment-plan.types";
 
-const { transactionSuccess, transactionFailed, transactionInitiated } =
-  constants;
-
+  
 export interface PaymentInitiateRequest {
   id: string;
-  type: MembershipEntityType;
+  type: MembershipEntityTypeEnum;
   planId: string;
   origin: string;
   joiningReason?: string;
@@ -59,7 +47,7 @@ export async function POST(req: NextRequest) {
     const entity = await getEntity(type, id, domain._id);
     if (!entity) {
       return Response.json(
-        { message: responses.item_not_found },
+        { message: "Item not found" },
         { status: 404 },
       );
     }
@@ -79,14 +67,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const siteinfo = domain.settings;
+    const siteinfo = domain.siteInfo;
     const paymentMethod = await getPaymentMethodFromSettings(siteinfo);
 
-    if (!paymentMethod && paymentPlan.type !== Constants.PaymentPlanType.FREE) {
+    if (!paymentMethod && paymentPlan.type !== PaymentPlanTypeEnum.FREE) {
       return Response.json(
         {
-          status: transactionFailed,
-          error: responses.payment_invalid_settings,
+          status: "failed",
+          error: "Payment invalid settings",
         },
         { status: 500 },
       );
@@ -101,7 +89,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Check for existing membership status and prevent multiple payments
-    if (membership.status === Constants.MembershipStatus.REJECTED) {
+    if (membership.status === MembershipStatusEnum.REJECTED) {
       return Response.json({
         status: transactionFailed,
         error:

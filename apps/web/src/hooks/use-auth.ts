@@ -76,11 +76,6 @@ export const useFirebaseAuth = () => {
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    onSuccess: (data, variables) => {
-      if (data.success) {
-        console.log(`${variables.provider} authentication successful`);
-      }
-    },
     onError: (error, variables) => {
       console.error(`${variables.provider} authentication failed:`, error);
       // You can add toast notifications here if needed

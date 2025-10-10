@@ -1,7 +1,7 @@
 import {
   IQuizQuestion,
   QuestionTypeEnum,
-} from "@workspace/common-logic/models/lms/quiz";
+} from "@workspace/common-logic/models/lms/quiz.types";
 import { QuestionAnswer } from "./BaseQuestionProvider";
 import { MultipleChoiceProvider } from "./MultipleChoiceProvider";
 import { ShortAnswerProvider } from "./ShortAnswerProvider";

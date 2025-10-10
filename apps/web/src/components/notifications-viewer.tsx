@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { getGlobalAppClient } from "@/lib/global-client";
 import { trpc } from "@/utils/trpc";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -29,7 +30,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useProfile } from "./contexts/profile-context";
 import { useServerConfig } from "./contexts/server-config-context";
-import { getGlobalAppClient } from "@/lib/global-client";
 
 function useEventSourceWithRetry({
   url,
@@ -110,20 +110,22 @@ export function NotificationsViewer() {
     data: notificationsData,
     isLoading: notificationsLoading,
     refetch: refetchNotifications,
-  } = trpc.userModule.notification.protectedGetMyNotifications.useQuery({
-    page: currentPage,
-    limit: ITEMS_PER_PAGE,
+  } = trpc.userModule.notification.list.useQuery({
+    pagination: {
+      skip: (currentPage - 1) * ITEMS_PER_PAGE,
+      take: ITEMS_PER_PAGE,
+    },
   });
 
   const { data: unreadCountData, refetch: refetchUnreadCount } =
-    trpc.userModule.notification.protectedGetUnreadCount.useQuery();
+    trpc.userModule.notification.getUnreadCount.useQuery();
 
   const markAsReadMutation =
-    trpc.userModule.notification.protectedMarkAsRead.useMutation();
+    trpc.userModule.notification.markAsRead.useMutation();
   const markAllAsReadMutation =
-    trpc.userModule.notification.protectedMarkAllAsRead.useMutation();
+    trpc.userModule.notification.markAllAsRead.useMutation();
 
-  const notifications = notificationsData?.notifications || [];
+  const notifications = notificationsData?.items || [];
   const total = notificationsData?.total || 0;
   const unreadCount = unreadCountData?.count || 0;
 
@@ -137,8 +139,8 @@ export function NotificationsViewer() {
   const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
   const sseUrl =
-    profile?.userId && config.queueServer
-      ? `${config.queueServer}/sse/${profile.userId}`
+    profile?.id && config.queueServer
+      ? `${config.queueServer}/sse/${profile.id}`
       : null;
 
   useEventSourceWithRetry({
@@ -168,7 +170,7 @@ export function NotificationsViewer() {
 
   const markReadAndNavigate = async (notificationId: string, href: string) => {
     try {
-      await markAsReadMutation.mutateAsync({ notificationId });
+      await markAsReadMutation.mutateAsync({ id: notificationId });
       refetchNotifications();
       refetchUnreadCount();
       router.push(href);
@@ -228,10 +230,10 @@ export function NotificationsViewer() {
             ) : (
               notifications.map((notification) => (
                 <div
-                  key={notification.notificationId}
+                  key={notification._id}
                   onClick={() =>
                     markReadAndNavigate(
-                      notification.notificationId,
+                      notification._id,
                       notification.href,
                     )
                   }

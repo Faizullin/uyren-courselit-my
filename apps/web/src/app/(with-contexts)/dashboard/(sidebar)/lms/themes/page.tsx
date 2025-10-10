@@ -1,15 +1,15 @@
 "use client";
 
-import { Metadata, ResolvingMetadata } from "next";
-import DashboardContent from "@/components/admin/dashboard-content";
-import { CreateButton } from "@/components/admin/layout/create-button";
-import HeaderTopbar from "@/components/admin/layout/header-topbar";
+import DashboardContent from "@/components/dashboard/dashboard-content";
+import { CreateButton } from "@/components/dashboard/layout/create-button";
+import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/components/data-table/use-data-table";
+import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { type ColumnDef } from "@tanstack/react-table";
-import { useDebounce } from "@workspace/ui/hooks/use-debounce";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -20,12 +20,11 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { Input } from "@workspace/ui/components/input";
-import { Edit, Eye, Palette, MoreHorizontal, Trash2 } from "lucide-react";
+import { useDebounce } from "@workspace/ui/hooks/use-debounce";
+import { Edit, MoreHorizontal, Palette, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BASIC_PUBLICATION_STATUS_TYPE, BasicPublicationStatus } from "@workspace/common-models";
-import { GeneralRouterOutputs } from "@/server/api/types";
 
 const breadcrumbs = [
   { label: "LMS", href: "#" },
@@ -56,7 +55,9 @@ export default function Page() {
   const handleDelete = useCallback(
     (theme: ItemType) => {
       if (confirm("Are you sure you want to delete this theme?")) {
-        deleteMutation.mutate(`${theme._id}`);
+        deleteMutation.mutate({
+          id: theme._id,
+        });
       }
     },
     [deleteMutation],
@@ -88,21 +89,21 @@ export default function Page() {
         accessorKey: "status",
         header: t("table.status"),
         cell: ({ row }) => {
-          const status = row.original.status;
+          const status = row.original.publicationStatus;
           return (
             <Badge
               variant={
-                status === BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED
+                status === PublicationStatusEnum.PUBLISHED
                   ? "default"
-                  : status === BASIC_PUBLICATION_STATUS_TYPE.DRAFT
+                  : status === PublicationStatusEnum.DRAFT
                     ? "secondary"
                     : "destructive"
               }
             >
               <div className="flex items-center gap-1">
-                {status === BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED
+                {status === PublicationStatusEnum.PUBLISHED
                   ? t("table.published")
-                  : status === BASIC_PUBLICATION_STATUS_TYPE.DRAFT
+                  : status === PublicationStatusEnum.DRAFT
                     ? t("table.draft")
                     : t("table.archived")}
               </div>
@@ -113,14 +114,14 @@ export default function Page() {
           label: t("table.status"),
           variant: "select",
           options: [
-            { label: t("table.draft"), value: BASIC_PUBLICATION_STATUS_TYPE.DRAFT },
+            { label: t("table.draft"), value: PublicationStatusEnum.DRAFT },
             {
               label: t("table.published"),
-              value: BASIC_PUBLICATION_STATUS_TYPE.PUBLISHED,
+              value: PublicationStatusEnum.PUBLISHED,
             },
             {
               label: t("table.archived"),
-              value: BASIC_PUBLICATION_STATUS_TYPE.ARCHIVED,
+              value: PublicationStatusEnum.ARCHIVED,
             },
           ],
         },
@@ -196,14 +197,14 @@ export default function Page() {
         take: tableState.pagination.pageSize,
       },
       filter: {
-        status: Array.isArray(
-          tableState.columnFilters.find((filter) => filter.id === "status")
+        publicationStatus: Array.isArray(
+          tableState.columnFilters.find((filter) => filter.id === "publicationStatus")
             ?.value,
         )
           ? (
-              tableState.columnFilters.find((filter) => filter.id === "status")
-                ?.value as BasicPublicationStatus[]
-            )[0]
+            tableState.columnFilters.find((filter) => filter.id === "publicationStatus")
+              ?.value as PublicationStatusEnum[]
+          )[0]
           : undefined,
       },
     };
@@ -236,7 +237,7 @@ export default function Page() {
     setParsedData(parsed);
     setParsedPagination({
       pageCount: Math.ceil(
-        loadListQuery.data.total / loadListQuery.data.meta.take,
+        (loadListQuery.data.total || 0) / loadListQuery.data.meta.take,
       ),
     });
   }, [loadListQuery.data]);

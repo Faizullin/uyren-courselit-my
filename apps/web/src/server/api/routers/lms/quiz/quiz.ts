@@ -14,9 +14,10 @@ import { documentIdValidator } from "@/server/api/core/validators";
 import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course";
-import { IQuizQuestion, IQuizQuestionHydratedDocument, QuestionTypeEnum, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+import { ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { IQuizQuestionHydratedDocument, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz.model";
+import { QuestionTypeEnum } from "@workspace/common-logic/models/lms/quiz.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -118,7 +119,7 @@ export const quizRouter = router({
           owner: Pick<IUserHydratedDocument, "username" | "fullName" | "email">;
         }>("owner", "username fullName email")
         .populate<{
-          course: Pick<ICourseHydratedDocument, "title">;
+          course: Pick<ICourseHydratedDocument, "_id" | "title">;
         }>("course", "title")
         .lean();
 

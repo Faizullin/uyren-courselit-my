@@ -14,17 +14,16 @@ import { documentIdValidator } from "@/server/api/core/validators";
 import { ApprovalStatusEnum } from "@workspace/common-logic/lib/approval_status";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { CohortJoinRequestModel } from "@workspace/common-logic/models/lms/cohort-join-request.model";
 import {
   CohortModel,
-  CohortStatusEnum,
-  ICohort,
-} from "@workspace/common-logic/models/lms/cohort";
-import { CohortJoinRequestModel } from "@workspace/common-logic/models/lms/cohort-join-request";
+} from "@workspace/common-logic/models/lms/cohort.model";
+import { CohortStatusEnum, ICohort } from "@workspace/common-logic/models/lms/cohort.types";
 import {
   EnrollmentModel,
-  EnrollmentStatusEnum,
-} from "@workspace/common-logic/models/lms/enrollment";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/lms/enrollment.model";
+import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 

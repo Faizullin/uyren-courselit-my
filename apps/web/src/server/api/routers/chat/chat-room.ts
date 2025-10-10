@@ -1,23 +1,21 @@
-import { z } from "zod";
-import { router } from "@/server/api/core/trpc";
+import { AuthorizationException, NotFoundException } from "@/server/api/core/exceptions";
 import {
   createDomainRequiredMiddleware,
-  createPermissionMiddleware,
-  protectedProcedure,
+  protectedProcedure
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
+import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
-import { NotFoundException, AuthorizationException } from "@/server/api/core/exceptions";
-import {
-  ChatRoomModel,
-  ChatRoomTypeEnum,
-  ChatRoomStatusEnum,
-} from "@workspace/common-logic/models/chats/chat-room";
-import { ChatParticipantModel } from "@workspace/common-logic/models/chats/chat-participant";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { ChatParticipantModel } from "@workspace/common-logic/models/chats/chat-participant.model";
+import {
+  ChatRoomModel,
+} from "@workspace/common-logic/models/chats/chat-room.model";
+import { ChatRoomStatusEnum, ChatRoomTypeEnum } from "@workspace/common-logic/models/chats/chat-room.types";
 import { RootFilterQuery } from "mongoose";
+import { z } from "zod";
 
 const CreateChatRoomSchema = getFormDataSchema({
   name: z.string().min(1).max(100),

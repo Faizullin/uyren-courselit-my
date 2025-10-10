@@ -10,7 +10,7 @@ import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
-import { NotificationModel } from "@workspace/common-logic/models/notification";
+import { NotificationModel } from "@workspace/common-logic/models/notification.model";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 

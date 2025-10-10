@@ -16,13 +16,12 @@ import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { PaymentPlanModel } from "@workspace/common-logic/models/payment/payment-plan.model";
 import {
-  IPaymentPlanHydratedDocument,
-  PaymentPlanModel,
   PaymentPlanStatusEnum,
   PaymentPlanTypeEnum,
-} from "@workspace/common-logic/models/payment/payment-plan";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/payment/payment-plan.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";

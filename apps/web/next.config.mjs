@@ -6,11 +6,11 @@ const remotePatterns = [
 const nextConfig = {
     transpilePackages: ["@workspace/ui", "@workspace/components-library"],
     images: { remotePatterns },
-    i18n: {
-        locales: ["en", "ru", "kz"],
-        defaultLocale: "en",
-        localeDetection: false,
-    },
+    // i18n: {
+    //     locales: ["en", "ru", "kz"],
+    //     defaultLocale: "en",
+    //     localeDetection: false,
+    // },
     turbopack: {
         rules: {
             '*.svg': {

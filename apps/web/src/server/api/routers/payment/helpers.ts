@@ -1,6 +1,6 @@
 import constants from "@/config/constants";
 import { recordActivity } from "@/lib/models/record-activity";
-import { getPlanPrice } from "@/lib/ui/lib/utils";
+import { getPlanPrice } from "@/lib/ui/utils";
 import CommunityModel from "@/models/community/Community";
 import CourseModel from "@/models/Course";
 import { Domain } from "@/models/Domain";

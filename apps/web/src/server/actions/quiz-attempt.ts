@@ -12,13 +12,15 @@ import { getDomainData } from "@/server/lib/domain";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { IQuizHydratedDocument, IQuizQuestionHydratedDocument, QuestionTypeEnum, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz";
-import { IQuizAttemptHydratedDocument, QuizAttemptModel, QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt";
-import { UserModel } from "@workspace/common-logic/models/user";
+import { IQuizHydratedDocument, IQuizQuestionHydratedDocument, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz.model";
+import { IQuizAttemptHydratedDocument, QuizAttemptModel } from "@workspace/common-logic/models/lms/quiz-attempt.model";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
 import { MainContextType } from "../api/core/procedures";
+import { QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt.types";
+import { QuestionTypeEnum } from "@workspace/common-logic/models/lms/quiz.types";
 
 // Use types from QuizAttempt model
 type AnswerSubmission = Pick<
@@ -45,7 +47,7 @@ async function getActionContext(): Promise<MainContextType> {
     throw new AuthenticationException("User not authenticated");
   }
 
-  const user = await UserModel.findById(session.user.userId);
+  const user = await UserModel.findById(session.user.id);
   if (!user) {
     throw new AuthenticationException("User not found");
   }
@@ -58,7 +60,10 @@ async function getActionContext(): Promise<MainContextType> {
   return {
     session,
     user,
-    domainData,
+    domainData: {
+      ...domainData,
+      domainObj: domainData.domainObj! as any,
+    },
   };
 }
 

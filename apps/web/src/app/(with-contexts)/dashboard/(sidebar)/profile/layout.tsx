@@ -1,4 +1,3 @@
-import { PROFILE_PAGE_HEADER } from "@/lib/ui/config/strings";
 import type { Metadata, ResolvingMetadata } from "next";
 import { ReactNode } from "react";
 
@@ -7,7 +6,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   return {
-    title: `${PROFILE_PAGE_HEADER} | ${(await parent)?.title?.absolute}`,
+    title: `Profile | ${(await parent)?.title?.absolute}`,
   };
 }
 

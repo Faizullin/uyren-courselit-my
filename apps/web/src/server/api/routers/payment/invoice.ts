@@ -15,10 +15,10 @@ import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   InvoiceModel,
-  InvoiceStatusEnum,
-  PaymentMethodEnum,
-} from "@workspace/common-logic/models/payment/invoice";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/payment/invoice.model";
+import { InvoiceStatusEnum } from "@workspace/common-logic/models/payment/invoice.types";
+import { PaymentMethodEnum } from "@workspace/common-logic/models/payment/payment.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";

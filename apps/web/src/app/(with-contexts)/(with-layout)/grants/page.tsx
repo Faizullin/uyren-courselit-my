@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Footer from "@/components/layout/footer";
 import { Button } from "@workspace/ui/components/button";
@@ -31,10 +30,11 @@ import {
 } from "lucide-react";
 import { GrantApplicationForm } from "./_components/grant-application-form";
 import Header from "@/components/layout/header";
+import { useDialogControl } from "@workspace/components-library";
 
 export default function GrantsPage() {
   const { t } = useTranslation("common");
-  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const grantFormControl = useDialogControl();
 
   const grantTypes = [
     {
@@ -167,7 +167,7 @@ export default function GrantsPage() {
                 <Button
                   size="lg"
                   className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105"
-                  onClick={() => setShowApplicationForm(true)}
+                  onClick={() => grantFormControl.show()}
                 >
                   {t("btn_apply_grant")}
                 </Button>
@@ -431,7 +431,7 @@ export default function GrantsPage() {
               <Button
                 size="lg"
                 className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105"
-                onClick={() => setShowApplicationForm(true)}
+                onClick={() => grantFormControl.show()}
               >
                 {t("btn_apply_grant")}
               </Button>
@@ -474,10 +474,7 @@ export default function GrantsPage() {
           </div>
         </section>
 
-        {/* Application Form Modal */}
-        {showApplicationForm && (
-          <GrantApplicationForm onClose={() => setShowApplicationForm(false)} />
-        )}
+        <GrantApplicationForm control={grantFormControl} />
       </div>
 
       <Footer />

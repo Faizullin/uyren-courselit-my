@@ -1,113 +1,75 @@
 /**
  * Database seeding script for CourseLit
- * This script creates a root domain and super admin user
+ * This script creates a root organization, domain and super admin user
  */
 
 // Load environment variables from .env files
-import { connectToDatabase, OrganizationModel, UIConstants, UserModel } from "@workspace/common-logic";
+import { createUser } from "@/server/api/routers/user/helpers";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { DomainModel, OrganizationModel } from "@workspace/common-logic/models/organization";
+import { UserModel } from "@workspace/common-logic/models/user";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-
 
 dotenv.config();
 
 
-async function createUser({
-  domain,
-  name,
-  email,
-  lead,
-  superAdmin,
-  subscribedToUpdates,
-  invited,
-  providerData,
-  permissions = [],
-}: {
-  domain: {
-    _id: string;
-  };
-  name: string;
-  email: string;
-  lead: string;
-  superAdmin: boolean;
-  subscribedToUpdates: boolean;
-  invited?: boolean;
-  providerData?: { provider: string; uid: string; name?: string };
-  permissions?: string[];
-}) {
-  const superAdminPermissions = superAdmin
-    ? [
-      UIConstants.permissions.manageCourse,
-      UIConstants.permissions.manageAnyCourse,
-      UIConstants.permissions.publishCourse,
-      UIConstants.permissions.manageMedia,
-      UIConstants.permissions.manageSite,
-      UIConstants.permissions.manageSettings,
-      UIConstants.permissions.manageUsers,
-      UIConstants.permissions.manageCommunity,
-    ]
-    : [
-      UIConstants.permissions.enrollInCourse,
-      UIConstants.permissions.manageMedia,
-      ...permissions,
-    ];
+/**
+ * Creates or finds the root organization
+ */
+async function createRootOrganization() {
+  console.log("🏢 Creating or finding root organization...");
 
-  const roles = superAdmin ? [UIConstants.roles.admin] : [];
+  const organizationName = "Main Organization";
+  let organization = await OrganizationModel.findOne({ slug: "main" });
 
-  const userData = {
-    $setOnInsert: {
-      domain: domain._id,
-      name,
-      email: email.toLowerCase(),
-      active: true,
-      purchases: [],
-      permissions: superAdminPermissions,
-      roles,
-      lead: lead || "website",
-      subscribedToUpdates,
-      invited,
-      providerData,
-    },
-  };
+  if (!organization) {
+    console.log(`Creating new organization: ${organizationName}`);
 
-  const user = await UserModel.findOneAndUpdate(
-    { domain: domain._id, email: email.toLowerCase() },
-    userData,
-    { upsert: true, new: true, setDefaultsOnInsert: true },
-  );
+    organization = new OrganizationModel({
+      name: organizationName,
+      slug: "main",
+      description: "Main organization for the platform",
+      email: process.env.SUPER_ADMIN_EMAIL || "admin@example.com",
+    });
 
-  return user;
+    await organization.save();
+    console.log(`✅ Created organization: ${organizationName} with ID: ${organization._id}`);
+  } else {
+    console.log(
+      `✅ Found existing organization: ${organizationName} with ID: ${organization._id}`,
+    );
+  }
+
+  return organization;
 }
 
 /**
- * Creates or finds the root domain for single tenancy
+ * Creates or finds the root domain
  */
-async function createRootDomain() {
-  console.log("🌱 Creating or finding root domain...");
+async function createRootDomain(orgId: mongoose.Types.ObjectId) {
+  console.log("🌐 Creating or finding root domain...");
 
   const rootDomainName = "main";
-  let domain = await OrganizationModel.findOne({ name: rootDomainName });
+  let domain = await DomainModel.findOne({ name: rootDomainName });
 
   if (!domain) {
-    console.log(`📝 Creating new domain: ${rootDomainName}`);
+    console.log(`Creating new domain: ${rootDomainName}`);
 
-    const defaultSettings = {
-      title: "My School",
-      subtitle: "Welcome to your new learning platform",
-      logo: null,
-      currencyISOCode: "USD",
-      paymentMethod: "stripe",
-      stripeKey: "",
-      codeInjectionHead: "",
-    };
-
-    domain = new OrganizationModel({
+    domain = new DomainModel({
+      orgId: orgId,
       name: rootDomainName,
-      email: process.env.SUPER_ADMIN_EMAIL || "admin@example.com",
-      deleted: false,
-      firstRun: true,
-      settings: defaultSettings,
-      tags: [],
+      siteInfo: {
+        title: "My School",
+        subtitle: "Welcome to your new learning platform",
+        currencyISOCode: "USD",
+        paymentMethods: {
+          stripe: {
+            type: "stripe" as const,
+          },
+        },
+      },
     });
 
     await domain.save();
@@ -125,12 +87,7 @@ async function createRootDomain() {
  * Creates or finds the super admin user
  */
 async function createSuperAdmin(
-  domain: mongoose.Document<any, any, any> & {
-    _id: any;
-    name: string;
-    email: string;
-    firstRun?: boolean;
-  },
+  organization: Awaited<ReturnType<typeof createRootOrganization>>,
 ) {
   console.log("👤 Creating or finding super admin user...");
 
@@ -149,7 +106,7 @@ async function createSuperAdmin(
 
   // Check if super admin already exists
   let existingAdmin = await UserModel.findOne({
-    domain: domain._id,
+    orgId: organization._id,
     email: superAdminEmail.toLowerCase(),
   });
 
@@ -177,10 +134,9 @@ async function createSuperAdmin(
     : undefined;
 
   const superAdmin = await createUser({
-    domain,
-    name: process.env.SUPER_ADMIN_NAME || "Super Administrator",
+    organization,
+    fullName: process.env.SUPER_ADMIN_NAME || "Super Administrator",
     email: superAdminEmail,
-    lead: "website",
     superAdmin: true,
     subscribedToUpdates: true,
     invited: false,
@@ -206,19 +162,19 @@ async function setAllPermissionsForSuperAdmin(
 
   // Define all available permissions
   const ALL_PERMISSIONS = [
-    "course:manage",
-    "course:manage_any",
-    "course:publish",
-    "course:enroll",
-    "media:manage",
-    "site:manage",
-    "setting:manage",
-    "user:manage",
-    "community:manage",
+    UIConstants.permissions.manageCourse,
+    UIConstants.permissions.manageAnyCourse,
+    UIConstants.permissions.publishCourse,
+    UIConstants.permissions.enrollInCourse,
+    UIConstants.permissions.manageMedia,
+    UIConstants.permissions.manageSite,
+    UIConstants.permissions.manageSettings,
+    UIConstants.permissions.manageUsers,
+    UIConstants.permissions.manageCommunity,
   ];
 
   // Define all available roles
-  const ALL_ROLES = ["admin", "instructor", "student"];
+  const ALL_ROLES = [UIConstants.roles.admin, UIConstants.roles.instructor, UIConstants.roles.student];
 
   // Update user with all permissions and roles
   const updatedUser = await UserModel.findByIdAndUpdate(
@@ -247,16 +203,16 @@ async function setAllPermissionsForSuperAdmin(
  * Seeds additional default data
  */
 async function seedDefaultData(
+  organization: Awaited<ReturnType<typeof createRootOrganization>>,
   domain: Awaited<ReturnType<typeof createRootDomain>>,
   superAdmin: Awaited<ReturnType<typeof createSuperAdmin>>,
 ) {
   console.log("🌱 Seeding default data...");
 
-  // Update domain first run status
-  if (domain.firstRun) {
-    await DomainModel.findByIdAndUpdate(domain._id, { firstRun: false });
-    console.log("✅ Updated domain firstRun status to false");
-  }
+  // Additional seeding can be done here
+  console.log(`✅ Organization ID: ${organization._id}`);
+  console.log(`✅ Domain ID: ${domain._id}`);
+  console.log(`✅ Super Admin ID: ${superAdmin._id}`);
 
   console.log("✅ Default data seeding completed");
 }
@@ -274,22 +230,27 @@ async function seed(): Promise<void> {
     await connectToDatabase();
     console.log("✅ Connected to MongoDB successfully");
 
+    // Create root organization
+    const organization = await createRootOrganization();
+
     // Create root domain
-    const domain = await createRootDomain();
+    const domain = await createRootDomain(organization._id);
 
     // Create super admin
-    const superAdmin = await createSuperAdmin(domain);
+    const superAdmin = await createSuperAdmin(organization);
 
     // Set all permissions for super admin
     const updatedSuperAdmin = await setAllPermissionsForSuperAdmin(superAdmin);
 
     // Seed default data
-    await seedDefaultData(domain, updatedSuperAdmin);
+    await seedDefaultData(organization, domain, updatedSuperAdmin);
 
     console.log("\n🎉 Seeding completed!");
-    console.log(`📋 Domain: ${domain.name}`);
+    console.log(`🏢 Organization: ${organization.name}`);
+    console.log(`🌐 Domain: ${domain.name}`);
     console.log(`👤 Super Admin: ${superAdmin.email}`);
-    console.log(`🔐 Permissions: ${superAdmin.permissions.length} granted`);
+    console.log(`🔐 Permissions: ${updatedSuperAdmin.permissions.length} granted`);
+    console.log(`👥 Roles: ${updatedSuperAdmin.roles.length} granted`);
   } catch (error) {
     console.error("❌ Error during seeding:", error);
     if (error instanceof Error && error.stack) {

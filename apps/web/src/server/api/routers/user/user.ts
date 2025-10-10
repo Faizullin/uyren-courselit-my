@@ -13,23 +13,9 @@ import { paginate } from "@/server/api/core/utils";
 import { mediaWrappedFieldValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { IUserHydratedDocument, UserModel } from "@workspace/common-logic/models/user";
-import { checkPermission } from "@workspace/utils";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
-
-function removeAdminFieldsFromUser(user: IUserHydratedDocument) {
-  return {
-    username: user.username,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    fullName: user.fullName,
-    bio: user.bio,
-    email: user.email,
-    avatar: user.avatar,
-    active: user.active,
-  };
-}
 
 export const userRouter = router({
   list: protectedProcedure
@@ -76,6 +62,9 @@ export const userRouter = router({
 
   getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageUsers]),
+    )
     .input(
       z.object({
         id: z.string(),
@@ -89,16 +78,6 @@ export const userRouter = router({
 
       if (!user) {
         throw new NotFoundException("User", input.id);
-      }
-
-      const canViewFull =
-        user._id.equals(ctx.user._id) ||
-        checkPermission(ctx.user.permissions, [
-          UIConstants.permissions.manageUsers,
-        ]);
-
-      if (!canViewFull) {
-        return jsonify(removeAdminFieldsFromUser(user as any));
       }
 
       return jsonify(user);
@@ -189,7 +168,7 @@ export const userRouter = router({
         );
 
         if (hasRestrictedKey) {
-          throw new AuthorizationException();
+          throw new AuthorizationException("You are not authorized to update for yourself");
         }
       }
 

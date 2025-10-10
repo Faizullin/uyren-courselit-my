@@ -1,9 +1,10 @@
 "use client";
 
-import { TOAST_TITLE_ERROR } from "@/lib/ui/config/strings";
+import { IAuthProfile } from "@/lib/auth/types";
+import { getGlobalAppClient } from "@/lib/global-client";
 import { trpc } from "@/utils/trpc";
-import { Profile } from "@workspace/common-models";
-import { useSession, signOut } from "next-auth/react";
+import { useToast } from "@workspace/components-library";
+import { signOut, useSession } from "next-auth/react";
 import {
   createContext,
   Dispatch,
@@ -13,13 +14,11 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useToast } from "@workspace/components-library";
 import { defaultState } from "./default-state";
-import { getGlobalAppClient } from "@/lib/global-client";
 
 type ProfileContextType = {
-  profile: Profile;
-  setProfile: Dispatch<SetStateAction<Profile>>;
+  profile: IAuthProfile;
+  setProfile: Dispatch<SetStateAction<IAuthProfile>>;
 };
 
 export const ProfileContext = createContext<ProfileContextType>({
@@ -35,39 +34,42 @@ export const ProfileProvider = ({
   // defaultProfile: ProfileType;
 }>) => {
   const session = useSession();
-  const [profile, setProfile] = useState<Profile>(defaultState.profile);
+  const [profile, setProfile] = useState<IAuthProfile>(defaultState.profile);
   const { toast } = useToast();
 
-  const { data: userProfile, error } =
-    trpc.userModule.user.getProfileProtected.useQuery(undefined, {
+  const loadUserProfileQuery =
+    trpc.userModule.user.getProfile.useQuery(undefined, {
       retry: false,
       enabled: !!session.data?.user,
     });
 
   useEffect(() => {
+    const userProfile = loadUserProfileQuery.data;
     if (userProfile) {
       setProfile({
-        name: userProfile.name || "",
-        id: userProfile.id,
-        fetched: true,
-        purchases: userProfile.purchases,
+        id: userProfile._id,
+        username: userProfile.username,
+        firstName: userProfile.firstName,
+        lastName: userProfile.lastName,
+        fullName: userProfile.fullName,
         email: userProfile.email,
         bio: userProfile.bio || "",
         permissions: userProfile.permissions,
-        userId: userProfile.userId,
-        avatar: userProfile.avatar || {},
+        avatar: userProfile.avatar || undefined,
+        active: userProfile.active,
         subscribedToUpdates: userProfile.subscribedToUpdates,
         roles: userProfile.roles,
       });
     }
-  }, [userProfile]);
+  }, [loadUserProfileQuery.data]);
 
   useEffect(() => {
-    if (error) {
+    const error = loadUserProfileQuery.error;
+    if (loadUserProfileQuery.error) {
       // Handle authentication errors (401/403) - trigger sign-out
       if (
-        error.data?.code === "UNAUTHORIZED" ||
-        error.data?.code === "FORBIDDEN"
+        error?.data?.code === "UNAUTHORIZED" ||
+        error?.data?.code === "FORBIDDEN"
       ) {
         toast({
           title: "Session expired",
@@ -82,12 +84,12 @@ export const ProfileProvider = ({
 
       // Handle other errors
       toast({
-        title: TOAST_TITLE_ERROR,
-        description: error.data?.message || error.message,
+        title: "Error",
+        description: error?.data?.message || error?.message,
         variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [loadUserProfileQuery.error, toast]);
 
   useEffect(() => {
     const appClient = getGlobalAppClient();

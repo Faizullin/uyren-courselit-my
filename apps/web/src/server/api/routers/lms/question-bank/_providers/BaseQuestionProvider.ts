@@ -2,7 +2,7 @@ import { MainContextType } from "@/server/api/core/procedures";
 import {
   IQuizQuestion,
   QuestionTypeEnum,
-} from "@workspace/common-logic/models/lms/quiz";
+} from "@workspace/common-logic/models/lms/quiz.types";
 import { z } from "zod";
 
 export const baseQuestionSchema = z.object({

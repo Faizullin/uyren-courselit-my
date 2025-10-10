@@ -1,5 +1,4 @@
 import React from "react";
-import { DOCUMENTATION_LINK_LABEL } from "@/lib/ui/config//strings";
 
 interface DocumentationLinkProps {
   text?: string;
@@ -8,7 +7,7 @@ interface DocumentationLinkProps {
 
 export default function DocumentationLink({
   path,
-  text = DOCUMENTATION_LINK_LABEL,
+  text = "Documentation",
 }: DocumentationLinkProps) {
   return (
     <a

@@ -17,11 +17,11 @@ import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
     CohortModel,
-    CohortStatusEnum
-} from "@workspace/common-logic/models/lms/cohort";
-import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course";
-import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/lms/cohort.model";
+import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.types";
+import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -169,7 +169,7 @@ export const cohortRouter = router({
                 slug: z.string().min(1).max(255),
                 description: z.string().optional(),
                 courseId: documentIdValidator(),
-                instructorId: documentIdValidator(),
+                instructorId: documentIdValidator().optional(),
                 status: z
                     .nativeEnum(CohortStatusEnum)
                     .default(CohortStatusEnum.UPCOMING),
@@ -204,7 +204,7 @@ export const cohortRouter = router({
                 slug: input.data.slug,
                 description: input.data.description,
                 courseId: input.data.courseId,
-                instructorId: input.data.instructorId,
+                instructorId: input.data.instructorId || ctx.user._id,
                 status: input.data.status,
                 beginDate: input.data.beginDate
                     ? new Date(input.data.beginDate)

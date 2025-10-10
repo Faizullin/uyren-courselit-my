@@ -1,7 +1,7 @@
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { QuizModel } from "@workspace/common-logic/models/lms/quiz.model";
 import { Metadata, ResolvingMetadata } from "next";
-import { QuizModel } from "@/models/lms";
-import { connectToDatabase } from "@workspace/common-logic";
-import QuizClientWrapper from "./_components/quiz-client-wrapper";
+import QuizClientWrapper from "../_components/quiz-client-wrapper";
 
 export async function generateMetadata(
   { params }: { params: Promise<{ id: string }> },
@@ -24,10 +24,10 @@ async function getQuizData(id: string) {
     const quiz = await QuizModel.findById(id).lean();
     return quiz
       ? JSON.parse(
-          JSON.stringify({
-            ...quiz,
-          }),
-        )
+        JSON.stringify({
+          ...quiz,
+        }),
+      )
       : null;
   } catch (error) {
     console.error("Error fetching quiz:", error);

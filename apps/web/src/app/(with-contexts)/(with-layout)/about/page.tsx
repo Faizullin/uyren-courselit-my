@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import Image from "next/image";
 
-export default function AboutPage() {
+export default function Page() {
   const { t } = useTranslation("common");
   const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set());
   const timelineRef = useRef<HTMLDivElement>(null);

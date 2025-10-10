@@ -7,6 +7,7 @@ import {
   ScrollGroup,
 } from "@/components/public/scroll-animation";
 import { trpc } from "@/utils/trpc";
+import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -31,25 +32,20 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-type Level = "beginner" | "intermediate" | "advanced";
-type LevelFilter = "all" | Level;
+type LevelFilter = "all" | CourseLevelEnum;
 
 const COURSES_PER_PAGE = 9;
 
 
 function CoursesContent() {
-  const { t, i18n } = useTranslation("common");
+  const { t } = useTranslation("common");
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Load courses using tRPC with server-side filtering
-  const {
-    data: coursesData,
-    isLoading,
-    error,
-  } = trpc.lmsModule.product.publicList.useQuery(
+  const loadCoursesQuery = trpc.lmsModule.courseModule.course.publicList.useQuery(
     {
       pagination: {
         take: COURSES_PER_PAGE,
@@ -57,7 +53,6 @@ function CoursesContent() {
         includePaginationCount: true,
       },
       filter: {
-        type: ["course"], // Only get actual courses, not downloads or blogs
         level: levelFilter === "all" ? undefined : levelFilter,
       },
       search: debouncedSearchTerm ? { q: debouncedSearchTerm } : undefined,
@@ -67,8 +62,8 @@ function CoursesContent() {
     },
   );
 
-  const courses = coursesData?.items || [];
-  const totalCourses = coursesData?.total || 0;
+  const courses = loadCoursesQuery.data?.items || [];
+  const totalCourses = loadCoursesQuery.data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCourses / COURSES_PER_PAGE));
 
   useEffect(() => setCurrentPage(1), [debouncedSearchTerm, levelFilter]);
@@ -83,7 +78,7 @@ function CoursesContent() {
     setCurrentPage(1);
   };
 
-  if (error) {
+  if (loadCoursesQuery.error) {
     return (
       <main className="min-h-screen bg-white">
         <Header />
@@ -94,7 +89,7 @@ function CoursesContent() {
               <h3 className="text-lg font-semibold text-red-600 mb-2">
                 {t("error_heading")}
               </h3>
-              <p className="text-gray-600 mb-4">{error.message}</p>
+              <p className="text-gray-600 mb-4">{loadCoursesQuery.error.message}</p>
               <Button
                 onClick={() => window.location.reload()}
                 variant="outline"
@@ -191,7 +186,7 @@ function CoursesContent() {
       {/* Courses grid */}
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4">
-          {isLoading ? (
+          {loadCoursesQuery.isLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {[...Array(6)].map((_, index) => (
                 <Card
@@ -209,7 +204,7 @@ function CoursesContent() {
                 </Card>
               ))}
             </div>
-          ) : courses.length === 0 ? (
+          ) : loadCoursesQuery.data?.items.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
@@ -227,20 +222,20 @@ function CoursesContent() {
                 staggerDelay={0.1}
                 className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
               >
-                {courses.map((course) => {
+                {loadCoursesQuery.data?.items.map((course) => {
                   const tags = course.tags || [];
                   const extraCount = Math.max(0, tags.length - 3);
                   return (
                     <Link
-                      key={course.courseId}
-                      href={`/courses/${course.courseId}`}
+                      key={course._id}
+                      href={`/courses/${course._id}`}
                     >
                       <Card className="pt-0 h-full hover:shadow-xl transition-all duration-300 group cursor-pointer overflow-hidden">
                         <CardContent className="p-0">
                           <div className="relative h-48 w-full overflow-hidden">
                             <Image
                               src={
-                                course.featuredImage?.thumbnail ||
+                                course.featuredImage?.url ||
                                 "/courselit_backdrop.webp"
                               }
                               alt={course.title}
@@ -268,7 +263,7 @@ function CoursesContent() {
                             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
                               <BookOpen className="h-4 w-4 mr-2" />
                               <span>
-                                {course.lessonsCount} {t("lessons")} •{" "}
+                                {course.statsLessonCount} {t("lessons")} •{" "}
                                 {t(
                                   `level_${course.level?.toLowerCase() || "beginner"}`,
                                 )}
@@ -281,7 +276,7 @@ function CoursesContent() {
                                   variant="secondary"
                                   className="text-xs"
                                 >
-                                  {tag}
+                                  {tag.name}
                                 </Badge>
                               ))}
                               {extraCount > 0 && (

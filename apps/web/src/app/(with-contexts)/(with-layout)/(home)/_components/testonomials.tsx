@@ -1,19 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Star } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import { ScrollAnimation } from "@/components/public/scroll-animation";
-import Image from "next/image";
+import { IWebsiteSettings } from "@workspace/common-logic/models/pages/website-settings";
 import { cn } from "@workspace/ui/lib/utils";
-import { WebsiteSettings } from "@workspace/common-models";
+import { Star } from "lucide-react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type TestimonialItemType = Pick<
-  WebsiteSettings["mainPage"]["featuredReviews"][number],
-  "rating" | "content" | "author"
-> & {
-  role: string;
-};
+  IWebsiteSettings["mainPage"]["featuredReviews"][number],
+  "rating" | "content" | "author" | "reviewId" | "order"
+>;
 
 export function TestimonialsSection(props: {
   testimonials: TestimonialItemType[];
@@ -25,40 +23,55 @@ export function TestimonialsSection(props: {
     const defaultData = [
       {
         quote: t("testimonials_1_quote"),
-        author: "Aigerim K.",
-        role: t("testimonials_1_role"),
+        author: {
+          userId: "Aigerim K.",
+          name: "Aigerim K.",
+          avatar: "/courselit_backdrop.webp?height=80&width=80&text=AK",
+        },
         image: "/courselit_backdrop.webp?height=80&width=80&text=AK",
         stars: 5,
         rotation: "-rotate-12",
       },
       {
         quote: t("testimonials_2_quote"),
-        author: "Daniyar T.",
-        role: t("testimonials_2_role"),
+        author: {
+          userId: "Daniyar T.",
+          name: "Daniyar T.",
+          avatar: "/courselit_backdrop.webp?height=80&width=80&text=DT",
+        },
         image: "/courselit_backdrop.webp?height=80&width=80&text=DT",
         stars: 5,
         rotation: "rotate-6",
       },
       {
         quote: t("testimonials_3_quote"),
-        author: "Aida S.",
-        role: t("testimonials_3_role"),
+        author: {
+          userId: "Aida S.",
+          name: "Aida S.",
+          avatar: "/courselit_backdrop.webp?height=80&width=80&text=AS",
+        },
         image: "/courselit_backdrop.webp?height=80&width=80&text=AS",
         stars: 5,
         rotation: "-rotate-3",
       },
       {
         quote: t("testimonials_4_quote"),
-        author: "Nurlan B.",
-        role: t("testimonials_4_role"),
+        author: {
+          userId: "Nurlan B.",
+          name: "Nurlan B.",
+          avatar: "/courselit_backdrop.webp?height=80&width=80&text=NB",
+        },
         image: "/courselit_backdrop.webp?height=80&width=80&text=NB",
         stars: 5,
         rotation: "rotate-8",
       },
       {
         quote: t("testimonials_5_quote"),
-        author: "Zhanel M.",
-        role: t("testimonials_5_role"),
+        author: {
+          userId: "Zhanel M.",
+          name: "Zhanel M.",
+          avatar: "/courselit_backdrop.webp?height=80&width=80&text=ZM",
+        },
         image: "/courselit_backdrop.webp?height=80&width=80&text=ZM",
         stars: 5,
         rotation: "-rotate-6",
@@ -104,25 +117,23 @@ export function TestimonialsSection(props: {
                 delay={index * 0.1}
                 className={cn(
                   "testonomials-card",
-                  `relative transition-all duration-500 ${testimonial.rotation} ${
-                    isCorner
-                      ? hoveredCard === index
-                        ? "opacity-100 scale-110 z-20"
-                        : "opacity-40 scale-95 z-10"
-                      : "opacity-100 scale-100 z-15"
+                  `relative transition-all duration-500 ${testimonial.rotation} ${isCorner
+                    ? hoveredCard === index
+                      ? "opacity-100 scale-110 z-20"
+                      : "opacity-40 scale-95 z-10"
+                    : "opacity-100 scale-100 z-15"
                   } ${hoveredCard === index ? "rotate-0" : ""}`,
                 )}
                 onMouseEnter={() => setHoveredCard(index)}
                 onMouseLeave={() => setHoveredCard(null)}
               >
                 <div
-                  className={`bg-background rounded-2xl p-6 w-80 h-72 transition-all duration-500 border ${
-                    hoveredCard === index && isCorner
+                  className={`bg-background rounded-2xl p-6 w-80 h-72 transition-all duration-500 border ${hoveredCard === index && isCorner
                       ? "shadow-2xl shadow-brand-primary/30 border-2 border-brand-primary/60 ring-4 ring-brand-primary/30"
                       : isCenter
                         ? "shadow-xl border-border"
                         : "shadow-lg border-border/50"
-                  }`}
+                    }`}
                 >
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -145,10 +156,10 @@ export function TestimonialsSection(props: {
                     <div className="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0">
                       <Image
                         src={
-                          testimonial.author.avatar.url ||
+                          testimonial.author.avatar?.url ||
                           "/courselit_backdrop.webp"
                         }
-                        alt={testimonial.author.name}
+                        alt={testimonial.author.fullName || "Anonymous"}
                         className="w-full h-full object-cover"
                         width={48}
                         height={48}
@@ -156,10 +167,7 @@ export function TestimonialsSection(props: {
                     </div>
                     <div>
                       <div className="font-bold text-foreground text-sm">
-                        {testimonial.author.name}
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {testimonial.role}
+                        {testimonial.author.fullName || "Anonymous"}
                       </div>
                     </div>
                   </div>

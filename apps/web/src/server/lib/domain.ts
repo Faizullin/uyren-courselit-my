@@ -1,6 +1,7 @@
 import { Log } from "@/lib/logger";
-import { connectToDatabase, DomainModel, IDomain } from "@workspace/common-logic";
-import { HydratedDocument } from "mongoose";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { DomainModel, IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
+import { IDomain } from "@workspace/common-logic/models/organization.types";
 import { headers } from "next/headers";
 import { parseHost } from "./domain-utils";
 import { BaseCacheManager, RedisNotUsedError } from "./redis";
@@ -11,8 +12,6 @@ export {
   extractSubdomain,
   parseHost
 } from "./domain-utils";
-
-type IDomainInstance = HydratedDocument<IDomain>;
 
 export async function getDomainHeaders() {
   const headersList = await headers();
@@ -31,17 +30,17 @@ export async function getDomainData(
   defaultHeaders?: Awaited<ReturnType<typeof getDomainHeaders>>,
 ) {
   const domainHeaders = defaultHeaders || (await getDomainHeaders());
-  let domainObj: IDomainInstance | null = null;
+  let domainObj: IDomain | null = null;
 
   try {
-    if (domainHeaders.identifier === "main") {
-      domainObj = await DomainManager.getDomainByName(domainHeaders.identifier);
-    } else if (domainHeaders.type === "subdomain" && domainHeaders.identifier) {
+    if (domainHeaders.type === "subdomain" && domainHeaders.identifier) {
       domainObj = await DomainManager.getDomainByName(domainHeaders.identifier);
     } else if (domainHeaders.type === "custom" && domainHeaders.identifier) {
       domainObj = await DomainManager.getDomainByCustomDomain(
         domainHeaders.identifier,
       );
+    } else if (domainHeaders.identifier === "main" || domainHeaders.type === "localhost") {
+      domainObj = await DomainManager.getDomainByName("main");
     }
   } catch (error) {
     console.warn("[getDomainData] Domain lookup failed:", error);
@@ -54,18 +53,28 @@ export class DomainManager extends BaseCacheManager {
   private static readonly CACHE_PREFIX = "domain:";
   private static readonly MANAGER_NAME = "DomainManager";
 
-  private static formatDomainForClient(domain: IDomainInstance) {
-    if (!domain) return domain as any;
-    const { siteInfo, ...rest } = domain;
-    const safePaymentMethods = { ...siteInfo.paymentMethods };
+  private static formatDomainForClient(domain: IDomainHydratedDocument) {
+    const serialized = domain.toJSON();
 
-    delete safePaymentMethods.stripe.stripeSecret;
-    delete safePaymentMethods.stripe.stripeWebhookSecret;
+    // If no siteInfo or paymentMethods, return domain as-is (no secrets to remove)
+    if (!serialized.siteInfo?.paymentMethods) {
+      return serialized;
+    }
 
-    return { ...rest, paymentMethods: safePaymentMethods };
+    // Clone the domain and siteInfo to avoid mutations
+    const { siteInfo, ...rest } = serialized;
+    const safePaymentMethods = { ...siteInfo?.paymentMethods };
+
+    // Remove sensitive Stripe data if it exists
+    if (safePaymentMethods?.stripe) {
+      const { stripeSecret, stripeWebhookSecret, ...safeStripe } = safePaymentMethods.stripe;
+      safePaymentMethods.stripe = safeStripe as any;
+    }
+
+    return { ...rest, siteInfo: { ...siteInfo, paymentMethods: safePaymentMethods } } as IDomainHydratedDocument;
   }
 
-  static async getDomainByHost(host: string): Promise<IDomainInstance | null> {
+  static async getDomainByHost(host: string) {
     const { cleanHost: clean, subdomain } = parseHost(host);
     if (!clean) return null;
 
@@ -76,12 +85,12 @@ export class DomainManager extends BaseCacheManager {
     return await this.getDomainByCustomDomain(clean);
   }
 
-  static async getDomainByName(name: string): Promise<IDomainInstance | null> {
+  static async getDomainByName(name: string) {
     const cacheKey = `${this.CACHE_PREFIX}name:${name}`;
 
     return await this.handleRedisOperation(
       async () => {
-        const cached = await this.getFromCache<IDomainInstance>(cacheKey, this.MANAGER_NAME);
+        const cached = await this.getFromCache<IDomainHydratedDocument>(cacheKey, this.MANAGER_NAME);
         if (cached) {
           return this.formatDomainForClient(cached);
         }
@@ -89,9 +98,9 @@ export class DomainManager extends BaseCacheManager {
       },
       async () => {
         await connectToDatabase();
-        const domain = await DomainModel.findOne({ name, });
+        const domain = await DomainModel.findOne({ name });
         if (domain) {
-          await this.setDomainCache(domain);
+          await this.cache(domain);
           return this.formatDomainForClient(domain);
         }
         return null;
@@ -99,11 +108,11 @@ export class DomainManager extends BaseCacheManager {
     );
   }
 
-  static async getDomainByCustomDomain(customDomain: string): Promise<IDomainInstance | null> {
+  static async getDomainByCustomDomain(customDomain: string) {
     const cacheKey = `${this.CACHE_PREFIX}custom:${customDomain}`;
     return await this.handleRedisOperation(
       async () => {
-        const cached = await this.getFromCache<IDomainInstance>(cacheKey, this.MANAGER_NAME);
+        const cached = await this.getFromCache<IDomainHydratedDocument>(cacheKey, this.MANAGER_NAME);
         if (cached) {
           return this.formatDomainForClient(cached);
         }
@@ -113,7 +122,7 @@ export class DomainManager extends BaseCacheManager {
         await connectToDatabase();
         const domain = await DomainModel.findOne({ customDomain });
         if (domain) {
-          await this.setDomainCache(domain);
+          await this.cache(domain);
           return this.formatDomainForClient(domain);
         }
         return null;
@@ -121,11 +130,7 @@ export class DomainManager extends BaseCacheManager {
     );
   }
 
-  static async setDomainCache(domain: IDomainInstance) {
-    return await this.cache(domain);
-  }
-
-  private static async cache(domain: IDomainInstance) {
+  private static async cache(domain: IDomainHydratedDocument) {
     try {
       const promises = [];
       if (domain.name) {
@@ -158,7 +163,7 @@ export class DomainManager extends BaseCacheManager {
   }
 
 
-  static async removeFromCache(domain: IDomainInstance) {
+  static async removeFromCache(domain: IDomainHydratedDocument) {
     const keys = [];
     if (domain.name) keys.push(`${this.CACHE_PREFIX}name:${domain.name}`);
     if (domain.customDomain)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { trpc } from "@/utils/trpc";
-import { ActivityType } from "@workspace/common-models";
+import { trpc } from "@/utils/trpc";  
+import { ActivityTypeEnum } from "@workspace/common-logic/lib/ui/activity";
 
 interface MetricsData {
   count: number;
@@ -28,7 +28,7 @@ interface UserActivitiesData {
 }
 
 export function useActivities(
-  type: ActivityType,
+  type: ActivityTypeEnum,
   duration: string,
   entityId?: string,
   points?: boolean,

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormMode } from "@/components/admin/layout/types";
+import { FormMode } from "@/components/dashboard/layout/types";
 import { useProfile } from "@/components/contexts/profile-context";
 import { CommentEditorField } from "@/components/editors/tiptap/templates/comment/comment-editor";
 import { trpc } from "@/utils/trpc";

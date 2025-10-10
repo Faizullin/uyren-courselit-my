@@ -1,12 +1,11 @@
 import { createTRPCContext, router, t } from "./core/trpc";
-import { communityModuleRouter } from "./routers/community";
-import { lmsModuleRouter } from "./routers/lms";
-import { siteModuleRouter } from "./routers/site";
-import { userModuleRouter } from "./routers/user";
 import { activityModuleRouter } from "./routers/activity";
+import { chatModuleRouter } from "./routers/chat";
+import { lmsModuleRouter } from "./routers/lms";
 import { mediaModuleRouter } from "./routers/media";
 import { paymentModuleRouter } from "./routers/payment";
-import { chatModuleRouter } from "./routers/chat";
+import { siteModuleRouter } from "./routers/site";
+import { userModuleRouter } from "./routers/user";
 
 /**
  * This is the primary router for your server.
@@ -16,7 +15,6 @@ import { chatModuleRouter } from "./routers/chat";
 export const appRouter = router({
   userModule: userModuleRouter,
   siteModule: siteModuleRouter,
-  communityModule: communityModuleRouter,
   lmsModule: lmsModuleRouter,
   activityModule: activityModuleRouter,
   mediaModule: mediaModuleRouter,

@@ -1,9 +1,9 @@
-import { XCircle, Loader2, RefreshCw, Clock } from "lucide-react";
+import { InvoiceStatusEnum } from "@workspace/common-logic/models/payment/invoice.TYPES";
 import { Button } from "@workspace/ui/components/button";
-import { InvoicesStatus } from "@workspace/common-models";
+import { Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 
 interface PaymentVerificationStatusProps {
-  status: InvoicesStatus;
+  status: InvoiceStatusEnum;
   onRetryVerification: () => Promise<void>;
   loading: boolean;
 }

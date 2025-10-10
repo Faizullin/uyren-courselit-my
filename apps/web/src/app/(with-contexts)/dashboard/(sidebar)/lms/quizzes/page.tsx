@@ -1,16 +1,15 @@
 "use client";
 
-import { Metadata, ResolvingMetadata } from "next";
-import DashboardContent from "@/components/admin/dashboard-content";
-import { CreateButton } from "@/components/admin/layout/create-button";
-import HeaderTopbar from "@/components/admin/layout/header-topbar";
+import DashboardContent from "@/components/dashboard/dashboard-content";
+import { CreateButton } from "@/components/dashboard/layout/create-button";
+import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/components/data-table/use-data-table";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { type ColumnDef } from "@tanstack/react-table";
-import { useDebounce } from "@workspace/ui/hooks/use-debounce";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -21,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { Input } from "@workspace/ui/components/input";
+import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { Archive, Edit, FileQuestion, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -54,7 +54,9 @@ export default function Page() {
   const handleArchive = useCallback(
     (quiz: ItemType) => {
       if (confirm("Are you sure you want to archive this quiz?")) {
-        archiveMutation.mutate(`${quiz._id}`);
+        archiveMutation.mutate({
+          id: quiz._id,
+        });
       }
     },
     [archiveMutation],
@@ -124,14 +126,14 @@ export default function Page() {
         accessorKey: "status",
         header: t("table.status"),
         cell: ({ row }) => {
-          const status = row.original.status;
+          const status = row.original.publicationStatus;
           const getStatusVariant = (status: string) => {
             switch (status) {
-              case "published":
+              case PublicationStatusEnum.PUBLISHED:
                 return "default";
-              case "draft":
+              case PublicationStatusEnum.DRAFT:
                 return "secondary";
-              case "archived":
+              case PublicationStatusEnum.ARCHIVED:
                 return "destructive";
               default:
                 return "secondary";
@@ -140,11 +142,11 @@ export default function Page() {
 
           const getStatusLabel = (status: string) => {
             switch (status) {
-              case "published":
+              case PublicationStatusEnum.PUBLISHED:
                 return t("table.published");
-              case "draft":
+              case PublicationStatusEnum.DRAFT:
                 return t("table.draft");
-              case "archived":
+              case PublicationStatusEnum.ARCHIVED:
                 return t("table.archived");
               default:
                 return t("table.unknown");
@@ -161,9 +163,9 @@ export default function Page() {
           label: t("table.status"),
           variant: "select",
           options: [
-            { label: t("table.published"), value: "published" },
-            { label: t("table.draft"), value: "draft" },
-            { label: t("table.archived"), value: "archived" },
+            { label: t("table.published"), value: PublicationStatusEnum.PUBLISHED },
+            { label: t("table.draft"), value: PublicationStatusEnum.DRAFT },
+            { label: t("table.archived"), value: PublicationStatusEnum.ARCHIVED },
           ],
         },
         enableColumnFilter: true,
@@ -204,7 +206,7 @@ export default function Page() {
                     {t("table.edit")}
                   </Link>
                 </DropdownMenuItem>
-                {quiz.status !== "archived" && (
+                {quiz.publicationStatus !== PublicationStatusEnum.ARCHIVED && (
                   <DropdownMenuItem
                     onClick={() => handleArchive(quiz)}
                     className="text-orange-600"
@@ -237,14 +239,14 @@ export default function Page() {
         take: tableState.pagination.pageSize,
       },
       filter: {
-        status: Array.isArray(
-          tableState.columnFilters.find((filter) => filter.id === "status")
+        publicationStatus: Array.isArray(
+          tableState.columnFilters.find((filter) => filter.id === "publicationStatus")
             ?.value,
         )
           ? ((
-              tableState.columnFilters.find((filter) => filter.id === "status")
-                ?.value as string[]
-            )[0] as "published" | "draft" | "archived")
+            tableState.columnFilters.find((filter) => filter.id === "publicationStatus")
+              ?.value as PublicationStatusEnum[]
+          )[0])
           : undefined,
       },
     };
@@ -275,7 +277,7 @@ export default function Page() {
     setParsedData(parsed);
     setParsedPagination({
       pageCount: Math.ceil(
-        loadListQuery.data.total / loadListQuery.data.meta.take,
+        (loadListQuery.data.total || 0) / loadListQuery.data.meta.take,
       ),
     });
   }, [loadListQuery.data]);

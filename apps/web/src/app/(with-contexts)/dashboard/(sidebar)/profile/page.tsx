@@ -1,22 +1,12 @@
 "use client";
 
-import DashboardContent from "@/components/admin/dashboard-content";
+import DashboardContent from "@/components/dashboard/dashboard-content";
 import { useProfile } from "@/components/contexts/profile-context";
 import { AuthClientService } from "@/lib/auth/client-service";
-import {
-  BUTTON_SAVE,
-  PROFILE_EMAIL_PREFERENCES,
-  PROFILE_EMAIL_PREFERENCES_NEWSLETTER_OPTION_TEXT,
-  PROFILE_PAGE_HEADER,
-  PROFILE_SECTION_DETAILS,
-  PROFILE_SECTION_DETAILS_BIO,
-  PROFILE_SECTION_DETAILS_EMAIL,
-  PROFILE_SECTION_DETAILS_NAME,
-  PROFILE_SECTION_DISPLAY_PICTURE,
-  TOAST_TITLE_ERROR,
-} from "@/lib/ui/config/strings";
+import { removeAvatar, setGoogleAvatar, uploadAvatar } from "@/server/actions/avatar";
 import { trpc } from "@/utils/trpc";
-import { Media } from "@workspace/common-models";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@workspace/components-library";
 import {
   Avatar,
@@ -34,255 +24,318 @@ import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { generateUniqueId } from "@workspace/utils";
-import { useSession } from "next-auth/react";
-import { MediaAccessType } from "node_modules/@workspace/common-models/src/constants";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { Upload } from "lucide-react";
+import { useRef } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
-const breadcrumbs = [{ label: PROFILE_PAGE_HEADER, href: "#" }];
+const breadcrumbs = [{ label: "Profile", href: "#" }];
 
-export default function Page() {
+// Zod schema matching the API expectations
+const profileSchema = z.object({
+  firstName: z.string().min(1, "Name is required").max(100),
+  lastName: z.string().max(100).optional(),
+  bio: z.string().max(500).optional(),
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+
+
+export default function ProfilePage() {
   const { t } = useTranslation(["dashboard", "common"]);
-  const [bio, setBio] = useState("");
-  const [name, setName] = useState("");
-  const [subscribedToUpdates, setSubscribedToUpdates] = useState(false);
   const { toast } = useToast();
-
   const { profile, setProfile } = useProfile();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // React Hook Form setup
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty, isSubmitting },
+    reset,
+  } = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    values: {
+      firstName: profile?.firstName || "",
+      lastName: profile?.lastName || "",
+      bio: profile?.bio || "",
+    },
+  });
 
   // TRPC mutations
   const updateProfileMutation = trpc.userModule.user.updateProfile.useMutation({
     onSuccess: (data) => {
       toast({
-        title: t("common:dashboard.success"),
-        description: data.message,
+        title: t("common:success", "Success"),
+        description: t("profile.updated_successfully", "Profile updated successfully"),
       });
 
-      // Update profile context with new data
-      if (data.user && profile) {
+      // Update profile context
+      if (data && profile) {
         setProfile({
           ...profile,
-          name: data.user.name || "",
-          bio: data.user.bio || "",
-          avatar: data.user.avatar || null,
-          subscribedToUpdates: data.user.subscribedToUpdates,
+          firstName: data.firstName || profile.firstName,
+          lastName: data.lastName || profile.lastName,
+          bio: data.bio || profile.bio,
+          avatar: data.avatar || profile.avatar,
+          subscribedToUpdates: data.subscribedToUpdates ?? profile.subscribedToUpdates,
         });
       }
+
+      reset({
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        bio: data.bio || "",
+      });
     },
     onError: (error) => {
       toast({
-        title: TOAST_TITLE_ERROR,
+        title: t("common:error", "Error"),
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  // Initialize form data when profile loads
-  useEffect(() => {
-    if (profile) {
-      setName(profile.name || "");
-      setBio(profile.bio || "");
-      setSubscribedToUpdates(profile.subscribedToUpdates || false);
-    }
-  }, [profile]);
-
-  const updateProfilePic = async (media?: Media) => {
-    if (!profile) return;
-
-    const avatarData: Media | null = media
-      ? {
-          storageProvider: "custom",
-          mediaId: media.mediaId,
-          originalFileName: media.originalFileName,
-          mimeType: media.mimeType,
-          size: media.size,
-          access: media.access,
-          thumbnail: media.thumbnail,
-          caption: media.caption,
-          file: media.file,
-          url: media.url,
-        }
-      : null;
-
-    updateProfileMutation.mutate({
-      avatar: avatarData,
-    });
-  };
-
-  const saveDetails = async (e: FormEvent) => {
-    e.preventDefault();
-
-    if (!profile) return;
-
-    updateProfileMutation.mutate({
-      name,
-      bio,
-    });
-  };
-
-  const saveEmailPreference = async (state: boolean) => {
-    setSubscribedToUpdates(state);
-
-    if (!profile) return;
-
-    updateProfileMutation.mutate({
-      subscribedToUpdates: state,
-    });
-  };
-
-  const resetPictureFromFirebase = async () => {
-    if (!profile) return;
-
-    try {
-      const firebaseProfile = AuthClientService.getCurrentUserProfile();
-
-      if (!firebaseProfile?.photoURL) {
+  // Upload avatar mutation
+  const uploadAvatarMutation = useMutation({
+    mutationFn: uploadAvatar,
+    onSuccess: (result) => {
+      if (result.success && result.avatar && profile) {
+        // Serialize ObjectIds to strings for client
+        const serializedAvatar = {
+          ...result.avatar,
+          orgId: result.avatar.orgId.toString(),
+          ownerId: result.avatar.ownerId.toString(),
+        };
+        setProfile({
+          ...profile,
+          avatar: serializedAvatar as any,
+        });
         toast({
-          title: t("profile.no_firebase_avatar"),
-          description: t("profile.no_firebase_avatar_desc"),
+          title: t("common:success", "Success"),
+          description: t("profile.avatar_uploaded", "Profile picture uploaded successfully"),
+        });
+      } else if (result.error) {
+        toast({
+          title: t("common:error", "Error"),
+          description: result.error,
           variant: "destructive",
         });
-        return;
       }
-
-      // Create avatar data from Firebase photo
-      const avatarData: Media = {
-        storageProvider: "custom",
-        url: firebaseProfile.photoURL,
-        caption: "Firebase profile picture",
-        mediaId: generateUniqueId(),
-        originalFileName: "Firebase profile picture",
-        mimeType: "image/jpeg",
-        size: 0,
-        access: MediaAccessType.PUBLIC,
-        thumbnail: firebaseProfile.photoURL,
-      };
-
-      updateProfileMutation.mutate({
-        avatar: avatarData,
-      });
-
+    },
+    onError: (error: Error) => {
       toast({
-        title: t("profile.avatar_reset"),
-        description: t("profile.avatar_reset_desc"),
-      });
-    } catch (error) {
-      toast({
-        title: TOAST_TITLE_ERROR,
-        description: t("profile.reset_picture_error"),
+        title: t("common:error", "Error"),
+        description: error.message,
         variant: "destructive",
       });
+    },
+  });
+
+  // Remove avatar mutation
+  const removeAvatarMutation = useMutation({
+    mutationFn: removeAvatar,
+    onSuccess: (result) => {
+      if (result.success && profile) {
+        setProfile({
+          ...profile,
+          avatar: undefined,
+        });
+        toast({
+          title: t("common:success", "Success"),
+          description: t("profile.avatar_removed", "Profile picture removed"),
+        });
+      } else if (result.error) {
+        toast({
+          title: t("common:error", "Error"),
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  // Set Google avatar mutation
+  const setGoogleAvatarMutation = useMutation({
+    mutationFn: setGoogleAvatar,
+    onSuccess: (result) => {
+      if (result.success && result.avatar && profile) {
+        // Serialize ObjectIds to strings for client
+        const serializedAvatar = {
+          ...result.avatar,
+          orgId: result.avatar.orgId.toString(),
+          ownerId: result.avatar.ownerId.toString(),
+        };
+        setProfile({
+          ...profile,
+          avatar: serializedAvatar as any,
+        });
+        toast({
+          title: t("common:success", "Success"),
+          description: t("profile.avatar_reset_success", "Profile picture reset from Google"),
+        });
+      } else if (result.error) {
+        toast({
+          title: t("common:error", "Error"),
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    },
+  });
+
+  const onSubmit = async (formData: ProfileFormData) => {
+    await updateProfileMutation.mutateAsync({
+      data: formData,
+    });
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadAvatarMutation.mutate(formData);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
-  // Check if form has changes
-  const hasChanges = profile
-    ? bio !== (profile.bio || "") || name !== (profile.name || "")
-    : false;
+  const handleSubscriptionChange = async (checked: boolean) => {
+    if (!profile) return;
 
-  const { update: updateCurrentSession } = useSession();
+    updateProfileMutation.mutate({
+      data: {
+        subscribedToUpdates: checked,
+      },
+    });
+  };
+
+  const handleResetFromGoogle = () => {
+    const firebaseProfile = AuthClientService.getCurrentUserProfile();
+
+    if (!firebaseProfile?.photoURL) {
+      toast({
+        title: t("common:error", "Error"),
+        description: t("profile.no_google_avatar", "No Google profile picture found"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGoogleAvatarMutation.mutate(firebaseProfile.photoURL);
+  };
 
   if (!profile) {
     return (
       <DashboardContent breadcrumbs={breadcrumbs}>
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>{t("profile.loading")}</p>
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+            <p className="text-muted-foreground">{t("profile.loading", "Loading profile...")}</p>
           </div>
         </div>
       </DashboardContent>
     );
   }
 
+  const isLoading =
+    updateProfileMutation.isPending ||
+    isSubmitting ||
+    uploadAvatarMutation.isPending ||
+    removeAvatarMutation.isPending ||
+    setGoogleAvatarMutation.isPending;
+
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <h1 className="text-4xl font-semibold mb-6">{PROFILE_PAGE_HEADER}</h1>
+      <h1 className="text-4xl font-semibold mb-6">{t("profile.title", "Profile")}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Picture Section */}
+        {/* Avatar Section */}
         <Card>
           <CardHeader>
-            <CardTitle>{PROFILE_SECTION_DISPLAY_PICTURE}</CardTitle>
+            <CardTitle>{t("profile.picture", "Profile Picture")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-4">
             <Avatar className="w-32 h-32">
               <AvatarImage
                 src={profile.avatar?.url}
-                alt={profile.name || t("profile.profile")}
+                alt={profile.firstName || t("profile.user", "User")}
               />
               <AvatarFallback className="text-2xl">
-                {profile.name?.charAt(0)?.toUpperCase() || "U"}
+                {profile.firstName?.charAt(0)?.toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
 
-            {/* Avatar source indicator */}
             {profile.avatar && (
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">
-                  {profile.avatar.storageProvider === "custom"
-                    ? t("profile.firebase_avatar")
-                    : t("profile.uploaded_image")}
-                </p>
-              </div>
+              <p className="text-xs text-center text-muted-foreground">
+                {profile.avatar.storageProvider === "custom"
+                  ? t("profile.source_google", "From Google")
+                  : t("profile.source_cloudinary", "Uploaded to Cloudinary")}
+              </p>
             )}
 
-            {/* Avatar management buttons */}
-            <div className="flex flex-col space-y-2 w-full">
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  {t("profile.upload_new")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => updateProfilePic()}
-                  disabled={updateProfileMutation.isPending}
-                  className="flex-1"
-                >
-                  {t("profile.remove")}
-                </Button>
-              </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
 
-              <div className="flex space-x-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={resetPictureFromFirebase}
-                  disabled={updateProfileMutation.isPending}
-                  className="flex-1"
-                >
-                  {updateProfileMutation.isPending
-                    ? t("profile.resetting")
-                    : t("profile.reset_from_google")}
-                </Button>
-                {/* <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    updateCurrentSession();
-                  }}
-                  disabled={updateProfileMutation.isPending}
-                  className="flex-1"
-                >
-                  Reset current sesssion
-                </Button> */}
-              </div>
+            <div className="flex flex-col gap-2 w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploadAvatarMutation.isPending
+                  ? t("profile.uploading", "Uploading...")
+                  : t("profile.upload_new", "Upload New")}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeAvatarMutation.mutate()}
+                disabled={isLoading || !profile.avatar}
+              >
+                {removeAvatarMutation.isPending
+                  ? t("profile.removing", "Removing...")
+                  : t("profile.remove_picture", "Remove Picture")}
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleResetFromGoogle}
+                disabled={isLoading}
+              >
+                {setGoogleAvatarMutation.isPending
+                  ? t("profile.resetting", "Resetting...")
+                  : t("profile.reset_from_google", "Reset from Google")}
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Profile Details Section */}
+        {/* Details Section */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{PROFILE_SECTION_DETAILS}</CardTitle>
+            <CardTitle>{t("profile.details", "Profile Details")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={saveDetails} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">{PROFILE_SECTION_DETAILS_EMAIL}</Label>
+                <Label htmlFor="email">{t("profile.email", "Email")}</Label>
                 <Input
                   id="email"
                   value={profile.email}
@@ -292,38 +345,55 @@ export default function Page() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">{PROFILE_SECTION_DETAILS_NAME}</Label>
+                <Label htmlFor="firstName">
+                  {t("profile.first_name", "First Name")} *
+                </Label>
                 <Input
-                  id="name"
-                  value={name}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setName(e.target.value)
-                  }
-                  disabled={updateProfileMutation.isPending}
-                  placeholder={t("profile.enter_name_placeholder")}
+                  id="firstName"
+                  {...register("firstName")}
+                  disabled={isLoading}
+                  placeholder={t("profile.enter_first_name", "Enter your first name")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">{PROFILE_SECTION_DETAILS_BIO}</Label>
+                <Label htmlFor="lastName">
+                  {t("profile.last_name", "Last Name")}
+                </Label>
+                <Input
+                  id="lastName"
+                  {...register("lastName")}
+                  disabled={isLoading}
+                  placeholder={t("profile.enter_last_name", "Enter your last name")}
+                />
+                {errors.lastName && (
+                  <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bio">{t("profile.bio", "Bio")}</Label>
                 <Textarea
                   id="bio"
-                  value={bio}
-                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                    setBio(e.target.value)
-                  }
-                  disabled={updateProfileMutation.isPending}
-                  placeholder={t("profile.bio_placeholder")}
+                  {...register("bio")}
+                  disabled={isLoading}
+                  placeholder={t("profile.bio_placeholder", "Tell us about yourself...")}
                   rows={4}
+                  maxLength={500}
                 />
+                {errors.bio && (
+                  <p className="text-sm text-destructive">{errors.bio.message}</p>
+                )}
               </div>
 
               <Button
                 type="submit"
-                disabled={!hasChanges || updateProfileMutation.isPending}
+                disabled={!isDirty || isLoading}
                 className="w-full sm:w-auto"
               >
-                {updateProfileMutation.isPending ? t("profile.saving") : BUTTON_SAVE}
+                {isLoading
+                  ? t("profile.saving", "Saving...")
+                  : t("common:save", "Save Changes")}
               </Button>
             </form>
           </CardContent>
@@ -333,24 +403,22 @@ export default function Page() {
       {/* Email Preferences Section */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>{PROFILE_EMAIL_PREFERENCES}</CardTitle>
+          <CardTitle>{t("profile.email_preferences", "Email Preferences")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-sm font-medium leading-none">
-                {PROFILE_EMAIL_PREFERENCES_NEWSLETTER_OPTION_TEXT}
+              <p className="text-sm font-medium">
+                {t("profile.newsletter", "Subscribe to newsletter")}
               </p>
               <p className="text-sm text-muted-foreground">
-                {t("profile.receive_updates_desc")}
+                {t("profile.newsletter_desc", "Receive updates about new features and content")}
               </p>
             </div>
             <Checkbox
-              checked={subscribedToUpdates}
-              onCheckedChange={(checked: boolean) =>
-                saveEmailPreference(checked)
-              }
-              disabled={updateProfileMutation.isPending}
+              checked={profile.subscribedToUpdates}
+              onCheckedChange={handleSubscriptionChange}
+              disabled={isLoading}
             />
           </div>
         </CardContent>

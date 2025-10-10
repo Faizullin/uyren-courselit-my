@@ -23,14 +23,15 @@ import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   CourseModel,
   ICourseHydratedDocument,
-} from "@workspace/common-logic/models/lms/course";
-import { EnrollmentModel, EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment";
+  } from "@workspace/common-logic/models/lms/course.model";
+import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
+import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
 import {
   ILessonHydratedDocument,
   LessonModel,
-  LessonTypeEnum,
-} from "@workspace/common-logic/models/lms/lesson";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/lms/lesson.model";
+import { LessonTypeEnum } from "@workspace/common-logic/models/lms/lesson.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -297,18 +298,18 @@ export const lessonRouter = router({
 
       // Check enrollment requirement
       if (lesson.requiresEnrollment) {
-        if (!ctx.user) {
+        if (!ctx.session?.user) {
           throw new AuthenticationException();
         }
 
         const enrollment = await EnrollmentModel.findOne({
-          userId: ctx.user._id,
+          userId: ctx.session.user.id,
           courseId: lesson.courseId,
           orgId: ctx.domainData.domainObj.orgId,
         });
 
         if (!enrollment || enrollment.status !== EnrollmentStatusEnum.ACTIVE) {
-          if (!checkPermission(ctx.user.permissions, [
+          if (!checkPermission(ctx.session.user.permissions, [
             UIConstants.permissions.manageCourse,
             UIConstants.permissions.manageAnyCourse,
           ])

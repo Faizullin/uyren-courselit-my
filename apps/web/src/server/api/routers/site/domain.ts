@@ -17,7 +17,7 @@ import {
 } from "@/server/api/core/validators";
 import DomainManager, { parseHost } from "@/server/lib/domain";
 import { jsonify } from "@workspace/common-logic/lib/response";
-import { DomainModel } from "@workspace/common-logic/models/organization";
+import { DomainModel } from "@workspace/common-logic/models/organization.model";
 import { z } from "zod";
 
 async function ensureUniqueName(name: string, excludeId?: string) {

@@ -16,14 +16,12 @@ import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
-  CourseEnrollmentMemberTypeEnum,
-  CourseEnrollmentRoleEnum,
-  EnrollmentModel,
-  EnrollmentStatusEnum,
-} from "@workspace/common-logic/models/lms/enrollment";
-import { CourseModel } from "@workspace/common-logic/models/lms/course";
-import { UserProgressModel } from "@workspace/common-logic/models/lms/user-progress";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+  EnrollmentModel,  
+} from "@workspace/common-logic/models/lms/enrollment.model";
+import { CourseEnrollmentMemberTypeEnum, CourseEnrollmentRoleEnum, EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
+import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
+import { UserProgressModel } from "@workspace/common-logic/models/lms/user-progress.model";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";

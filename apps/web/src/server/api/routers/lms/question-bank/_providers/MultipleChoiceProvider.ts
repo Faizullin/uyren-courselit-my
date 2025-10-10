@@ -2,7 +2,7 @@ import { BaseQuestionProvider, QuestionAnswer } from "./BaseQuestionProvider";
 import {
   MultipleChoiceQuestion,
   QuestionTypeEnum,
-} from "@workspace/common-logic/models/lms/quiz";
+} from "@workspace/common-logic/models/lms/quiz.types";
 import { MainContextType } from "@/server/api/core/procedures";
 import { z } from "zod";
 

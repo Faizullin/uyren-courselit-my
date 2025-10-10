@@ -16,11 +16,10 @@ import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_s
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
-  IThemeHydratedDocument,
-  ThemeAssetTypeEnum,
-  ThemeModel,
-} from "@workspace/common-logic/models/theme";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+  ThemeModel
+} from "@workspace/common-logic/models/theme.model";
+import { ThemeAssetTypeEnum } from "@workspace/common-logic/models/theme.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -104,6 +103,7 @@ export const themeRouter = router({
 
   getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
     .input(
       z.object({
         id: documentIdValidator(),
@@ -252,5 +252,20 @@ export const themeRouter = router({
       }
 
       return jsonify(theme);
+    }),
+
+  listAssets: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .input(z.object({ themeId: documentIdValidator() }))
+    .query(async ({ ctx, input }) => {
+      const theme = await ThemeModel.findOne({
+        _id: input.themeId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!theme) {
+        throw new NotFoundException("Theme", input.themeId);
+      }
+      return jsonify(theme.assets);
     }),
 });

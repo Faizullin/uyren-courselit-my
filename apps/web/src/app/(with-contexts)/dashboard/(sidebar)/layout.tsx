@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/admin/dashboard-skeleton/app-sidebar";
+import { AppSidebar } from "@/components/dashboard/dashboard-skeleton/app-sidebar";
 import {
   SidebarInset,
   SidebarProvider,

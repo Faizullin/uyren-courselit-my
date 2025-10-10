@@ -4,7 +4,6 @@ import { useProfile } from "@/components/contexts/profile-context";
 import { useSiteInfo } from "@/components/contexts/site-info-context";
 import { useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
-import { cn } from "@workspace/ui/lib/utils";
 import {
   Select,
   SelectContent,
@@ -12,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   LogOut,
   Menu,
@@ -19,13 +19,13 @@ import {
   UserCircle,
   X,
 } from "lucide-react";
-import ThemeToggle from "./theme-toggle";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import ThemeToggle from "./theme-toggle";
 
 export default function Header() {
   const { t, i18n } = useTranslation(["common", "dashboard"]);
@@ -44,8 +44,7 @@ export default function Header() {
     { name: t("nav_home"), href: "/" },
     { name: t("nav_about"), href: "/about" },
     { name: t("nav_courses"), href: "/courses" },
-    // { name: t("nav_grants"), href: "/grants" },
-    // { name: t("nav_community"), href: "/community" },
+    { name: t("nav_grants"), href: "/grants" },
     // { name: t("nav_sponsorship"), href: "/sponsorship" },
   ];
 
@@ -58,7 +57,7 @@ export default function Header() {
   const handleNavigation = (href: string, e: React.MouseEvent) => {
     e.preventDefault();
     if (href === pathname) return;
-      router.push(href);
+    router.push(href);
   };
 
   const changeLanguage = (lng: string) => {
@@ -195,12 +194,12 @@ export default function Header() {
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="p-2 rounded-md text-muted-foreground hover:text-brand-primary hover:bg-accent transition-colors duration-200"
-                  aria-label={profile?.name || session?.user?.name || t("dashboard:header.user")}
+                  aria-label={profile?.fullName || t("dashboard:header.user")}
                 >
                   {profile?.avatar?.file ? (
                     <Image
                       src={profile.avatar.file}
-                      alt={profile.name || t("dashboard:header.user_avatar")}
+                      alt={profile.fullName || t("dashboard:header.user_avatar")}
                       width={32}
                       height={32}
                       className="w-8 h-8 rounded-full object-cover"

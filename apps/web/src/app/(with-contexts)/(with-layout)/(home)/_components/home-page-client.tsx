@@ -1,30 +1,32 @@
 "use client";
 
+import ChartLineUpIcon from "@/../public/img/chart-line-up.svg";
+import GearsIcon from "@/../public/img/gears.svg";
+import PythonIcon from "@/../public/img/python.svg";
+import SupportIcon from "@/../public/img/support.svg";
+import { useSiteInfo } from "@/components/contexts/site-info-context";
 import Footer from "@/components/layout/footer";
 import Header from "@/components/layout/header";
 import {
   ScrollAnimation,
   ScrollGroup,
 } from "@/components/public/scroll-animation";
+import { IWebsiteSettings } from "@workspace/common-logic/models/pages/website-settings";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { ArrowRight, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { TestimonialsSection } from "./testonomials";
-import { useMemo } from "react";
-import GearsIcon from "@/../public/img/gears.svg";
-import PythonIcon from "@/../public/img/python.svg";
-import ChartLineUpIcon from "@/../public/img/chart-line-up.svg";
-import SupportIcon from "@/../public/img/support.svg";
-import { WebsiteSettings } from "@workspace/common-models";
-import { useSiteInfo } from "@/components/contexts/site-info-context";
+
+
 import "../home.css";
 
 interface HomePageClientProps {
-  websiteSettings: WebsiteSettings;
+  websiteSettings: IWebsiteSettings;
 }
 
 export default function HomePageClient({ websiteSettings }: HomePageClientProps) {
@@ -71,7 +73,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
           image: "/img/python-course.jpeg", // Default image
           title: course.title,
           level: course.level || "Beginner",
-          duration: course.duration ? `${course.duration} weeks` : "8 weeks",
+          duration: course.durationInWeeks ? `${course.durationInWeeks} weeks` : "8 weeks",
           rating: 4.9,
           students: 1200,
           price: "Free",
@@ -85,12 +87,12 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
     return (
       websiteSettings?.mainPage.featuredReviews
         .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .map((review) => ({
-          content: review.content,
-          author: review.author,
-          role: "Student",
-          rating: review.rating,
-        })) || []
+      // .map((review) => ({
+      //   content: review.content,
+      //   author: review.author,
+      //   role: "Student",
+      //   rating: review.rating,
+      // })) || []
     );
   }, [websiteSettings?.mainPage.featuredReviews]);
 

@@ -1,19 +1,19 @@
-import ActivityModel, { Activity } from "@/models/Activity";
+import { ActivityModel } from "@workspace/common-logic/models/activity.model";
+import { IActivity } from "@workspace/common-logic/models/activity.types";
 import { Log } from "../logger";
 
-export async function recordActivity(activity: Activity) {
+export async function recordActivity(activity: IActivity) {
   try {
-    const existingActivity = await ActivityModel.findOne({
-      domain: activity.domain,
-      userId: activity.userId,
-      type: activity.type,
-      entityId: activity.entityId,
-      username: 1,
-    });
+    // const existingActivity = await ActivityModel.findOne({
+    //   orgId: activity.orgId,
+    //   userId: activity.userId,
+    //   actor: activity.actor,
+    //   type: activity.type,
+    // });
 
-    if (existingActivity) {
-      return;
-    }
+    // if (existingActivity) {
+    //   return;
+    // }
 
     await ActivityModel.create(activity);
   } catch (err: any) {

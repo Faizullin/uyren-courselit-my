@@ -1,12 +1,10 @@
-import constants from "@/config/constants";
-import { responses } from "@/config/strings";
-const { permissions } = constants;
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 
 export const checkForInvalidPermissions = (userPermissions: string[]) => {
   const invalidPerms = userPermissions.filter(
-    (x) => !Object.values(permissions).includes(x),
+    (x) => !Object.values(UIConstants.permissions).includes(x),
   );
   if (invalidPerms.length) {
-    throw new Error(responses.invalid_permission);
+    throw new Error("Invalid permission");
   }
 };

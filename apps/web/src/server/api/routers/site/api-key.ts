@@ -13,7 +13,7 @@ import { documentIdValidator } from "@/server/api/core/validators";
 import { responses } from "@/config/strings";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { ApiKeyModel } from "@workspace/common-logic/models/api/api-key";
+import { ApiKeyModel } from "@workspace/common-logic/models/api/api-key.model";
 import { z } from "zod";
 
 export const apiKeyRouter = router({

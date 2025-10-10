@@ -4,9 +4,8 @@ import {
 } from "@/server/api/core/exceptions";
 import {
   createDomainRequiredMiddleware,
-  createPermissionMiddleware,
   protectedProcedure,
-  publicProcedure,
+  publicProcedure
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
@@ -14,13 +13,13 @@ import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { InvoiceModel } from "@workspace/common-logic/models/payment/invoice.model";
+import { InvoiceStatusEnum } from "@workspace/common-logic/models/payment/invoice.types";
 import {
-  PaymentMethodEnum,
   PaymentModel,
-  PaymentStatusEnum,
-} from "@workspace/common-logic/models/payment/payment";
-import { InvoiceModel, InvoiceStatusEnum } from "@workspace/common-logic/models/payment/invoice";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+} from "@workspace/common-logic/models/payment/payment.model";
+import { PaymentMethodEnum, PaymentStatusEnum } from "@workspace/common-logic/models/payment/payment.types";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -188,7 +187,7 @@ export const paymentRouter = router({
       // TODO: Implement actual verification with payment provider APIs
       // For now, mark as completed
       payment.status = PaymentStatusEnum.COMPLETED;
-      payment.completedAt = new Date();
+      payment.processedAt = new Date();
 
       // Update associated invoice if exists
       const invoice = await InvoiceModel.findOne({

@@ -151,7 +151,6 @@ const AssignmentSelectNiceDialog = NiceModal.create<
   }, [selectedOptions, resolve, hide]);
 
   useEffect(() => {
-    console.log("args.obj", args.obj, typeof args.obj);
     setSelectedOptions(
       args.obj
         ? {

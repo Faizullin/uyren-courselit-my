@@ -1,13 +1,13 @@
-import { connectToDatabase, IDomain, IUser, UIConstants, UserModel } from "@workspace/common-logic";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { DomainModel } from "@workspace/common-logic/models/organization.model";
+import { IDomain } from "@workspace/common-logic/models/organization.types";
+import { IUserHydratedDocument, UserModel } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
-import { HydratedDocument } from "mongoose";
+import mongoose from "mongoose";
 import { Session } from "next-auth";
-import { AuthenticationException, AuthorizationException } from "./exceptions";
-import { assertDomainExist } from "./permissions";
+import { AuthenticationException, AuthorizationException, NotFoundException } from "./exceptions";
 import { rootProcedure, t } from "./trpc";
-
-type IDomainInstance = HydratedDocument<IDomain>;
-type IUserInstance = HydratedDocument<IUser>;
 
 // Base middleware for role-based access control
 export const createPermissionMiddleware = <T = any>(
@@ -46,6 +46,14 @@ const createRoleMiddleware = (allowedRoles: string[]) => {
   });
 };
 
+const assertDomainExist = async (ctx: MainContextType) => {
+  const domainObj = await DomainModel.findById(ctx.domainData.domainObj._id).lean();
+  if (!domainObj) {
+    throw new NotFoundException("Domain", ctx.domainData.domainObj._id);
+  }
+  return domainObj;
+};
+
 export const createDomainRequiredMiddleware = <T = any>() => {
   return t.middleware(async ({ ctx, next }) => {
     const domainObj = await assertDomainExist(ctx as MainContextType);
@@ -56,7 +64,7 @@ export const createDomainRequiredMiddleware = <T = any>() => {
           ...ctx.domainData,
           domainObj,
         },
-      } as MainContextType,
+      },
     });
   });
 };
@@ -68,9 +76,12 @@ export const protectedProcedure = rootProcedure.use(
       throw new AuthenticationException("User not authenticated");
     }
     await connectToDatabase();
-    const user = await UserModel.findOne({
-      userId: ctx.session.user.userId,
-    }).lean();
+    let user: IUserHydratedDocument | null = null;
+    try {
+      user = await UserModel.findById(ctx.session.user.id).lean() as IUserHydratedDocument;
+    } catch (error) {
+      console.error("[protectedProcedure] Error finding user:", error);
+    }
     if (!user) {
       throw new AuthenticationException("User not found");
     }
@@ -91,10 +102,12 @@ export const teacherProcedure = protectedProcedure.use(
 );
 
 export type MainContextType = {
-  user: IUserInstance;
+  user: IUserHydratedDocument;
   session: Session | null;
   domainData: {
-    domainObj: IDomainInstance;
+    domainObj: IDomain & {
+      _id: mongoose.Types.ObjectId;
+    };
     headers: any;
   };
 };

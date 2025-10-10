@@ -1,5 +1,5 @@
 import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
-import { UserModel } from "@workspace/common-logic/models/lms/quiz";
+import { QuizModel } from "@workspace/common-logic/models/lms/quiz.model";
 import mongoose from "mongoose";
 
 

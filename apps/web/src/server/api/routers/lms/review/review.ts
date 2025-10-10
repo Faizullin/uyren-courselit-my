@@ -16,8 +16,8 @@ import {
 import { deleteMedia } from "@/server/services/media";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { ReviewModel } from "@workspace/common-logic/models/review";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user";
+import { ReviewModel } from "@workspace/common-logic/models/review.model";
+import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { FilterQuery, RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -88,7 +88,7 @@ export const reviewRouter = router({
       const [items, total] = await Promise.all([
         ReviewModel.find(query)
           .populate<{
-            author: Pick<IUserHydratedDocument, "username" | "fullName" | "avatar">;
+            author: Pick<IUserHydratedDocument, "_id" | "username" | "fullName" | "avatar">;
           }>("author", "username fullName avatar")
           .skip(paginationMeta.skip)
           .limit(paginationMeta.take)

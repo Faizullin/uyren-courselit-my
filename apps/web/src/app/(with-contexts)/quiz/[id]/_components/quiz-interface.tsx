@@ -1,13 +1,13 @@
 "use client";
 
-import { useDialogControl } from "@/hooks/use-dialog-control";
 import {
   navigateQuizQuestion,
   submitQuizAttempt,
 } from "@/server/actions/quiz-attempt";
-import { IOption, IQuizHydratedDocument, IQuizQuestionHydratedDocument } from "@workspace/common-logic/models/lms/quiz";
-import { IQuizAttemptHydratedDocument } from "@workspace/common-logic/models/lms/quiz-attempt";
-import { useToast } from "@workspace/components-library";
+import { IQuizAttemptHydratedDocument } from "@workspace/common-logic/models/lms/quiz-attempt.model";
+import { IQuizHydratedDocument, IQuizQuestionHydratedDocument } from "@workspace/common-logic/models/lms/quiz.model";
+import { IOption } from "@workspace/common-logic/models/lms/quiz.types";
+import { useDialogControl, useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
@@ -27,7 +27,7 @@ import React, { useCallback, useMemo, useState } from "react";
 
 type ISerializerQuestion = Pick<IQuizQuestionHydratedDocument, "text" | "type" | "points"> & {
   _id: string;
-  options: Pick<IOption, "uid" | "text" |  "order">[];
+  options: Pick<IOption, "uid" | "text" | "order">[];
 };
 
 type ISerializedQuiz = Pick<IQuizHydratedDocument, "title" | "description" | "maxAttempts" | "timeLimit" | "totalPoints"> & {
@@ -299,7 +299,7 @@ export default function QuizInterface({
       });
     } finally {
       setIsLoading(false);
-      submitDialog.close();
+      submitDialog.hide();
     }
   }, [
     attemptId,
@@ -312,7 +312,7 @@ export default function QuizInterface({
   ]);
 
   const handleSubmitClick = useCallback(() => {
-    submitDialog.open();
+    submitDialog.show();
   }, [submitDialog]);
 
   return (
@@ -458,8 +458,8 @@ export default function QuizInterface({
       </Card>
 
       <Dialog
-        open={submitDialog.visible}
-        onOpenChange={submitDialog.setVisible}
+        open={submitDialog.isVisible}
+        onOpenChange={submitDialog.show}
       >
         <DialogContent>
           <DialogHeader>
@@ -470,7 +470,7 @@ export default function QuizInterface({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={submitDialog.close}>
+            <Button variant="outline" onClick={submitDialog.hide}>
               Cancel
             </Button>
             <Button

@@ -1,9 +1,9 @@
 import { router } from "@/server/api/core/trpc";
-import { activityRouter } from "./activity";
 import { assignmentModuleRouter } from "./assignment";
 import { cohortModuleRouter } from "./cohort/index";
 import { courseModuleRouter } from "./course";
 import { enrollmentRouter } from "./enrollment";
+import { grantModuleRouter } from "./grant";
 import { liveClassRouter } from "./live-class";
 import { questionBankModuleRouter } from "./question-bank";
 import { quizModuleRouter } from "./quiz";
@@ -12,7 +12,6 @@ import { scheduleRouter } from "./schedule";
 import { themeModuleRouter } from "./theme";
 
 export const lmsModuleRouter = router({
-  activity: activityRouter,
   cohortModule: cohortModuleRouter,
   courseModule: courseModuleRouter,
   enrollment: enrollmentRouter,
@@ -23,4 +22,5 @@ export const lmsModuleRouter = router({
   reviewModule: reviewModuleRouter,
   schedule: scheduleRouter,
   themeModule: themeModuleRouter,
+  grantModule: grantModuleRouter,
 });

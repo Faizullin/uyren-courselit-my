@@ -84,7 +84,6 @@ export default function SponsorshipPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Sponsorship application:", formData);
   };
 
   const budgetOptions = [

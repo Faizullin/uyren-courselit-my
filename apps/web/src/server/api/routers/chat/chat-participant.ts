@@ -1,21 +1,20 @@
-import { z } from "zod";
-import { router } from "@/server/api/core/trpc";
+import { AuthorizationException, ConflictException, NotFoundException } from "@/server/api/core/exceptions";
 import {
   createDomainRequiredMiddleware,
   protectedProcedure,
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
+import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
-import { NotFoundException, AuthorizationException, ConflictException } from "@/server/api/core/exceptions";
+import { jsonify } from "@workspace/common-logic/lib/response";
 import {
   ChatParticipantModel,
-  ChatParticipantRoleEnum,
-  ChatParticipantStatusEnum,
-} from "@workspace/common-logic/models/chats/chat-participant";
-import { ChatRoomModel } from "@workspace/common-logic/models/chats/chat-room";
-import { jsonify } from "@workspace/common-logic/lib/response";
+} from "@workspace/common-logic/models/chats/chat-participant.model";
+import { ChatParticipantRoleEnum, ChatParticipantStatusEnum } from "@workspace/common-logic/models/chats/chat-participant.types";
+import { ChatRoomModel } from "@workspace/common-logic/models/chats/chat-room.model";
 import { RootFilterQuery } from "mongoose";
+import { z } from "zod";
 
 const AddParticipantSchema = getFormDataSchema({
   roomId: documentIdValidator(),

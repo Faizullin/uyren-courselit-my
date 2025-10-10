@@ -5,8 +5,8 @@ import {
 import { MainContextType } from "@/server/api/core/procedures";
 import { deleteMedia } from "@/server/services/media";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course";
-import { LessonModel } from "@workspace/common-logic/models/lms/lesson";
+import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
 

@@ -1,9 +1,9 @@
-import DomainModel from "@/models/Domain";
-import UserModel from "@/models/User";
 import { createUser } from "@/server/api/routers/user/helpers";
 import { adminAuth } from "@/server/lib/firebaseAdmin";
-import { connectToDatabase } from "@workspace/common-logic";
-import { Media } from "@workspace/common-models";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
+import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
+import { DomainModel, OrganizationModel } from "@workspace/common-logic/models/organization.model";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import z from "zod";
@@ -24,16 +24,22 @@ export const authOptions: NextAuthOptions = {
         idToken: { label: "Firebase ID Token", type: "text" },
       },
       async authorize(credentials, req) {
-        const domainInfo = req.headers?.["x-domain-identifier"];
-        if (!domainInfo) {
+        const domainIdentifier = req.headers?.["x-domain-identifier"];
+        if (!domainIdentifier) {
           throw new Error("Domain identifier is required");
         }
         await connectToDatabase();
         const domain = await DomainModel.findOne({
-          name: domainInfo,
+          name: domainIdentifier,
         });
         if (!domain) {
-          throw new Error(`Domain not found: ${domainInfo}`);
+          throw new Error(`Domain not found: ${domainIdentifier}`);
+        }
+        const organization = await OrganizationModel.findOne({
+          _id: domain.orgId,
+        });
+        if (!organization) {
+          throw new Error(`Organization not found for domain: ${domainIdentifier}`);
         }
         const parsed = AuthorizeFirebaseSchema.safeParse(credentials);
         if (!parsed.success) {
@@ -58,7 +64,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           let user = await UserModel.findOne({
-            domain: domain._id,
+            orgId: domain.orgId,
             email: sanitizedEmail,
           });
           if (user && user.invited) {
@@ -66,9 +72,9 @@ export const authOptions: NextAuthOptions = {
             await user.save();
           } else if (!user) {
             user = await createUser({
-              domain,
+              organization: organization,
               email: sanitizedEmail,
-              name: decoded.name || "",
+              fullName: decoded.name || "",
               providerData: {
                 provider: "firebase",
                 uid: decoded.uid,
@@ -78,15 +84,21 @@ export const authOptions: NextAuthOptions = {
             created = true;
             user.avatar = decoded.picture
               ? {
+                orgId: domain.orgId,
+                storageProvider: "custom",
                 url: decoded.picture,
-                mediaId: `google_${decoded.uid}`,
-                originalFileName: "google_profile_picture",
                 mimeType: "image/jpeg",
+                originalFileName: "google_profile_picture",
+                access: MediaAccessTypeEnum.PUBLIC,
                 size: 0,
-                access: "public",
+                ownerId: user._id,
                 thumbnail: decoded.picture,
                 caption: "Google profile picture",
-                storageProvider: "custom",
+                metadata: {
+                  google: {
+                    uid: decoded.uid,
+                  },
+                },
               }
               : undefined;
             await user.save();
@@ -95,11 +107,11 @@ export const authOptions: NextAuthOptions = {
           if (!user.active) {
             return null;
           }
-          const media: Media | undefined = user.avatar
+          const media: IAttachmentMedia | undefined = user.avatar
             ? {
+              orgId: domain.orgId,
               storageProvider: "custom",
               url: user.avatar.url,
-              mediaId: user.avatar.mediaId,
               originalFileName: user.avatar.originalFileName,
               mimeType: user.avatar.mimeType,
               size: user.avatar.size,
@@ -107,24 +119,23 @@ export const authOptions: NextAuthOptions = {
               thumbnail: user.avatar.thumbnail,
               caption: user.avatar.caption,
               file: user.avatar.file,
+              metadata: user.avatar.metadata,
+              ownerId: user._id,
             }
             : undefined;
           return {
-            id: user.userId,
-            userId: user.userId,
+            id: user._id.toString(),
             email: sanitizedEmail,
-            name: user.name,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            fullName: user.fullName,
+            bio: user.bio,
             avatar: media,
             permissions: user.permissions || [],
             roles: user.roles || [],
             active: user.active,
-            lead: user.lead,
             subscribedToUpdates: user.subscribedToUpdates,
-            purchases: user.purchases || [],
-            tags: user.tags || [],
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-
           };
         } catch (error) {
           if (error instanceof Error) {
@@ -141,19 +152,17 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.user = {
           id: user.id,
-          userId: user.userId,
           email: user.email!,
-          name: user.name || "",
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          fullName: user.fullName,
+          bio: user.bio,
           avatar: user.avatar,
           permissions: user.permissions || [],
           roles: user.roles || [],
           active: user.active,
-          lead: user.lead,
           subscribedToUpdates: user.subscribedToUpdates,
-          purchases: user.purchases || [],
-          tags: user.tags || [],
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
           // Membership data
           currentMembership: user.currentMembership,
         };
@@ -164,7 +173,7 @@ export const authOptions: NextAuthOptions = {
 
     session: async ({ session, token }) => {
       if (token && token.user) {
-        session.user = token.user as any;
+        session.user = token.user;
       }
       return session;
     },
@@ -201,19 +210,17 @@ export const authOptions: NextAuthOptions = {
 declare module "next-auth" {
   interface User {
     id: string;
-    userId: string;
     email: string;
-    name?: string;
-    avatar?: Media;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    bio?: string;
+    avatar?: IAttachmentMedia;
     permissions: string[];
     roles: string[];
     active: boolean;
-    lead: string;
     subscribedToUpdates: boolean;
-    purchases: any[];
-    tags: string[];
-    createdAt: Date;
-    updatedAt: Date;
     // Membership data
     currentMembership?: {
       id: string;
@@ -232,19 +239,17 @@ declare module "next-auth/jwt" {
   interface JWT {
     user: {
       id: string;
-      userId: string;
       email: string;
-      name: string;
-      avatar?: Media;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+      fullName?: string;
+      bio?: string;
+      avatar?: IAttachmentMedia;
       permissions: string[];
       roles: string[];
       active: boolean;
-      lead: string;
       subscribedToUpdates: boolean;
-      purchases: any[];
-      tags: string[];
-      createdAt: Date;
-      updatedAt: Date;
       currentMembership?: {
         id: string;
         entityId: string;

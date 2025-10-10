@@ -1,5 +1,4 @@
 import * as fonts from "@/lib/fonts";
-import { SITE_SETTINGS_DEFAULT_TITLE } from "@/lib/ui/config/strings";
 import { getServerSiteInfo } from "@/server/lib/site-info";
 import { TRPCReactProvider } from "@/server/provider";
 import { TRPCError } from "@trpc/server";
@@ -23,10 +22,10 @@ export async function generateMetadata(): Promise<Metadata> {
   // const { t } = await getT();
 
   return {
-    title: `${siteInfo?.title || SITE_SETTINGS_DEFAULT_TITLE}`,
+    title: `${siteInfo?.title || "Uyren AI"}`,
     description: siteInfo?.subtitle || "",
     openGraph: {
-      title: `${siteInfo?.title || SITE_SETTINGS_DEFAULT_TITLE}`,
+      title: `${siteInfo?.title || "Uyren AI"}`,
       description: siteInfo?.subtitle || "",
       images: [
         {
@@ -36,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
     },
     twitter: {
-      title: `${siteInfo?.title || SITE_SETTINGS_DEFAULT_TITLE}`,
+      title: `${siteInfo?.title || "Uyren AI"}`,
       description: siteInfo?.subtitle || "",
       images: [
         {
@@ -45,8 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       ],
     },
-    generator: "CourseLit",
-    applicationName: "CourseLit",
+    generator: "Uyren AI",
+    applicationName: "Uyren AI",
   };
 }
 

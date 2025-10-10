@@ -1,7 +1,8 @@
-import { v2 as cloudinary } from "cloudinary";
-import { Media, Constants } from "@workspace/common-models";
+import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
+import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { generateUniqueId } from "@workspace/utils";
-import { Domain } from "@/models/Domain";
+import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -12,14 +13,14 @@ cloudinary.config({
 
 export interface CloudinaryUploadOptions {
   file: File | Buffer;
-  userId: string;
+  userId: mongoose.Types.ObjectId;
   type: string;
   caption?: string;
   access?: string;
 }
 
 export interface CloudinaryUploadResult {
-  media: Media;
+  media: IAttachmentMedia;
   mediaData: {
     userId: string;
     domain: string;
@@ -27,7 +28,7 @@ export interface CloudinaryUploadResult {
 }
 
 export class CloudinaryService {
-  static async uploadFile(options: CloudinaryUploadOptions, domain: Domain): Promise<Media> {
+  static async uploadFile(options: CloudinaryUploadOptions, domain: IDomainHydratedDocument): Promise<IAttachmentMedia> {
     const { file, userId, type, caption, access } = options;
 
     if (!file) {
@@ -87,25 +88,26 @@ export class CloudinaryService {
       }
 
       // Create Media object
-      const media: Media = {
+      const media: IAttachmentMedia = {
+        orgId: domain.orgId,
+        ownerId: userId,
         url: uploadResult.secure_url,
-        mediaId: mediaId,
         originalFileName: file instanceof File ? file.name : "uploaded_file",
         mimeType:
           file instanceof File
             ? file.type
             : this.getMimeTypeFromFormat(uploadResult.format),
         size: uploadResult.bytes,
-        access: (access as any) || Constants.MediaAccessType.PUBLIC,
+        access: (access as any) || MediaAccessTypeEnum.PUBLIC,
         thumbnail:
           uploadResult.resource_type === "image"
             ? cloudinary.url(uploadResult.public_id, {
-                width: 200,
-                height: 200,
-                crop: "fill",
-                quality: "auto",
-                fetch_format: "auto",
-              })
+              width: 200,
+              height: 200,
+              crop: "fill",
+              quality: "auto",
+              fetch_format: "auto",
+            })
             : uploadResult.secure_url,
         caption: caption || "",
         storageProvider: "cloudinary",

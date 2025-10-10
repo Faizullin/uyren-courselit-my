@@ -1,4 +1,4 @@
-import { MediaAccessTypeEnum } from "@workspace/common-logic";
+import { MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -10,17 +10,6 @@ export const documentIdValidator = (zod = z) => {
       message: "DocumentId must be a valid MongoDB ObjectId",
     })
     .transform((val) => val); // Keep as string for easier handling
-};
-
-// Legacy int id validators for backwards compatibility
-export const intIdValidator = (zod = z) => {
-  return zod
-    .number()
-    .int()
-    .positive()
-    .refine((val) => Number.isSafeInteger(val), {
-      message: "Id must be safe integer format",
-    });
 };
 
 // Slug: lowercase, numbers, dashes; no leading/trailing dashes

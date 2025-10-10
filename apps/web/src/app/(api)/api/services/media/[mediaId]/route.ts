@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
 import { CloudinaryService } from "@/server/services/cloudinary";
-import MediaModel from "@/models/Media";
-import { connectToDatabase } from "@workspace/common-logic";
+import { connectToDatabase } from "@workspace/common-logic/lib/db";
 
 export async function DELETE(
   request: NextRequest,

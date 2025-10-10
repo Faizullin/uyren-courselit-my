@@ -2,7 +2,7 @@
 
 import { useProfile } from "@/components/contexts/profile-context";
 import { useSiteInfo } from "@/components/contexts/site-info-context";
-import { getPlanPrice } from "@/lib/ui/lib/utils";
+import { getPlanPrice } from "@/lib/ui/utils";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { Constants } from "@workspace/common-models";

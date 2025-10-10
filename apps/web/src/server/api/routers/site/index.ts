@@ -2,6 +2,7 @@ import { router } from "../../core/trpc";
 import { apiKeyRouter } from "./api-key";
 import { domainRouter } from "./domain";
 import { siteInfoRouter } from "./site-info";
+import { tagRouter } from "./tag";
 import { websiteSettingsRouter } from "./website-settings";
 
 export const siteModuleRouter = router({
@@ -9,4 +10,5 @@ export const siteModuleRouter = router({
   domain: domainRouter,
   siteInfo: siteInfoRouter,
   websiteSettings: websiteSettingsRouter,
+  tag: tagRouter,
 });

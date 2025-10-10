@@ -1,15 +1,15 @@
 "use client";
 
-import { Metadata, ResolvingMetadata } from "next";
-import DashboardContent from "@/components/admin/dashboard-content";
-import { CreateButton } from "@/components/admin/layout/create-button";
-import HeaderTopbar from "@/components/admin/layout/header-topbar";
+import DashboardContent from "@/components/dashboard/dashboard-content";
+import { CreateButton } from "@/components/dashboard/layout/create-button";
+import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { useDataTable } from "@/components/data-table/use-data-table";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { type ColumnDef } from "@tanstack/react-table";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -26,10 +26,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const breadcrumbs = [
-  { label: "LMS", href: "#" },
-  { label: "Assignments", href: "#" },
-];
+
 
 type ItemType =
   GeneralRouterOutputs["lmsModule"]["assignmentModule"]["assignment"]["list"]["items"][number];
@@ -57,11 +54,18 @@ export default function Page() {
   const handleArchive = useCallback(
     (assignment: ItemType) => {
       if (confirm("Are you sure you want to archive this assignment?")) {
-        archiveMutation.mutate(assignment.id);
+        archiveMutation.mutate({
+          id: assignment._id,
+        });
       }
     },
     [archiveMutation],
   );
+
+  const breadcrumbs = [
+    { label: "LMS", href: "#" },
+    { label: "Assignments", href: "#" },
+  ];
 
   const columns: ColumnDef<ItemType>[] = useMemo(() => {
     return [
@@ -127,30 +131,30 @@ export default function Page() {
         },
       },
       {
-        accessorKey: "status",
-        header: t("table.status"),
+        accessorKey: "publicationStatus",
+        header: t("table.publicationStatus"),
         cell: ({ row }) => {
-          const status = row.original.status;
-          const getStatusVariant = (status: string) => {
+          const status = row.original.publicationStatus;
+          const getStatusVariant = (status: PublicationStatusEnum) => {
             switch (status) {
-              case "published":
+              case PublicationStatusEnum.PUBLISHED:
                 return "default";
-              case "draft":
-                return "secondary";
-              case "archived":
-                return "destructive";
+              case PublicationStatusEnum.DRAFT:
+                return "secondary"
+              case PublicationStatusEnum.ARCHIVED:
+                return "destructive"
               default:
                 return "secondary";
             }
           };
 
-          const getStatusLabel = (status: string) => {
+          const getStatusLabel = (status: PublicationStatusEnum) => {
             switch (status) {
-              case "published":
+              case PublicationStatusEnum.PUBLISHED:
                 return t("table.published");
-              case "draft":
+              case PublicationStatusEnum.DRAFT:
                 return t("table.draft");
-              case "archived":
+              case PublicationStatusEnum.ARCHIVED:
                 return t("table.archived");
               default:
                 return t("table.unknown");
@@ -205,18 +209,18 @@ export default function Page() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/lms/assignments/${obj.id}`}>
+                  <Link href={`/dashboard/lms/assignments/${obj._id}`}>
                     <Eye className="h-4 w-4 mr-2" />
                     {t("table.view_details")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/lms/assignments/${obj.id}`}>
+                  <Link href={`/dashboard/lms/assignments/${obj._id}`}>
                     <Edit className="h-4 w-4 mr-2" />
                     {t("table.edit")}
                   </Link>
                 </DropdownMenuItem>
-                {obj.status !== "archived" && (
+                {obj.publicationStatus !== PublicationStatusEnum.ARCHIVED && (
                   <DropdownMenuItem
                     onClick={() => handleArchive(obj)}
                     className="text-orange-600"
@@ -250,14 +254,14 @@ export default function Page() {
         take: tableState.pagination.pageSize,
       },
       filter: {
-        status: Array.isArray(
-          tableState.columnFilters.find((filter) => filter.id === "status")
+        publicationStatus: Array.isArray(
+          tableState.columnFilters.find((filter) => filter.id === "publicationStatus")
             ?.value,
         )
           ? ((
-              tableState.columnFilters.find((filter) => filter.id === "status")
-                ?.value as string[]
-            )[0] as "published" | "draft" | "archived")
+            tableState.columnFilters.find((filter) => filter.id === "publicationStatus")
+              ?.value as PublicationStatusEnum[]
+          )[0])
           : undefined,
       },
     };

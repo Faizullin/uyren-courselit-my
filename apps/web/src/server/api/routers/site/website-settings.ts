@@ -1,11 +1,9 @@
-import { Domain } from "@/models/Domain";
-import WebsiteSettingsModel from "@/models/WebsiteSettings";
 import WebsiteSettingsManager from "@/server/lib/website-settings-manager";
-import { UIConstants } from "@workspace/common-models";
+import { WebsiteSettingsModel } from "@workspace/common-logic/models/pages/website-settings.model";
 import { z } from "zod";
 import {
+  adminProcedure,
   createDomainRequiredMiddleware,
-  createPermissionMiddleware,
   protectedProcedure,
   publicProcedure,
 } from "../../core/procedures";
@@ -13,46 +11,25 @@ import { getFormDataSchema } from "../../core/schema";
 import { router } from "../../core/trpc";
 import { textEditorContentValidator } from "../../core/validators";
 
-const { permissions } = UIConstants;
-
-const createWebsiteSettings = async (domainObj: Domain) => {
-  const created = await WebsiteSettingsModel.create({
-    domain: domainObj._id,
-    mainPage: {
-      showBanner: true,
-      bannerTitle: "Welcome to Our Learning Platform",
-      bannerSubtitle: "Discover amazing courses and grow your skills",
-      featuredCourses: [],
-      featuredReviews: [],
-      showStats: true,
-      showFeatures: true,
-      showTestimonials: true,
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-  return created;
-};
 
 export const websiteSettingsRouter = router({
   // Get website settings for current domain (public)
   getPublicWebsiteSettings: publicProcedure
     .use(createDomainRequiredMiddleware())
     .query(async ({ ctx }) => {
-      return await WebsiteSettingsManager.getOrCreate(ctx.domainData.domainObj._id.toString());
+      return await WebsiteSettingsManager.getOrCreate(ctx.domainData.domainObj);
     }),
 
   // Get website settings for current domain (protected)
   getWebsiteSettings: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .query(async ({ ctx }) => {
-      return await WebsiteSettingsManager.getOrCreate(ctx.domainData.domainObj._id.toString());
+      return await WebsiteSettingsManager.getOrCreate(ctx.domainData.domainObj);
     }),
 
   // Update website settings
-  updateWebsiteSettings: protectedProcedure
+  updateWebsiteSettings: adminProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([permissions.manageSettings]))
     .input(
       getFormDataSchema({
         mainPage: z.object({
@@ -65,13 +42,10 @@ export const websiteSettingsRouter = router({
                 courseId: z.string().min(1, "Course ID is required"),
                 title: z.string().min(1, "Course title is required"),
                 slug: z.string().min(1, "Course slug is required"),
-                shortDescription: z.string(),
-                level: z
-                  .enum(["beginner", "intermediate", "advanced"]),
-                duration: z
-                  .number()
-                  .min(0, "Duration must be at least 0"),
-                isFeatured: z.boolean(),
+                shortDescription: z.string().optional(),
+                level: z.enum(["beginner", "intermediate", "advanced"]),
+                durationInWeeks: z.number().min(0, "Duration must be at least 0").optional(),
+                featured: z.boolean(),
                 order: z.number().min(0, "Order must be at least 0"),
               }),
             )
@@ -80,14 +54,17 @@ export const websiteSettingsRouter = router({
             .array(
               z.object({
                 reviewId: z.string().min(1, "Review ID is required"),
-                author: z.any(),
+                author: z.object({
+                  _id: z.string().min(1, "Author ID is required"),
+                  username: z.string().optional(),
+                  fullName: z.string().min(1, "Author name is required"),
+                  avatar: z.any().optional(),
+                }),
                 rating: z
                   .number()
                   .min(1, "Rating must be at least 1")
                   .max(10, "Rating cannot exceed 10"),
-                content: textEditorContentValidator().optional(),
-                targetType: z.string(),
-                targetId: z.string(),
+                content: z.any(),
                 order: z.number().min(0, "Order must be at least 0"),
               }),
             )
@@ -112,13 +89,12 @@ export const websiteSettingsRouter = router({
       } else {
         // Update existing settings
         Object.assign(websiteSettings, input.data);
-        websiteSettings.updatedAt = new Date();
       }
 
       await websiteSettings.save();
 
-      // Update Redis cache
-      await WebsiteSettingsManager.add(ctx.domainData.domainObj._id.toString(), websiteSettings.toObject());
+      // Invalidate Redis cache so it fetches fresh data
+      await WebsiteSettingsManager.invalidateCache(ctx.domainData.domainObj.orgId);
 
       return websiteSettings;
     }),

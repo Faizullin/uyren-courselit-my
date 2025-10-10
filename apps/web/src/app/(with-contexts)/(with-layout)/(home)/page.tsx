@@ -8,6 +8,6 @@ export default async function HomePage() {
   if (!domainObj) {
     throw new Error("Domain not found");
   }
-  const websiteSettings = await WebsiteSettingsManager.getOrCreate(domainObj._id.toString());
-  return <HomePageClient websiteSettings={websiteSettings} />;
+  const websiteSettings = await WebsiteSettingsManager.getOrCreate(domainObj);
+  return <HomePageClient websiteSettings={JSON.parse(JSON.stringify(websiteSettings))} />;
 }

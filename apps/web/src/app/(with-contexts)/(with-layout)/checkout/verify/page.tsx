@@ -1,34 +1,32 @@
 "use client";
 
-import { InvoicesStatus } from "@workspace/common-models";
+import { InvoiceStatusEnum } from "@workspace/common-logic/models/payment/invoice.types";
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { CheckCircle, Clock, AlertCircle, Home } from "lucide-react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { PaymentVerificationStatus } from "./payment-verification-status";
-import { useAddress } from "@/components/contexts/address-context";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Badge } from "@workspace/ui/components/badge";
+import { AlertCircle, CheckCircle, Clock } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { PaymentVerificationStatus } from "./payment-verification-status";
 
 export default function Page() {
   const params = useSearchParams();
   const id = params?.get("id");
-  const [paymentStatus, setPaymentStatus] = useState<InvoicesStatus>("pending");
+  const [paymentStatus, setPaymentStatus] = useState<InvoiceStatusEnum>(InvoiceStatusEnum.PENDING);
   const [loading, setLoading] = useState(false);
-  const { address } = useAddress();
 
   const verifyPayment = async () => {
-    setPaymentStatus("pending"); // Hide check status again
+    setPaymentStatus(InvoiceStatusEnum.PENDING); // Hide check status again
     try {
       setLoading(true);
       const response = await fetch(
-        `${address.backend}/api/payment/verify-new`,
+        `/api/payment/verify-new`,
         {
           method: "POST",
           headers: {
@@ -52,15 +50,15 @@ export default function Page() {
     verifyPayment();
   }, []);
 
-  const getStatusIcon = (status: InvoicesStatus) => {
+  const getStatusIcon = (status: InvoiceStatusEnum) => {
     switch (status) {
-      case "paid":
+      case InvoiceStatusEnum.PAID:
         return (
           <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-white" />
           </div>
         );
-      case "pending":
+      case InvoiceStatusEnum.PENDING:
         return (
           <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <Clock className="w-10 h-10 text-white" />
@@ -75,22 +73,22 @@ export default function Page() {
     }
   };
 
-  const getStatusTitle = (status: InvoicesStatus) => {
+  const getStatusTitle = (status: InvoiceStatusEnum) => {
     switch (status) {
-      case "paid":
+      case InvoiceStatusEnum.PAID:
         return "Payment Verified Successfully!";
-      case "pending":
+      case InvoiceStatusEnum.PENDING:
         return "Payment Verification in Progress";
       default:
         return "Payment Verification Failed";
     }
   };
 
-  const getStatusDescription = (status: InvoicesStatus) => {
+  const getStatusDescription = (status: InvoiceStatusEnum) => {
     switch (status) {
-      case "paid":
+      case InvoiceStatusEnum.PAID:
         return "Your payment has been confirmed and your order is being processed.";
-      case "pending":
+      case InvoiceStatusEnum.PENDING:
         return "We're currently verifying your payment. This usually takes a few minutes.";
       default:
         return "There was an issue verifying your payment. Please contact support.";
@@ -137,7 +135,7 @@ export default function Page() {
             </div>
 
             {/* Status Specific Content */}
-            {paymentStatus === "paid" ? (
+            {paymentStatus === InvoiceStatusEnum.PAID ? (
               <div className="space-y-4">
                 <p className="text-muted-foreground">
                   We have sent a confirmation email with order details and
@@ -148,7 +146,7 @@ export default function Page() {
                     asChild
                     className="bg-brand-primary hover:bg-brand-primary-hover text-white"
                   >
-                    <Link href="/dashboard/my-content">Go to Dashboard</Link>
+                    <Link href="/dashboard">Go to Dashboard</Link>
                   </Button>
                   <Button variant="outline" asChild>
                     <Link href="/support">Need Help?</Link>
