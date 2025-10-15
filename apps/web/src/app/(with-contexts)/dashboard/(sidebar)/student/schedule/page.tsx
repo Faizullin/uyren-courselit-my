@@ -10,10 +10,15 @@ import { Calendar, Clock, MapPin, Video, Users, BookOpen, Code, PlayCircle, Bell
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { Calendar as ShadcnCalendar } from "@workspace/ui/components/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@workspace/ui/components/popover";
+import { format } from "date-fns";
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
     const breadcrumbs = [{ label: t("common:dashboard.schedule.title"), href: "#" }];
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+    const [filter, setFilter] = useState("all");
 
     // IT-focused schedule data
     const schedule = [
@@ -23,7 +28,7 @@ export default function Page() {
             course: "Python Programming Fundamentals",
             courseId: "1",
             type: "live",
-            date: "2024-01-15",
+            date: "2025-10-15",
             time: "09:00 - 10:30",
             duration: "90 min",
             location: "Virtual Classroom A",
@@ -40,7 +45,7 @@ export default function Page() {
             course: "Web Development Bootcamp",
             courseId: "2",
             type: "review",
-            date: "2024-01-15",
+            date: "2025-10-15",
             time: "14:00 - 15:30",
             duration: "90 min",
             location: "Online",
@@ -57,7 +62,7 @@ export default function Page() {
             course: "Data Science with Python",
             courseId: "3",
             type: "office",
-            date: "2024-01-16",
+            date: "2025-10-16",
             time: "11:00 - 12:00",
             duration: "60 min",
             location: "Zoom Room 3",
@@ -74,7 +79,7 @@ export default function Page() {
             course: "Cloud Computing & AWS",
             courseId: "4",
             type: "workshop",
-            date: "2024-01-17",
+            date: "2025-10-17",
             time: "10:00 - 12:00",
             duration: "120 min",
             location: "Lab 205",
@@ -91,7 +96,7 @@ export default function Page() {
             course: "Mobile App Development",
             courseId: "5",
             type: "qa",
-            date: "2024-01-18",
+            date: "2025-10-18",
             time: "13:00 - 14:00",
             duration: "60 min",
             location: "Online",
@@ -108,7 +113,7 @@ export default function Page() {
             course: "Cybersecurity Fundamentals",
             courseId: "6",
             type: "lab",
-            date: "2024-01-19",
+            date: "2025-10-19",
             time: "15:00 - 17:00",
             duration: "120 min",
             location: "Security Lab B",
@@ -121,34 +126,32 @@ export default function Page() {
         }
     ];
 
-    const [filter, setFilter] = useState("all");
-
     const filteredSchedule = schedule.filter(item => {
         if (filter === "all") return true;
         return item.type === filter;
     });
 
-    // Group schedule by date
-    const groupedSchedule = filteredSchedule.reduce<Record<string, typeof schedule>>((acc, item) => {
-        const date = item.date;
-        if (!acc[date]) {
-            acc[date] = [];
-        }
-        const dateArray = acc[date];
-        if (dateArray) {
-                    dateArray.push(item);
-                }
-        return acc;
-    }, {});
+    // Get schedule for selected date
+    const getScheduleForDate = (date: Date) => {
+        const dateString = date.toISOString().split('T')[0];
+        return filteredSchedule.filter(item => item.date === dateString);
+    };
+
+    const selectedDateSchedule = selectedDate ? getScheduleForDate(selectedDate) : [];
+
+    // Get dates that have events for calendar highlighting
+    const getEventDates = () => {
+        return filteredSchedule.map(item => new Date(item.date));
+    };
 
     const getTypeConfig = (type: string) => {
         const configs = {
-            live: { variant: "default" as const, text: "Live Session", color: "text-blue-600", bgColor: "bg-blue-100" },
-            review: { variant: "secondary" as const, text: "Code Review", color: "text-green-600", bgColor: "bg-green-100" },
-            office: { variant: "outline" as const, text: "Office Hours", color: "text-purple-600", bgColor: "bg-purple-100" },
-            workshop: { variant: "default" as const, text: "Workshop", color: "text-orange-600", bgColor: "bg-orange-100" },
-            qa: { variant: "secondary" as const, text: "Q&A Session", color: "text-indigo-600", bgColor: "bg-indigo-100" },
-            lab: { variant: "outline" as const, text: "Lab Session", color: "text-red-600", bgColor: "bg-red-100" }
+            live: { variant: "default" as const, text: "Live Session", color: "text-blue-400", bgColor: "bg-blue-900/50" },
+            review: { variant: "secondary" as const, text: "Code Review", color: "text-green-400", bgColor: "bg-green-900/50" },
+            office: { variant: "outline" as const, text: "Office Hours", color: "text-purple-400", bgColor: "bg-purple-900/50" },
+            workshop: { variant: "default" as const, text: "Workshop", color: "text-orange-400", bgColor: "bg-orange-900/50" },
+            qa: { variant: "secondary" as const, text: "Q&A Session", color: "text-indigo-400", bgColor: "bg-indigo-900/50" },
+            lab: { variant: "outline" as const, text: "Lab Session", color: "text-red-400", bgColor: "bg-red-900/50" }
         };
         return configs[type as keyof typeof configs] || configs.live;
     };
@@ -201,8 +204,8 @@ export default function Page() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                    <Calendar className="h-5 w-5 text-blue-600" />
+                                <div className="p-2 bg-blue-900/50 rounded-lg">
+                                    <Calendar className="h-5 w-5 text-blue-400" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Today</p>
@@ -214,8 +217,8 @@ export default function Page() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-100 rounded-lg">
-                                    <Clock className="h-5 w-5 text-green-600" />
+                                <div className="p-2 bg-green-900/50 rounded-lg">
+                                    <Clock className="h-5 w-5 text-green-400" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">This Week</p>
@@ -227,8 +230,8 @@ export default function Page() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-orange-100 rounded-lg">
-                                    <Video className="h-5 w-5 text-orange-600" />
+                                <div className="p-2 bg-orange-900/50 rounded-lg">
+                                    <Video className="h-5 w-5 text-orange-400" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Live Sessions</p>
@@ -240,8 +243,8 @@ export default function Page() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-100 rounded-lg">
-                                    <Code className="h-5 w-5 text-purple-600" />
+                                <div className="p-2 bg-purple-900/50 rounded-lg">
+                                    <Code className="h-5 w-5 text-purple-400" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Labs & Workshops</p>
@@ -251,6 +254,96 @@ export default function Page() {
                         </CardContent>
                     </Card>
                 </div>
+
+{/* Calendar Section */}
+<Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Calendar className="h-5 w-5" />
+      Schedule Calendar
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left side: Calendar */}
+      <div className="flex justify-center items-center">
+        <ShadcnCalendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(day) => setSelectedDate(day)}
+          modifiers={{
+            booked: filteredSchedule.map((s) => new Date(s.date)),
+          }}
+          modifiersClassNames={{
+            booked: "bg-blue-500 text-white rounded-full",
+          }}
+          className="rounded-md border text-lg p-6 scale-125 lg:scale-150 transition-transform"
+        />
+      </div>
+
+      {/* Right side: Events for selected date */}
+      <div>
+        <h3 className="font-semibold mb-2">
+          {selectedDate
+            ? `Events on ${format(selectedDate, "PPP")}`
+            : "Select a date to view events"}
+        </h3>
+
+        <div className="space-y-3">
+          {filteredSchedule
+            .filter((item) => {
+              if (!selectedDate) return false;
+              return (
+                new Date(item.date).toDateString() ===
+                selectedDate.toDateString()
+              );
+            })
+            .map((item) => {
+              const typeConfig = getTypeConfig(item.type);
+              return (
+                <div
+                  key={item.id}
+                  className="p-3 border rounded-lg flex justify-between items-start hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {getTypeIcon(item.type)}
+                      <h4 className="font-medium">{item.title}</h4>
+                      <Badge variant={typeConfig.variant}>
+                        {typeConfig.text}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {item.time} ({item.duration}) — {item.location}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline">
+                    Join
+                  </Button>
+                </div>
+              );
+            })}
+        </div>
+
+        {/* Empty state */}
+        {selectedDate &&
+          filteredSchedule.filter(
+            (item) =>
+              new Date(item.date).toDateString() ===
+              selectedDate.toDateString()
+          ).length === 0 && (
+            <div className="text-muted-foreground text-sm py-4 text-center">
+              No events scheduled for this day.
+            </div>
+          )}
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
 
                 {/* Filters */}
                 <div className="flex flex-wrap gap-2">
@@ -291,11 +384,11 @@ export default function Page() {
                     </Button>
                 </div>
 
-                {/* Today's Schedule */}
+                {/* Today's Schedule - FIXED FOR DARK THEME */}
                 {todaySchedule.length > 0 && (
-                    <Card className="border-blue-200 bg-blue-50">
+                    <Card className="border-blue-800 bg-blue-950/30">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-blue-900">
+                            <CardTitle className="flex items-center gap-2 text-blue-300">
                                 <Calendar className="h-5 w-5" />
                                 Today's Schedule
                             </CardTitle>
@@ -305,7 +398,7 @@ export default function Page() {
                                 {todaySchedule.map((item) => {
                                     const typeConfig = getTypeConfig(item.type);
                                     return (
-                                        <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-blue-200">
+                                        <div key={item.id} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-blue-800">
                                             <div className="flex items-start gap-4 flex-1">
                                                 <div className={`p-2 rounded-lg ${typeConfig.bgColor} ${typeConfig.color}`}>
                                                     {getTypeIcon(item.type)}
@@ -356,113 +449,6 @@ export default function Page() {
                     </Card>
                 )}
 
-                {/* Schedule by Date */}
-                <div className="space-y-6">
-                    {Object.entries(groupedSchedule)
-                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                        .map(([date, events]) => (
-                            <Card key={date}>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Calendar className="h-5 w-5" />
-                                        {formatDate(date)}
-                                        {isToday(date) && (
-                                            <Badge variant="default" className="bg-green-100 text-green-800">
-                                                Today
-                                            </Badge>
-                                        )}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {events.map((item) => {
-                                            const typeConfig = getTypeConfig(item.type);
-                                            return (
-                                                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                                                    <div className="flex items-start gap-4 flex-1">
-                                                        <div className={`p-2 rounded-lg ${typeConfig.bgColor} ${typeConfig.color}`}>
-                                                            {getTypeIcon(item.type)}
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <h3 className="font-semibold">{item.title}</h3>
-                                                                <Badge variant={typeConfig.variant}>
-                                                                    {typeConfig.text}
-                                                                </Badge>
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
-                                                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                                                <span className="flex items-center gap-1">
-                                                                    <Clock className="h-3 w-3" />
-                                                                    {item.time} ({item.duration})
-                                                                </span>
-                                                                <span className="flex items-center gap-1">
-                                                                    {item.location === 'Online' ? (
-                                                                        <Video className="h-3 w-3" />
-                                                                    ) : (
-                                                                        <MapPin className="h-3 w-3" />
-                                                                    )}
-                                                                    {item.location}
-                                                                </span>
-                                                                <span className="flex items-center gap-1">
-                                                                    <BookOpen className="h-3 w-3" />
-                                                                    {item.course}
-                                                                </span>
-                                                                <span className="flex items-center gap-1">
-                                                                    <Users className="h-3 w-3" />
-                                                                    {item.students} students
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-col gap-2">
-                                                        {isUpcoming(item.date) ? (
-                                                            <>
-                                                                <Button size="sm" className="flex items-center gap-1">
-                                                                    <PlayCircle className="h-4 w-4" />
-                                                                    Join
-                                                                </Button>
-                                                                {item.recordingAvailable && (
-                                                                    <Button variant="outline" size="sm">
-                                                                        <Video className="h-4 w-4" />
-                                                                        Recording
-                                                                    </Button>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <Button variant="outline" size="sm">
-                                                                <Video className="h-4 w-4" />
-                                                                View Recording
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                </div>
-
-                {/* Empty State */}
-                {filteredSchedule.length === 0 && (
-                    <Card>
-                        <CardContent className="p-8 text-center">
-                            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">No scheduled events</h3>
-                            <p className="text-muted-foreground mb-4">
-                                {filter === "all" 
-                                    ? "You don't have any scheduled events for the selected period." 
-                                    : `No ${filter} events match your filter.`}
-                            </p>
-                            <Button>
-                                Browse Available Sessions
-                            </Button>
-                        </CardContent>
-                    </Card>
-                )}
-
                 {/* Upcoming Highlights */}
                 {upcomingSchedule.length > 0 && (
                     <Card>
@@ -505,6 +491,24 @@ export default function Page() {
                                     );
                                 })}
                             </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Empty State */}
+                {filteredSchedule.length === 0 && (
+                    <Card>
+                        <CardContent className="p-8 text-center">
+                            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">No scheduled events</h3>
+                            <p className="text-muted-foreground mb-4">
+                                {filter === "all" 
+                                    ? "You don't have any scheduled events for the selected period." 
+                                    : `No ${filter} events match your filter.`}
+                            </p>
+                            <Button>
+                                Browse Available Sessions
+                            </Button>
                         </CardContent>
                     </Card>
                 )}

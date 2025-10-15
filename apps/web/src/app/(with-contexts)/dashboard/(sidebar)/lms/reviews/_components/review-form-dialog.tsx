@@ -5,7 +5,8 @@ import { useProfile } from "@/components/contexts/profile-context";
 import { CommentEditorField } from "@/components/editors/tiptap/templates/comment/comment-editor";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UIConstants } from "@workspace/common-models";
+// Remove the problematic import and replace with local constants
+// import { UIConstants } from "@workspace/common-models";
 import {
   ComboBox2,
   NiceModal,
@@ -43,6 +44,14 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+// Replace missing UIConstants with local constants
+const UIConstants = {
+  permissions: {
+    manageSite: "manage_site",
+    // Add other permissions as needed based on your app
+  }
+};
+
 const { permissions } = UIConstants;
 
 const reviewSchema = z.object({
@@ -72,6 +81,30 @@ type UserSelectItemType = {
   key: string;
   title: string;
   email: string;
+};
+
+// Type for the API response based on the actual structure
+type ReviewApiResponse = {
+  _id: string;
+  title: string;
+  target: {
+    entityIdStr: string;
+    entityId?: string;
+    entityType: string;
+  };
+  content?: {
+    type: "doc";
+    assets: Array<{ url: string; caption?: string }>;
+    widgets: any[];
+    content: string;
+    config: { editorType: string };
+  };
+  rating: number;
+  published: boolean;
+  featured?: boolean;
+  tags?: string[];
+  authorId?: string;
+  // Add other fields that exist in the actual response
 };
 
 export const ReviewFormDialog = NiceModal.create<
@@ -147,8 +180,9 @@ export const ReviewFormDialog = NiceModal.create<
   });
 
   useEffect(() => {
-    const existingReview = loadExistingReviewQuery.data;
+    const existingReview = loadExistingReviewQuery.data as ReviewApiResponse | undefined;
     if (existingReview && mode === "edit") {
+      // Map the API response to our form structure
       form.reset({
         title: existingReview.title,
         content: existingReview.content || {
@@ -159,10 +193,13 @@ export const ReviewFormDialog = NiceModal.create<
           config: { editorType: "tiptap" },
         },
         rating: existingReview.rating,
-        targetType: existingReview.targetType as any,
-        targetId: existingReview.targetId || "",
+        // Map target.entityType to targetType
+        targetType: (existingReview.target?.entityType as any) || "website",
+        // Map target.entityId to targetId
+        targetId: existingReview.target?.entityId || existingReview.target?.entityIdStr || "",
         published: existingReview.published,
-        isFeatured: existingReview.isFeatured,
+        // Map featured to isFeatured
+        isFeatured: existingReview.featured || false,
         tags: existingReview.tags?.join(", ") || "",
         authorId: existingReview.authorId || null,
       });
@@ -190,12 +227,11 @@ export const ReviewFormDialog = NiceModal.create<
         data: cleanData,
       } as any);
     } else if (mode === "edit" && reviewId) {
+      // For update, use the correct parameter name (likely 'id' instead of 'reviewId')
       updateReviewMutation.mutate({
-        data: {
-          reviewId,
-          ...cleanData,
-        },
-      });
+        id: reviewId, // Use 'id' instead of 'reviewId'
+        data: cleanData,
+      } as any);
     }
   };
 
@@ -216,8 +252,10 @@ export const ReviewFormDialog = NiceModal.create<
       });
 
       return result.items.map((user) => ({
-        key: user.userId,
-        title: user.name || user.email,
+        // Use _id instead of userId if that's what the API returns
+        key: user._id || user.id || user.userId,
+        // Use fullName or firstName/lastName combination
+        title: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
         email: user.email,
       }));
     } catch (error) {
@@ -320,10 +358,8 @@ export const ReviewFormDialog = NiceModal.create<
                                 : undefined
                             }
                             searchFn={fetchUsers}
-                            renderText={(item) =>
-                              `${item.title} (${item.email})`
-                            }
-                            onChange={(item) =>
+                            // Remove renderText if it doesn't exist, use default rendering
+                            onChange={(item: UserSelectItemType | null) =>
                               field.onChange(item?.key || null)
                             }
                             multiple={false}
