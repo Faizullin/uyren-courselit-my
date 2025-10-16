@@ -8,15 +8,6 @@ import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -39,14 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
   Edit,
@@ -59,8 +42,6 @@ import {
   LayoutDashboard,
   CheckSquare,
   Type,
-  ListOrdered,
-  Square,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -163,44 +144,7 @@ export default function QuizQuestions() {
     );
   const questions = loadQuestionsQuery.data?.items || [];
 
-  const createQuestionMutation =
-    trpc.lmsModule.quizModule.quizQuestions.create.useMutation({
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Question created successfully",
-        });
-        loadQuestionsQuery.refetch();
-        setIsEditing(false);
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
 
-  const updateQuestionMutation =
-    trpc.lmsModule.quizModule.quizQuestions.update.useMutation({
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Question updated successfully",
-        });
-        loadQuestionsQuery.refetch();
-        setIsEditing(false);
-        setSelectedQuestion(null);
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
 
   const deleteQuestionMutation =
     trpc.lmsModule.quizModule.quizQuestions.delete.useMutation({
@@ -779,18 +723,6 @@ const handleSubmit = async (data: any) => {
 
   const addOption = () => {
     appendOption({ uid: generateUid(options.length), text: "", isCorrect: false });
-  };
-
-  const addBlank = () => {
-    appendBlank({ position: blanks.length, correctAnswer: "", caseSensitive: false });
-  };
-
-  const addPair = () => {
-    appendPair({ question: "", answer: "" });
-  };
-
-  const addItem = () => {
-    appendItem({ text: "", correctPosition: items.length });
   };
 
   const formState = form.watch();
