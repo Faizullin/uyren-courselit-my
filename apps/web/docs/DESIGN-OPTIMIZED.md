@@ -4,7 +4,7 @@
 
 Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
-**Total Routes: 34** (vs 131 original = -74% reduction)
+**Total Routes: 45+** (optimized with dialogs and tabs)
 
 ---
 
@@ -13,9 +13,10 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 | Section | Routes | Description |
 |---------|--------|-------------|
 | Public Routes | 10 | Marketing, course catalog, authentication |
-| Student Dashboard | 8-9 | Learning interface, assignments, schedule |
-| Instructor Dashboard | 9 | Course creation, grading, analytics |
-| Admin Dashboard | 7 | User management, platform settings |
+| Student Dashboard | 12 | Learning interface, assignments, schedule, progress |
+| Instructor Dashboard | 15 | Course creation, grading, analytics, themes |
+| Admin Dashboard | 9 | User management, platform settings, studio |
+| Other | 3 | Instructor landing, profile, notifications |
 
 ---
 
@@ -212,9 +213,9 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-## 👨‍🎓 Student Dashboard (8-9)
+## 👨‍🎓 Student Dashboard (12)
 
-### 1. `/dashboard` - Student Home
+### 1. `/dashboard/student` - Student Home
 **Purpose:** Central hub for student activity
 **Features:**
 - **Enrolled Courses Widget:**
@@ -250,7 +251,7 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 2. `/dashboard/my-courses` - Course List
+### 2. `/dashboard/student/courses` - Course List
 **Purpose:** View and manage all enrolled courses
 **Features:**
 - Course cards with detailed info:
@@ -280,7 +281,7 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 3. `/dashboard/my-courses/[courseId]` - Course Player
+### 3. `/dashboard/student/courses/[course_slug]` - Course Player
 **Purpose:** Main learning interface for course content
 **Layout:**
 - **Left Sidebar (Lesson Navigation):**
@@ -342,7 +343,28 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 4. `/dashboard/assignments` - All Assignments
+### 4. `/dashboard/student/courses/[course_slug]/lessons/[lesson_slug]` - Lesson Viewer
+**Purpose:** View individual lesson content
+**Features:**
+- Video player with controls
+- Text content display
+- PDF viewer
+- Audio player
+- Downloadable files
+- Lesson notes section
+- Previous/Next lesson buttons
+- Mark as complete button
+- Progress tracking
+
+**Actions:**
+- *Button:* Mark lesson complete
+- *Button:* Download resources
+- *Button:* Take notes
+- *Button:* Ask question
+
+---
+
+### 5. `/dashboard/student/assignments` - All Assignments
 **Purpose:** View assignments across all enrolled courses
 **Features:**
 - Assignment list with cards showing:
@@ -387,56 +409,111 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 5. `/dashboard/quizzes` - All Quizzes
-**Purpose:** View quizzes across all courses
+### 6. `/dashboard/student/assignments/[id]` - Assignment Details
+**Purpose:** View and submit individual assignment
 **Features:**
-- Quiz cards showing:
-  - Quiz title and course
-  - Due date and availability window
-  - Time limit (if any)
-  - Number of questions
-  - Attempts used / Attempts allowed
-  - Best score / Latest score
-  - Status (Available, In Progress, Completed, Closed)
-- **Filters:**
-  - Status (Available, Completed, Upcoming, Overdue)
-  - Course
-- **Sort by:**
-  - Due date
-  - Course name
-  - Score
-- Statistics:
-  - Quizzes completed
-  - Average score
-  - Perfect scores
+- Assignment description and requirements
+- Due date and status
+- File upload capability
+- Rich text editor for submissions
+- Submission history
+- Graded feedback view
+- Rubric display
 
 **Actions:**
-- *Dialog:* Quiz instructions
-  - Number of questions
-  - Time limit
-  - Passing score
-  - Attempt rules
-  - When results will be available
-  - Start quiz button
-- *Full-screen Dialog:* Take quiz
-  - Question navigation sidebar
-  - Timer countdown
-  - Flag questions for review
-  - Save progress
-  - Submit confirmation
-  - Auto-submit when time expires
-- *Dialog:* View results
-  - Total score and percentage
-  - Pass/Fail status
-  - Question-by-question breakdown
-  - Correct answers (if allowed)
-  - Explanations
-  - Time taken
-  - Attempt history
+- *Dialog:* Submit assignment
+- *Dialog:* View feedback
+- *Button:* Download resources
+- *Button:* Resubmit (if allowed)
 
 ---
 
-### 6. `/dashboard/schedule` - Calendar View
+### 7. `/dashboard/student/quizzes/[id]` - Take Quiz
+**Purpose:** Take quiz or exam
+**Features:**
+- Quiz instructions
+- Question navigation
+- Timer countdown (if timed)
+- Flag questions for review
+- Save progress
+- Auto-submit on time expiration
+
+**Actions:**
+- *Button:* Submit quiz
+- *Button:* Save draft
+- *Button:* Flag for review
+
+---
+
+### 8. `/dashboard/student/quizzes/[id]/results` - Quiz Results
+**Purpose:** View quiz results and feedback
+**Features:**
+- Total score and percentage
+- Pass/Fail status
+- Question-by-question breakdown
+- Correct answers (if allowed)
+- Explanations
+- Time taken
+- Attempt history
+
+**Actions:**
+- *Button:* Retake quiz (if allowed)
+- *Button:* View explanations
+
+---
+
+### 9. `/dashboard/student/grades` - Grades
+**Purpose:** View all grades and academic performance
+**Features:**
+- Course-wise grade breakdown
+- Assignment grades
+- Quiz scores
+- Overall GPA/average
+- Grade trends and charts
+- Completed vs pending work
+
+**Filters:**
+- Course filter
+- Assignment/Quiz filter
+- Date range
+
+---
+
+### 10. `/dashboard/student/my-content` - My Content
+**Purpose:** Manage student's own created content
+**Features:**
+- Uploaded files and documents
+- Notes and annotations
+- Bookmarked lessons
+- Saved resources
+- Content organization
+
+**Actions:**
+- *Button:* Upload content
+- *Button:* Organize content
+- *Button:* Share content
+
+---
+
+### 11. `/dashboard/student/my-progress` - My Progress
+**Purpose:** Track learning progress and achievements
+**Features:**
+- Overall progress metrics
+- Course completion percentages
+- Learning streak
+- Time spent learning
+- Certificates earned
+- Achievements and badges
+- Goals and milestones
+
+**Charts:**
+- Progress over time
+- Course completion trends
+- Learning activity heatmap
+
+---
+
+### 12. `/dashboard/student/schedule` - Calendar View
 **Purpose:** Unified calendar for all course activities
 **Features:**
 - **Calendar Views:**
@@ -478,196 +555,9 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 7. `/dashboard/messages` - Chat & Messaging
-**Purpose:** Communication with instructors and peers
-**Layout:**
-- **Split View Design:**
-  - **Left Panel (30%):** Conversation list
-  - **Right Panel (70%):** Active conversation
-
-**Left Panel - Conversations:**
-- Search conversations
-- **Filters:**
-  - All messages
-  - Unread only
-  - Direct messages
-  - Course groups
-  - Starred
-- Conversation items showing:
-  - Participant avatar and name
-  - Last message preview
-  - Timestamp
-  - Unread badge count
-  - Online status indicator
-  - Course context (if course-related)
-
-**Right Panel - Active Chat:**
-- Message thread with:
-  - Date separators
-  - Message bubbles (sent/received)
-  - Timestamps
-  - Read receipts
-  - Typing indicators
-  - File attachments
-  - Link previews
-  - Emoji reactions
-- **Message Input:**
-  - Rich text formatting
-  - File upload (drag-and-drop)
-  - Emoji picker
-  - @mentions
-  - Code snippets
-  - Send button / Enter to send
-- **Chat Header:**
-  - Participant info
-  - Online status
-  - Course context
-  - Video call button (if available)
-  - Settings (mute, archive, etc.)
-
-**Actions:**
-- *Dialog:* New conversation
-  - Search users/instructors
-  - Select course context (optional)
-  - Initial message
-- *Dialog:* Add participants (create group)
-- *Dialog:* Call (video/audio)
-- *Right-click:* Message actions (edit, delete, pin, react)
-- *Button:* Load older messages
-
 ---
 
-### 8. `/dashboard/settings` - Profile & Settings
-**Purpose:** Manage account and preferences
-
-**Tabs:** Profile | Account | Billing | Notifications | Certificates
-
-**Tab: Profile**
-- **Edit Profile:**
-  - Profile photo upload
-  - Display name
-  - Bio (about me)
-  - Headline/Title
-  - Location
-  - Website/Social links
-  - Interests and skills
-  - Public profile toggle
-- *Dialog:* Crop profile picture
-- *Dialog:* Edit bio with rich text
-- *Preview:* How profile appears to others
-
-**Tab: Account**
-- **Account Settings:**
-  - Email address (with verification status)
-  - Change email (requires verification)
-  - Password management
-  - Two-factor authentication (2FA)
-    - Enable/disable
-    - Recovery codes
-  - Connected accounts (Google, Facebook, GitHub)
-  - Account created date
-  - Last login information
-- **Privacy Settings:**
-  - Profile visibility
-  - Show enrollment status
-  - Allow messages from
-  - Data download request
-- **Danger Zone:**
-  - Delete account (with confirmation)
-  - Data export
-
-**Actions:**
-- *Dialog:* Change password (old + new password)
-- *Dialog:* Enable 2FA (QR code setup)
-- *Dialog:* Connect social account
-- *Dialog:* Confirm account deletion
-
-**Tab: Billing**
-- **Payment Information:**
-  - Saved payment methods
-  - Add new payment method
-- **Purchase History:**
-  - Course purchases
-  - Date, course name, amount
-  - Invoice download
-  - *Slide-over:* Invoice details (itemized)
-- **Subscriptions:**
-  - Active subscriptions
-  - Next billing date
-  - Cancel subscription
-- **Refund Requests:**
-  - Request refund (within policy period)
-  - Refund status
-
-**Tab: Notifications**
-- **Email Notifications:**
-  - Course updates (new content, announcements)
-  - Assignments and deadlines
-  - Grades and feedback
-  - Messages
-  - Marketing emails
-  - Weekly digest
-- **Push Notifications:**
-  - Browser notifications
-  - Mobile app notifications
-  - Live class reminders
-  - Assignment reminders (24h, 1h before)
-- **Frequency:**
-  - Instant, Daily digest, Weekly digest, Off
-
-**Tab: Certificates**
-- **Earned Certificates:**
-  - Certificate thumbnail
-  - Course name
-  - Completion date
-  - Credential ID
-  - Verification link
-- **Actions:**
-  - *Button:* Download PDF
-  - *Button:* Share to LinkedIn
-  - *Button:* View online
-  - *Dialog:* Verify certificate
-
----
-
-### 9. `/dashboard/cohorts` - My Cohorts *(Optional)*
-**Purpose:** View and manage cohort memberships
-**Features:**
-- **Cohort Cards:**
-  - Cohort name and course
-  - Duration (start date - end date)
-  - Status (Upcoming, Active, Completed)
-  - Instructor name and photo
-  - Number of members
-  - Your role (Student, Mentor)
-  - Progress within cohort
-- **Filters:**
-  - Status
-  - Course
-  - Role
-- **Cohort Benefits Display:**
-  - Exclusive live sessions
-  - Group projects
-  - Peer learning
-  - Cohort chat
-
-**Actions:**
-- *Slide-over:* Cohort details
-  - Full cohort information
-  - **Tabs:** Overview | Members | Schedule | Resources
-  - **Tab: Overview:** Description, goals, rules
-  - **Tab: Members:** Student list with avatars, connect options
-  - **Tab: Schedule:** Cohort-specific schedule
-  - **Tab: Resources:** Shared files and links
-- *Dialog:* Join cohort with invite code
-  - Enter invite code
-  - See cohort preview
-  - Confirm enrollment
-- *Dialog:* Leave cohort (with confirmation)
-
----
-
-## 👨‍🏫 Instructor Dashboard (9)
+## 👨‍🏫 Instructor Dashboard (15)
 
 ### 1. `/dashboard/instructor` - Instructor Home
 **Purpose:** Instructor overview and quick actions
@@ -708,7 +598,17 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 2. `/dashboard/lms/courses` - My Courses
+### 2. `/dashboard/lms` - LMS Home/Overview
+**Purpose:** LMS section landing page
+**Features:**
+- Overview of all LMS modules
+- Quick access to courses, assignments, quizzes
+- Recent activity in LMS
+- Statistics and metrics
+
+---
+
+### 3. `/dashboard/lms/courses` - My Courses
 **Purpose:** Manage all instructor courses
 **Features:**
 - **Course Cards:**
@@ -754,47 +654,36 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 ---
 
-### 3. `/dashboard/lms/courses/[id]` - Course Editor
-**Purpose:** Complete course management interface
+### 4. `/dashboard/lms/courses/[id]` - Course Overview & Analytics
+**Purpose:** Course dashboard with metrics and quick actions
+**Features:**
+- **Key Metrics Cards:**
+  - Total enrollments
+  - Active students
+  - Revenue generated
+  - Completion rate
+  - Average rating
+- **Charts and Analytics:**
+  - Enrollments over time
+  - Revenue trends
+  - Student engagement
+  - Recent activity
+- **Quick Actions:**
+  - View course content
+  - Manage students
+  - Edit course settings
+  - View analytics
 
-**Tabs:** Details | Content | Lessons | Pricing | Students | Analytics
+**Actions:**
+- *Button:* Navigate to content editor
+- *Button:* View detailed analytics
+- *Button:* Manage students
 
-**Tab: Details**
-- **Course Information:**
-  - Course title (inline edit)
-  - Short description (150 chars)
-  - Full description (rich text editor)
-  - Course thumbnail upload (with crop)
-  - Preview video/trailer
-  - Category and subcategory
-  - Tags (for search optimization)
-  - Language
-  - Skill level (Beginner, Intermediate, Advanced)
-  - Duration estimate (hours/weeks)
-- **What Students Will Learn:**
-  - Learning objectives list
-  - Add/remove/reorder objectives
-- **Requirements:**
-  - Prerequisites list
-  - Required prior knowledge
-- **Course Settings:**
-  - Enrollment settings
-  - Certificate enabled
-  - Forum/Q&A enabled
-  - Downloadable resources
-  - Mobile access
-- **Instructors:**
-  - Add co-instructors
-  - Instructor bios
-  - Contact information
-- **Publishing:**
-  - Save as draft
-  - Submit for review
-  - Publish course
-  - Schedule publish date
-  - Unpublish course
+---
 
-**Tab: Content**
+### 5. `/dashboard/lms/courses/[id]/content` - Course Content Editor
+**Purpose:** Manage course structure and lessons
+**Features:**
 - **Chapter/Section Management:**
   - List of all chapters
   - Add new chapter
@@ -816,105 +705,43 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 **Actions:**
 - *Dialog:* Add new chapter
-  - Chapter title
-  - Description
-  - Position in course
-- *Side Panel:* Quick lesson edit
-  - Lesson title
-  - Type selection
-  - Duration
-  - Description
-- *Button:* Bulk import (upload multiple lessons)
-- *Dialog:* Content settings (drip schedule, access rules)
+- *Dialog:* Add new lesson
+- *Button:* Bulk import lessons
+- *Button:* Preview course
 
-**Tab: Lessons**
-- **All Course Lessons (Flat View):**
-  - Searchable lesson list
-  - Filter by type (Video, Text, Quiz, Assignment)
-  - Filter by chapter
-  - Status (Published, Draft)
-- **Lesson Management:**
-  - Add new lesson
-  - Edit lesson
-  - Preview lesson (student view)
-  - Duplicate lesson
-  - Delete lesson
+---
+
+### 6. `/dashboard/lms/courses/[id]/content/section/[section]/lesson` - Lesson Editor
+**Purpose:** Create and edit individual lessons
+**Features:**
 - **Lesson Types:**
-  - **Video Lesson:**
-    - Upload video or embed URL
-    - Video thumbnail
-    - Transcript upload
-    - Download allowed toggle
-  - **Text Lesson:**
-    - Rich text editor
-    - Image uploads
-    - Code blocks
-    - Downloadable PDFs
-  - **Quiz Lesson:**
-    - Link to quiz
-    - Passing score requirement
-  - **Assignment Lesson:**
-    - Link to assignment
-    - Submission requirements
-  - **File/Resource:**
-    - Upload files (PDF, ZIP, etc.)
-    - File description
-
-**Actions:**
-- *Dialog:* Create new lesson
-  - Lesson title
-  - Type selection (Video, Text, PDF, Quiz, Assignment, File)
-  - Chapter assignment
-  - Content upload/editor
-- *Side Panel:* Lesson editor (full-featured)
-  - Content editing tools
-  - Settings (duration, resources, etc.)
-  - Preview mode
-- *Dialog:* Lesson settings
+  - Video lesson (upload or embed)
+  - Text lesson (rich text editor)
+  - Quiz lesson
+  - Assignment lesson
+  - File/Resource
+- **Lesson Settings:**
+  - Title and description
+  - Duration
   - Free preview toggle
-  - Requires enrollment toggle
   - Prerequisites
-  - Estimated time
   - Downloadable resources
-- *Button:* Bulk edit lessons
-
-**Tab: Pricing**
-- **Payment Plans:**
-  - List of payment plans for this course
-  - Default payment plan marker
-- **Payment Plan Types:**
-  - Free (with optional email capture)
-  - One-time purchase
-  - EMI (Installments)
-    - Number of installments
-    - Amount per installment
-  - Subscription (Monthly/Yearly)
-    - Recurring billing
-    - Access duration
-- **Pricing Settings:**
-  - Currency selection
-  - Discount codes/coupons
-  - Bulk purchase pricing
-  - Affiliate commission settings
-  - Tax settings
+- **Content Editor:**
+  - Rich text editing
+  - Media upload
+  - Video embedding
+  - Code blocks
 
 **Actions:**
-- *Dialog:* Create payment plan
-  - Plan name
-  - Type selection
-  - Pricing details
-  - Access duration
-  - Trial period (if subscription)
-  - Set as default
-- *Dialog:* Create coupon
-  - Coupon code
-  - Discount type (%, fixed amount)
-  - Discount value
-  - Expiration date
-  - Usage limit
-- *Inline edit:* Plan prices
+- *Button:* Save lesson
+- *Button:* Preview lesson
+- *Button:* Publish/Unpublish
 
-**Tab: Students**
+---
+
+### 7. `/dashboard/lms/courses/[id]/customers` - Course Students
+**Purpose:** Manage enrolled students
+**Features:**
 - **Enrolled Students List:**
   - Student name and photo
   - Enrollment date
@@ -925,89 +752,55 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
   - Email and contact
 - **Search and Filter:**
   - Search by name/email
-  - Filter by progress (0-25%, 25-50%, etc.)
+  - Filter by progress
   - Filter by status (Active, Completed, Inactive)
   - Filter by enrollment date
 - **Bulk Actions:**
   - Send message to selected
-  - Send announcement
   - Export student list (CSV)
-  - Unenroll selected (with warning)
+  - Unenroll selected
 - **Statistics:**
   - Total enrollments
-  - Active students (last 30 days)
+  - Active students
   - Completion rate
   - Average progress
-  - Drop-off rate
 
 **Actions:**
-- *Slide-over:* Individual student details
-  - **Tabs:** Progress | Submissions | Activity | Messages
-  - **Tab: Progress:** 
-    - Lessons completed list
-    - Quiz scores
-    - Assignment grades
-    - Overall progress chart
-  - **Tab: Submissions:**
-    - All assignment submissions
-    - Quiz attempts
-    - Quick grade entry
-  - **Tab: Activity:**
-    - Login history
-    - Time spent learning
-    - Activity timeline
-  - **Tab: Messages:**
-    - Send direct message
-    - Message history
+- *Slide-over:* Student details
 - *Button:* Message student(s)
-- *Button:* Enroll user manually
-- *Dialog:* Export student data
-
-**Tab: Analytics**
-- **Course Performance:**
-  - Total enrollments over time (chart)
-  - Completion rate
-  - Average rating
-  - Revenue generated (if paid)
-  - Refund rate
-- **Engagement Metrics:**
-  - Average time in course
-  - Most watched lessons
-  - Least watched lessons (may need improvement)
-  - Drop-off points (where students quit)
-  - Discussion engagement
-- **Student Demographics:**
-  - Geographic distribution (map)
-  - Age groups
-  - Device types (desktop/mobile/tablet)
-- **Content Analytics:**
-  - Lesson completion rates
-  - Quiz average scores
-  - Assignment submission rates
-  - Most replayed video sections
-- **Reviews & Feedback:**
-  - Rating distribution (5-star breakdown)
-  - Recent reviews
-  - Common feedback themes
-- **Revenue Analytics (if paid):**
-  - Revenue over time
-  - Revenue by payment plan
-  - Conversion rate
-  - Refunds
-- **Export Options:**
-  - Download reports (PDF, CSV)
-  - Custom date ranges
-  - Scheduled reports
-
-**Actions:**
-- *Date Range Selector:* Filter analytics by period
-- *Compare Periods:* Compare current vs previous period
-- *Export:* Download reports
-- *Button:* View detailed reports
+- *Button:* Export student data
 
 ---
 
-### 4. `/dashboard/lms/cohorts` - Cohort Management
+### 8. `/dashboard/lms/courses/[id]/manage` - Course Settings
+**Purpose:** Manage course details and settings
+**Features:**
+- **Course Information:**
+  - Course title
+  - Description (rich text editor)
+  - Course thumbnail
+  - Category and tags
+  - Language
+  - Skill level
+  - Pricing and payment plans
+- **Publishing Settings:**
+  - Publish/Unpublish toggle
+  - Visibility settings
+  - Enrollment settings
+- **Advanced Settings:**
+  - Certificate settings
+  - Forum/Q&A enabled
+  - Downloadable resources
+  - Prerequisites
+
+**Actions:**
+- *Button:* Save settings
+- *Button:* Publish course
+- *Dialog:* Upload thumbnail
+
+---
+
+### 9. `/dashboard/lms/cohorts` - Cohort Management
 **Purpose:** Manage time-bound course groups
 **Features:**
 - **Cohort Cards:**
@@ -1026,10 +819,6 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
   - Start date
   - Enrollment count
   - Status
-- **Cohort Types:**
-  - Open enrollment
-  - Invite-only (with code)
-  - Instructor-approved
 - **Statistics:**
   - Total cohorts
   - Active cohorts
@@ -1038,616 +827,328 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 
 **Actions:**
 - *Dialog:* Create new cohort
-  - Cohort name
+  - Cohort title
   - Select course
-  - Start and end dates
-  - Max capacity
-  - Instructor assignment
-  - Enrollment type (open/invite)
+  - Invite code
+  - Status
   - Description
-- *Slide-over:* Cohort details with tabs
-
-**Slide-over Tabs:** Overview | Students | Join Requests | Schedule | Settings
-
-**Tab: Overview:**
-- Cohort information
-- Description
-- Duration
-- Enrollment stats
-- Activity feed
-
-**Tab: Students:**
-- Enrolled student list with:
-  - Name and photo
-  - Progress percentage
-  - Last activity
-  - Role (Student, Mentor)
-  - Remove student option
-- Search students
-- Add student manually
-- Export student list
-- Send message to cohort
-
-**Tab: Join Requests:**
-- Pending join requests
-- Student name and email
-- Request date
-- Request reason (if provided)
-- Approve/Reject buttons
-- Bulk approve/reject
-
-**Tab: Schedule:**
-- Cohort-specific schedule
-- Live class sessions
-- Assignment due dates
-- Milestones
-- Add cohort event
-
-**Tab: Settings:**
-- Edit cohort details
-- Change capacity
-- Regenerate invite code
-- Archive cohort
-- Delete cohort
+- *Click cohort:* Navigate to cohort details
+- *Button:* Edit cohort
+- *Button:* Delete cohort
 
 ---
 
-### 5. `/dashboard/lms/assignments` - Assignment Management
-**Purpose:** Create and grade all assignments
+### 10. `/dashboard/lms/cohorts/[id]` - Cohort Details
+**Purpose:** Manage individual cohort
+**Features:**
+- **Cohort Information:**
+  - Title and description
+  - Course linked
+  - Status
+  - Begin and end dates
+  - Duration in weeks
+  - Max capacity
+  - Invite code
+- **Edit Form:**
+  - Edit all cohort fields inline
+  - Course selection (searchable)
+  - Status dropdown
+  - Date pickers
+  - Capacity settings
+
+**Actions:**
+- *Button:* Save changes
+- *Button:* Back to cohorts list
+- *Button:* View course
+
+---
+
+### 11. `/dashboard/lms/assignments` - Assignment List
+**Purpose:** View all assignments across courses
 **Features:**
 - **Assignment List:**
   - Assignment title and course
-  - Type (Essay, Project, Presentation, File Upload)
+  - Type (Essay, Project, etc.)
   - Due date
-  - Points possible
-  - Submissions count (submitted/graded/pending)
-  - Status (Published, Draft, Closed)
-  - Average grade
+  - Submissions count
+  - Status (Published, Draft)
 - **Filters:**
   - Course
   - Status
-  - Due date range
-  - Grading status (All, Pending, Graded)
-- **Sort by:**
-  - Due date
-  - Submissions pending
-  - Course name
+  - Date range
 - **Quick Stats:**
   - Total assignments
   - Pending submissions to grade
-  - Average submission rate
-  - Average grade
 
 **Actions:**
-- *Dialog:* Create assignment
-  - **Basic Info:**
-    - Assignment title
-    - Description (rich text)
-    - Course selection
-    - Type (Essay, Project, Presentation, File Upload, Peer Review)
-  - **Scheduling:**
-    - Available from date
-    - Due date
-    - Late submission allowed (yes/no)
-    - Late penalty (% per day)
-  - **Settings:**
-    - Total points
-    - Passing score
-    - Max attempts allowed
-    - Group assignment toggle
-  - **Instructions:**
-    - Detailed requirements (rich text)
-    - Attach instruction files
-    - Example submissions
-    - Link related resources
-  - **Rubric:**
-    - Add rubric criteria
-    - Points per criterion
-    - Description per criterion
-    - Total points calculation
-  - **Peer Review (optional):**
-    - Enable peer review
-    - Number of peer reviews required
-    - Peer review criteria
-    - Anonymity settings
-  - **Submission Settings:**
-    - Allowed file types
-    - Max file size
-    - Text submission enabled
-    - Link submission enabled
-- *Dialog:* Edit assignment (same fields as create)
-- *Slide-over:* View submissions
-  - List of student submissions
-  - Filter by status (All, Pending, Graded, Late)
-  - Sort by submission date, grade
-  - Submission preview:
-    - Student name
-    - Submission date
-    - Status
-    - Current grade (if graded)
-    - Late submission indicator
-  - *Dialog:* Grade submission (click student)
-- *Dialog:* Grade individual submission
-  - Student name and submission date
-  - Submitted files (download/preview)
-  - Submitted text (if applicable)
-  - Late submission info
-  - **Grading Interface:**
-    - Rubric scoring (if applicable)
-    - Overall score entry
-    - Percentage calculation
-    - Pass/Fail indicator
-  - **Feedback:**
-    - Text feedback (rich text)
-    - File annotations (if supported)
-    - Voice feedback recording
-  - **Actions:**
-    - Save draft
-    - Submit grade (notifies student)
-    - Request resubmission
-- *Button:* Duplicate assignment to another course
-- *Button:* Export grades (CSV)
+- *Button:* Create assignment
+- *Click assignment:* Navigate to assignment details
 
 ---
 
-### 6. `/dashboard/lms/quizzes` - Quiz Management
-**Purpose:** Create and manage quizzes and exams
+### 12. `/dashboard/lms/assignments/[id]` - Assignment Editor
+**Purpose:** Create and manage assignment with tabs
+**Tabs:** Settings | Grading | Submissions
+
+**Tab: Settings**
+- **Assignment Details:**
+  - Title
+  - Description (rich text)
+  - Course selection
+  - Type (Essay, Project, File Upload)
+  - Total points
+  - Due date
+  - Late submission settings
+- **Submission Settings:**
+  - Allowed file types
+  - Max file size
+  - Text submission enabled
+  - Max attempts
+- **Rubric:**
+  - Add rubric criteria
+  - Points per criterion
+
+**Actions:**
+- *Button:* Save assignment
+- *Button:* Publish assignment
+
+**Tab: Grading**
+- **Grading Configuration:**
+  - Grading rubric
+  - Auto-grading settings
+  - Passing score
+  - Feedback templates
+
+**Tab: Submissions**
+- **Submission List:**
+  - Student name
+  - Submission date
+  - Status (Submitted, Graded, Late)
+  - Grade
+- **Filters:**
+  - Status filter
+  - Sort by date/grade
+- **Actions:**
+  - *Click submission:* Grade individual submission
+  - *Dialog:* Grade submission with rubric
+  - *Button:* Export grades
+
+---
+
+### 13. `/dashboard/lms/quizzes` - Quiz List
+**Purpose:** View all quizzes across courses
 **Features:**
 - **Quiz List:**
   - Quiz title and course
   - Questions count
-  - Time limit (if any)
-  - Available date and due date
-  - Attempts (allowed/average used)
+  - Time limit
+  - Attempts allowed
   - Average score
-  - Status (Published, Draft, Closed)
-  - Submissions to review (if manual grading)
+  - Status (Published, Draft)
 - **Filters:**
   - Course
   - Status
-  - Date range
-- **Sort by:**
-  - Due date
-  - Attempts count
-  - Average score
-- **Statistics:**
+- **Quick Stats:**
   - Total quizzes
   - Average completion rate
-  - Average score across all quizzes
 
 **Actions:**
-- *Dialog:* Create quiz
-  - **Basic Info:**
-    - Quiz title
-    - Course selection
-    - Description
-  - **Schedule:**
-    - Available from date/time
-    - Due date/time
-    - Time window (e.g., available for 24 hours)
-  - **Quiz Settings:**
-    - Time limit (minutes) or untimed
-    - Max attempts allowed
-    - Passing score (%)
-    - Shuffle questions
-    - Shuffle answer options
-    - Show results immediately/after due/manually
-    - Show correct answers (yes/no/after due)
-  - **Access Settings:**
-    - Requires password
-    - Requires webcam (proctoring)
-    - One question at a time (no back button)
-    - Random question pool
-  - **Grading:**
-    - Grading method (highest/latest/average)
-    - Partial credit allowed
-  - Save as draft or publish
-
-- *Side Panel:* Question bank
-  - **Question List:**
-    - All questions for this quiz
-    - Question type icons
-    - Points per question
-    - Reorder questions (drag-and-drop)
-  - **Add Question:**
-    - Question types:
-      - Multiple Choice (single answer)
-      - Multiple Choice (multiple answers)
-      - True/False
-      - Short Answer
-      - Essay (manual grading)
-      - Fill in the Blank
-      - Matching
-    - **Question Editor:**
-      - Question text (rich text, images)
-      - Points value
-      - **For Multiple Choice:**
-        - Add answer options
-        - Mark correct answer(s)
-        - Explanation for correct answer
-      - **For Short Answer:**
-        - Accepted answers list
-        - Case sensitive toggle
-      - **For Essay:**
-        - Grading rubric
-        - Manual grading required
-    - Question tags (for organization)
-    - Difficulty level
-  - **Question Bank Library:**
-    - Import questions from other quizzes
-    - Search questions by tag
-    - Create question templates
-  - **Bulk Actions:**
-    - Import questions (CSV, JSON)
-    - Export questions
-    - Duplicate questions
-
-- *Slide-over:* View quiz attempts
-  - **Attempt List:**
-    - Student name and photo
-    - Attempt number (1/3, 2/3, etc.)
-    - Submission date/time
-    - Time taken
-    - Score and percentage
-    - Status (In Progress, Completed, Graded, Needs Grading)
-  - **Filters:**
-    - Status
-    - Score range
-    - Attempt number
-  - **Sort by:**
-    - Score (high to low)
-    - Submission date
-    - Time taken
-  - *Click attempt:* View detailed results
-- *Dialog:* View attempt details
-  - Student information
-  - Attempt number and date
-  - Total score
-  - **Question-by-question breakdown:**
-    - Question text
-    - Student's answer
-    - Correct answer
-    - Points earned / possible
-    - Status (correct/incorrect)
-  - Grade essay questions (if any)
-  - Add feedback comment
-  - Allow extra attempt (override)
-- **Analytics Tab (within slide-over):**
-  - Score distribution (histogram)
-  - Average score
-  - Highest/lowest scores
-  - Question statistics:
-    - Most missed questions
-    - Question difficulty (% who got it right)
-    - Time spent per question
-  - Completion rate
-  - Average time taken
-  - Student performance trends
-
-- *Button:* Duplicate quiz
-- *Button:* Preview quiz (student view)
-- *Button:* Export results (CSV)
+- *Button:* Create quiz
+- *Click quiz:* Navigate to quiz editor
 
 ---
 
-### 7. `/dashboard/lms/live-classes` - Live Class Management
-**Purpose:** Schedule and conduct virtual or in-person sessions
+### 14. `/dashboard/lms/quizzes/[id]` - Quiz Editor
+**Purpose:** Create and manage quiz with tabs
+**Tabs:** Settings | Questions | Submissions
+
+**Tab: Settings**
+- **Quiz Details:**
+  - Title and description
+  - Course selection
+  - Time limit
+  - Max attempts
+  - Passing score
+  - Shuffle questions
+  - Show results settings
+
+**Tab: Questions**
+- **Question Bank:**
+  - List of questions
+  - Question types (Multiple Choice, True/False, Short Answer, Essay)
+  - Add/edit/delete questions
+  - Reorder questions
+  - Points per question
+- **Question Editor:**
+  - Question text (rich text)
+  - Answer options
+  - Correct answer(s)
+  - Explanation
+  - Points value
+
+**Tab: Submissions**
+- **Attempt List:**
+  - Student name
+  - Attempt number
+  - Score and percentage
+  - Time taken
+  - Status
+- **Actions:**
+  - *Click attempt:* View detailed results
+  - *Dialog:* Grade essay questions
+  - *Button:* Export results
+
+---
+
+### 15. `/dashboard/lms/live-classes` - Live Classes
+**Purpose:** Manage virtual sessions
 **Features:**
-- **View Toggle:** Calendar view | List view
-- **Calendar View:**
-  - Month/Week/Day views
-  - Live class events displayed
-  - Color-coded by course
-  - Time slots
-  - Current time indicator
-- **List View:**
-  - Upcoming sessions
-  - Past sessions (with recordings)
-  - **Live Class Cards:**
-    - Class title and course
-    - Type (Lecture, Workshop, Q&A, Group Discussion, Presentation)
-    - Date and time (with timezone)
-    - Duration
-    - Meeting platform (Zoom, Google Meet, custom)
-    - Status (Scheduled, Live, Ended, Cancelled)
-    - Attendees (registered/attended)
-    - Recording available toggle
+- **View Modes:**
+  - Table view (default)
+  - Calendar/Agenda view
+- **Live Class List (Table View):**
+  - Session title
+  - Type (Lecture, Workshop, Q&A, Discussion, Presentation)
+  - Course/Cohort association
+  - Status (Scheduled, Live, Ended, Cancelled)
+  - Instructor name
+  - Start time
+  - Duration (calculated from start/end)
+  - Platform (auto-detected: Zoom, Google Meet, MS Teams)
+  - Action buttons (Start session, View recording)
+- **Calendar View (Agenda Style):**
+  - Chronologically sorted sessions
+  - Full session cards with all details
+  - Quick start/edit buttons
+  - Visual badges for status and type
+  - Platform and duration info
 - **Filters:**
-  - Status (All, Upcoming, Live, Past)
-  - Course
-  - Type
-  - Date range
-- **Statistics:**
-  - Total live classes scheduled
-  - Upcoming this week
-  - Average attendance rate
-  - Total hours conducted
+  - Search by title
+  - Status filter
+  - Type filter
+- **Statistics Cards:**
+  - Total Sessions
+  - Scheduled sessions
+  - Live now count
+  - Ended sessions
 
 **Actions:**
 - *Dialog:* Schedule new live class
-  - **Basic Info:**
-    - Session title
-    - Course selection
-    - Cohort selection (optional)
-    - Type selection
-    - Description
-  - **Schedule:**
-    - Date and time
-    - Duration
-    - Timezone
-    - Recurring session (optional)
-      - Daily/Weekly/Monthly
-      - End date
-  - **Meeting Details:**
-    - Platform (Zoom, Google Meet, Teams, Custom)
-    - Meeting URL (auto-generate or manual)
-    - Meeting ID and password
-    - Host/Co-host assignment
-  - **Settings:**
-    - Max participants
-    - Enable waiting room
-    - Enable recording
-    - Allow screen sharing
-    - Allow participant video
-    - Allow chat
-    - Enable Q&A
-  - **Access:**
-    - All enrolled students
-    - Specific cohort
-    - Invited participants only
-  - **Resources:**
-    - Attach pre-class materials
-    - Agenda/outline
-  - **Notifications:**
-    - Send invitation email
-    - Reminder notifications (24h, 1h before)
-
-- *Slide-over:* Live class details with tabs
-
-**Slide-over Tabs:** Details | Participants | Recording | Materials
-
-**Tab: Details:**
-- Session information
-- Edit session details
-- Cancel session (with notification)
-- Reschedule session
-
-**Tab: Participants:**
-- **Registered List:**
-  - Student name and photo
-  - Registration date
-  - Email
-  - RSVP status (Yes, Maybe, No)
-  - Remove participant
-- **Attendance (after session):**
-  - Who attended
-  - Join time / Leave time
-  - Duration attended
-  - Engagement metrics (if available)
-  - Export attendance (CSV)
-- Send message to registrants
-- Send reminder
-
-**Tab: Recording:**
-- Recording status
-- Upload recording (if not auto-recorded)
-- Recording URL
-- Duration
-- Thumbnail
-- Processing status
-- **Actions:**
-  - Play recording
-  - Download recording
-  - Edit recording metadata
-  - Generate transcript
-  - Add timestamps/chapters
-  - Publish to course content
-  - Make available to students
-
-**Tab: Materials:**
-- Pre-class materials
-- Session slides/presentation
-- Shared files during session
-- Post-class resources
-- Upload materials
-- Organize materials
-
-- *Dialog:* Start session
-  - Confirmation dialog
-  - Quick settings check
-  - Launch meeting button
-  - Copy meeting link
-  - Send last-minute reminder
-
-- *Button:* Join as participant (test)
-- *Button:* View analytics (attendance trends)
+- *Button:* Start session (opens meeting URL)
+- *Button:* View recording (if available)
+- *Button:* Edit/Delete session
 
 ---
 
-### 8. `/dashboard/lms/schedule` - Master Schedule
+### 16. `/dashboard/lms/schedule` - Master Schedule
 **Purpose:** Unified instructor calendar
 **Features:**
 - **Calendar Views:**
   - Month view
-  - Week view (with time slots)
-  - Day view (detailed schedule)
-  - Agenda view (list)
-- **Event Types (color-coded):**
-  - 🟦 Live classes
-  - 🟨 Assignment due dates
-  - 🟩 Quiz deadlines
-  - 🟪 Course milestones
-  - 🟧 Office hours
-  - 🟥 Important dates
+  - Week view
+  - Day view
+  - Agenda view
+- **Event Types:**
+  - Live classes
+  - Assignment due dates
+  - Quiz deadlines
+  - Course milestones
 - **Features:**
   - Multi-course view
   - Time zone display
-  - Today button
-  - Mini-calendar navigator
-  - Drag-and-drop to reschedule
-  - Resize events to adjust duration
-  - Duplicate events
+  - Drag-and-drop reschedule
   - Color coding by course
-- **Filters:**
-  - Show/hide event types
-  - Filter by course
-  - Show only my events
-- **Conflict Detection:**
-  - Highlight overlapping events
-  - Suggest alternative times
-- **Sync Options:**
-  - Export to iCal
-  - Google Calendar sync
-  - Outlook sync
 
 **Actions:**
 - *Dialog:* Create event
-  - Event type selection
-  - Title and description
-  - Course association
-  - Date, time, duration
-  - Recurrence settings
-  - Location (online/physical)
-  - Invite participants
-  - Set reminders
 - *Click event:* Event details
-  - Quick view popup
-  - Edit event
-  - Delete event
-  - Duplicate event
-  - Move to different course
-- *Drag event:* Reschedule to new time
-- *Resize event:* Adjust duration
-- *Button:* Office hours setup
-  - Recurring time slots
-  - Booking system
-  - Student appointment calendar
+- *Button:* Sync to calendar
 
 ---
 
-### 9. `/dashboard/lms/communication` - Communication Hub
-**Purpose:** Manage course announcements and discussions
-
-**Tabs:** Announcements | Chat Rooms
-
-**Tab: Announcements**
-- **Announcement List:**
-  - Announcement title
-  - Course (or platform-wide)
-  - Posted date
-  - Read count / Total recipients
-  - Status (Scheduled, Published, Draft)
-  - Pinned toggle
-- **Sort/Filter:**
-  - Date
+### 17. `/dashboard/lms/reviews` - Course Reviews
+**Purpose:** Manage course reviews and ratings
+**Features:**
+- **Review List:**
+  - Reviewer name
+  - Course reviewed
+  - Rating (stars)
+  - Review text
+  - Review date
+  - Status (Approved, Pending, Reported)
+- **Filters:**
   - Course
+  - Rating
   - Status
-  - Pinned first
-- **Statistics:**
-  - Total announcements
-  - Average open rate
-  - Engagement metrics
 
 **Actions:**
-- *Dialog:* Create announcement
-  - **Compose:**
-    - Title
-    - Content (rich text editor)
-    - Add images, videos, links
-    - Attach files
-  - **Recipients:**
-    - Select course (or all courses)
-    - Select cohort (optional)
-    - All enrolled students
-    - Specific student groups
-    - Students who meet criteria (progress%, grade range)
-  - **Delivery:**
-    - Post immediately
-    - Schedule for later (date/time)
-    - Pin to top of course
-  - **Notifications:**
-    - Send email notification
-    - Push notification
-    - In-app notification
-  - **Settings:**
-    - Allow comments/replies
-    - Make announcement public
-- *Edit announcement:* Same dialog as create
-- *Click announcement:* View details
-  - Full content
-  - Read statistics
-  - Student comments/replies
-  - Edit or delete
-- *Analytics:* Announcement performance
-  - Open rate
-  - Click-through rate (for links)
-  - Response rate
-  - Time to read
-
-**Tab: Chat Rooms**
-- **Course Chat Rooms:**
-  - List of course-based chat rooms
-  - Room name and course
-  - Participant count
-  - Last message preview
-  - Unread count
-  - Online members
-  - Room type (Course-wide, Cohort, Assignment, Project Group)
-- **Split View:**
-  - **Left:** Room list
-  - **Right:** Active chat room
-- **Chat Room Features:**
-  - Real-time messaging
-  - @mentions
-  - Reply threads
-  - Pin important messages
-  - Search messages
-  - File sharing
-  - Emoji reactions
-  - Code snippets (for tech courses)
-- **Moderation Tools:**
-  - Mute users
-  - Delete messages
-  - Ban users (temporarily)
-  - Set room rules
-  - Assign moderators
-  - Report abuse
-
-**Actions:**
-- *Dialog:* Create chat room
-  - Room name
-  - Course/Cohort association
-  - Description and rules
-  - Privacy (public/private)
-  - Who can post (All/Admins only)
-  - File uploads allowed
-- *Click room:* Open chat in split view
-- *Moderation:* Message actions
-  - Delete message
-  - Mute user
-  - Pin message
-  - Mark as answer (for Q&A)
-- *Settings:* Room settings
-  - Edit room details
-  - Manage permissions
-  - Export chat log
-  - Archive room
+- *Dialog:* Respond to review
+- *Button:* Approve/reject review
 
 ---
 
-## 👨‍💼 Admin Dashboard (7)
+### 18. `/dashboard/lms/themes` - Theme Management
+**Purpose:** Manage course themes and customization
+**Features:**
+- **Theme List:**
+  - Theme name
+  - Associated courses
+  - Last modified
+  - Status (Active, Draft)
+
+**Actions:**
+- *Button:* Create new theme
+- *Click theme:* Navigate to theme editor
+
+---
+
+### 19. `/dashboard/lms/themes/[id]` - Theme Editor
+**Purpose:** Customize course appearance with tabs
+**Tabs:** Settings | Code
+
+**Tab: Settings**
+- **Theme Configuration:**
+  - Theme name
+  - Colors
+  - Typography
+  - Layout options
+  - Custom CSS
+
+**Tab: Code**
+- **Code Editor:**
+  - CSS code editor
+  - JavaScript code editor (if applicable)
+  - Preview panel
+
+**Actions:**
+- *Button:* Save theme
+- *Button:* Apply to courses
+- *Button:* Preview
+
+---
+
+### 20. `/dashboard/lms/themes/new` - New Theme Creator
+**Purpose:** Create new theme from scratch
+**Features:**
+- Theme creation wizard
+- Template selection
+- Customization options
+
+---
+
+## 👨‍💼 Admin Dashboard (9)
 
 ### 1. `/dashboard/admin` - Admin Home
 **Purpose:** Platform-wide overview and system status
 **Features:**
-- **Key Metrics (Cards):**
-  - Total Users (Students, Instructors, Admins)
-  - Total Courses (Published, Draft, Under Review)
-  - Total Revenue (This month, All time)
+- **Key Metrics:**
+  - Total Users
+  - Total Courses
+  - Total Revenue
   - Active Enrollments
   - Platform Health Score
 - **Trend Charts:**
-  - User growth (last 30 days)
+  - User growth
   - Revenue growth
   - Course enrollments
   - Active users
@@ -1656,1074 +1157,209 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
   - Course submissions for review
   - Support tickets
   - Payment transactions
-  - System alerts
 - **Quick Actions:**
-  - Invite users
-  - Approve pending courses
+  - Manage users
+  - Review courses
   - View reports
   - System settings
-- **System Status:**
-  - Server health
-  - Database status
-  - Storage usage
-  - API response time
-  - Background jobs status
 
 **Actions:**
 - *Button:* View detailed reports
 - *Button:* Manage users
 - *Button:* Review pending courses
-- *Alert panel:* System notifications
 
 ---
 
-### 2. `/dashboard/users` - User Management
+### 2. `/dashboard/admin/users` - User Management
 **Purpose:** Manage all platform users
 **Features:**
-- **User List (Data Table):**
-  - Avatar and full name
-  - Email address
+- **User List:**
+  - Name and email
   - User type (Student, Instructor, Admin)
-  - Status (Active, Restricted, Banned, Pending)
+  - Status (Active, Restricted, Banned)
   - Registration date
   - Last login
   - Courses enrolled/teaching
-  - Total spent (for students)
-  - Total earned (for instructors)
-- **Search:**
-  - Search by name, email, ID
-- **Filters:**
-  - Role (All, Students, Instructors, Admins)
-  - Status (Active, Restricted, Pending, Banned)
-  - Registration date range
-  - Last active date range
-  - Has purchases (Yes/No)
-- **Sort by:**
-  - Registration date
-  - Last login
-  - Name
-  - Email
-  - Courses count
+- **Search and Filter:**
+  - Search by name/email
+  - Filter by role
+  - Filter by status
+  - Date range
 - **Bulk Actions:**
-  - Export selected users (CSV)
-  - Send email to selected
-  - Activate/Deactivate accounts
+  - Export users
+  - Send email
+  - Activate/Deactivate
   - Assign role
-  - Delete users
-- **Statistics:**
-  - Total users
-  - Active users (last 30 days)
-  - New users this month
-  - User growth rate
-  - Conversion rate (visitor → registered)
 
 **Actions:**
 - *Dialog:* Invite new user
-  - Email address
-  - Role selection
-  - Send invitation email
-  - Pre-enroll in courses (optional)
-  - Set permissions
 - *Slide-over:* User details with tabs
+- *Button:* Edit user
+- *Button:* Delete user
 
-**Slide-over Tabs:** Profile | Enrollments | Permissions | Activity | Billing
+---
 
-**Tab: Profile:**
-- User information
-- Profile photo
-- Contact details
-- Bio
-- Joined date
-- Last login
-- Connected accounts
-- Edit user profile
-- Reset password
-- Verify email manually
-
-**Tab: Enrollments:**
-- **For Students:**
-  - List of enrolled courses
-  - Progress per course
-  - Completion status
-  - Certificates earned
-  - Enroll user in course (manual)
-  - Unenroll from course
-- **For Instructors:**
-  - Courses teaching
-  - Students taught
-  - Revenue generated
-  - Average rating
-  - Assign course to instructor
-
-**Tab: Permissions:**
-- Current role
-- Permission list with checkboxes:
-  - Manage users
-  - Manage courses
-  - Manage content
-  - Manage payments
-  - View analytics
-  - Platform settings
-  - Approve courses
-  - Manage reviews
-- Assign additional roles
-- Create custom permission set
-- Permission history (audit log)
-
-**Tab: Activity:**
-- **Activity Timeline:**
+### 3. `/dashboard/admin/users/[id]` - User Details
+**Purpose:** View and manage individual user
+**Features:**
+- **User Information:**
+  - Profile details
+  - Contact information
+  - Account status
+  - Roles and permissions
+- **Activity History:**
   - Login history
   - Courses accessed
   - Purchases made
-  - Content created
-  - Messages sent
-  - Actions performed
-- **Engagement Metrics:**
-  - Total time on platform
-  - Active days
-  - Favorite sections
-  - Device types used
-  - Browser/OS info
-- Export activity log
+- **Enrollments:**
+  - Enrolled courses (for students)
+  - Teaching courses (for instructors)
 
-**Tab: Billing (if applicable):**
-- Purchase history
-- Current subscriptions
-- Payment methods
-- Invoices
-- Refund history
-- Issue refund (admin action)
-- Lifetime value
-
-**General Actions:**
-- *Button:* Activate/Deactivate account
-- *Button:* Ban user (with reason)
-- *Button:* Delete account (with confirmation)
-- *Button:* Impersonate user (view as user)
-- *Button:* Send direct message
-- *Button:* Export user data (GDPR)
+**Actions:**
+- *Button:* Edit user
+- *Button:* Change role
+- *Button:* Ban/activate user
+- *Button:* Impersonate user
 
 ---
 
-### 3. `/dashboard/courses` - Course Administration
-**Purpose:** Review and manage all platform courses
-**Features:**
-- **Course List:**
-  - Course thumbnail
-  - Course title and instructor
-  - Category
-  - Status (Published, Draft, Under Review, Rejected, Archived)
-  - Enrollment count
-  - Rating and reviews
-  - Revenue (if paid)
-  - Created date
-  - Last updated
-- **Filters:**
-  - Status (needs approval, published, etc.)
-  - Category
-  - Instructor
-  - Price type
-  - Date range
-- **Sort by:**
-  - Review status
-  - Enrollment count
-  - Rating
-  - Revenue
-  - Recent submissions
-- **Course Review Queue:**
-  - Courses pending approval
-  - Priority flagging
-  - Assigned reviewer
-- **Statistics:**
-  - Total courses
-  - Pending approval
-  - Published courses
-  - Average approval time
-  - Rejection rate
-
-**Actions:**
-- *Click course:* Opens course editor (read-only or edit mode)
-- *Dialog:* Approve/Reject course
-  - View course details
-  - Check quality criteria
-  - **Approve:**
-    - Approve and publish
-    - Approve with feedback
-    - Feature on homepage
-  - **Reject:**
-    - Rejection reason (required)
-    - Areas to improve
-    - Request revisions
-    - Notify instructor
-- *Button:* Feature course (show on homepage)
-- *Button:* Archive course
-- *Button:* Delete course (with backup)
-- *Button:* Duplicate course for another instructor
-
-**Analytics Tab (on main page):**
-- Platform-wide course metrics
-- Most popular courses
-- Highest rated courses
-- Highest revenue courses
-- Course completion rates
-- Average course length
-- Content type distribution
-
----
-
-### 4. `/dashboard/payments` - Payment Management
-**Purpose:** Manage all payment operations
-
-**Tabs:** Payment Plans | Invoices | Transactions | Refunds
-
-**Tab: Payment Plans**
-- **Payment Plan List:**
-  - Plan name and course
-  - Type (Free, One-time, EMI, Subscription)
-  - Price and currency
-  - Status (Active, Inactive, Archived)
-  - Enrollment count
-  - Revenue generated
-  - Created by (instructor)
-- **Filters:**
-  - Type
-  - Status
-  - Course
-  - Price range
-- **Statistics:**
-  - Total plans
-  - Active plans
-  - Total revenue
-  - Most popular plan type
-
-**Actions:**
-- *Dialog:* Create payment plan (admin-level)
-  - Course selection
-  - Plan details
-  - Pricing
-  - Restrictions
-  - Approval settings
-- *Edit plan:* Modify plan details
-- *Button:* Activate/Deactivate plan
-- *Button:* Archive plan
-
-**Tab: Invoices**
-- **Invoice List:**
-  - Invoice number
-  - User name and email
-  - Course/Plan purchased
-  - Amount and currency
-  - Status (Pending, Paid, Failed, Cancelled, Refunded)
-  - Payment date
-  - Payment method
-- **Search:** Invoice number, user email, course
-- **Filters:**
-  - Status
-  - Date range
-  - Amount range
-  - Payment method
-  - Course
-- **Sort by:**
-  - Date
-  - Amount
-  - Status
-- **Statistics:**
-  - Total invoices
-  - Total revenue
-  - Pending payments
-  - Failed payments
-
-**Actions:**
-- *Slide-over:* Invoice details
-  - Full invoice information
-  - Itemized breakdown
-  - User details
-  - Payment details
-  - Transaction ID
-  - Download PDF
-  - Send invoice email
-  - Mark as paid (manual)
-  - Void invoice
-- *Button:* Bulk export invoices (CSV, PDF)
-- *Button:* Send payment reminder
-- *Button:* Issue refund
-
-**Tab: Transactions**
-- **Transaction Log:**
-  - Transaction ID
-  - User
-  - Type (Purchase, Refund, Subscription, EMI)
-  - Amount
-  - Status (Success, Failed, Pending)
-  - Payment gateway
-  - Processor ID
-  - Date and time
-- **Filters:**
-  - Status
-  - Type
-  - Payment gateway
-  - Date range
-- **Search:** Transaction ID, user, processor ID
-- **Statistics:**
-  - Total transactions
-  - Success rate
-  - Failed transactions
-  - Average transaction value
-
-**Actions:**
-- *Slide-over:* Transaction details
-  - Full transaction data
-  - Gateway response
-  - Error details (if failed)
-  - Related invoice
-  - User information
-  - Retry failed transaction
-- *Button:* Export transactions
-- *Button:* Reconcile payments
-
-**Tab: Refunds**
-- **Refund List:**
-  - Refund ID
-  - Original transaction
-  - User name
-  - Course
-  - Refund amount
-  - Status (Requested, Processing, Approved, Completed, Rejected)
-  - Reason
-  - Request date
-  - Processed date
-- **Filters:**
-  - Status
-  - Date range
-  - Course
-  - Amount range
-- **Refund Queue:**
-  - Pending refund requests
-  - Priority flagging
-- **Statistics:**
-  - Total refunds
-  - Refund rate
-  - Average refund time
-  - Refund reasons breakdown
-
-**Actions:**
-- *Dialog:* Process refund
-  - View refund request
-  - Original purchase details
-  - User history
-  - Refund policy check
-  - **Approve Refund:**
-    - Full or partial amount
-    - Refund method
-    - Processing notes
-    - Auto-unenroll from course
-    - Send confirmation email
-  - **Reject Refund:**
-    - Rejection reason
-    - Policy reference
-    - Notify user
-- *Button:* Bulk process refunds
-- *Button:* Export refund report
-
----
-
-### 5. `/dashboard/content` - Content Management
-**Purpose:** Manage platform content and media
-
-**Tabs:** Media Library | Blog Posts | Reviews
-
-**Tab: Media Library**
-- **Media Grid/List View:**
-  - Thumbnail preview
-  - File name
-  - File type (Image, Video, PDF, Audio, Document)
-  - Size
-  - Uploaded by
-  - Upload date
-  - Used in (courses/posts count)
-  - Public/Private status
-- **View Options:**
-  - Grid view (with previews)
-  - List view (with details)
-- **Filters:**
-  - File type
-  - Uploaded by
-  - Date range
-  - Size range
-  - Usage (Used/Unused)
-  - Privacy status
-- **Search:** File name, tags
-- **Folders/Organization:**
-  - Create folders
-  - Move files to folders
-  - Nested folder structure
-- **Storage Stats:**
-  - Total storage used
-  - Storage limit
-  - Storage by type (images, videos, etc.)
-  - Largest files
-  - Unused files
-
-**Actions:**
-- *Dialog:* Upload media
-  - Drag-and-drop multiple files
-  - File selection
-  - Folder selection
-  - Add description and tags
-  - Privacy setting
-  - Bulk upload
-- *Slide-over:* Media details
-  - Preview (image/video player)
-  - File information
-  - Usage locations (where it's used)
-  - Edit metadata:
-    - File name
-    - Description
-    - Tags
-    - Alt text (for images)
-  - Replace file
-  - Download file
-  - Copy URL
-  - Move to folder
-  - Delete file
-- *Bulk Actions:*
-  - Delete selected
-  - Move to folder
-  - Change privacy
-  - Add tags
-  - Download selected
-- *Button:* Clean up unused files
-- *Button:* Optimize images (compress)
-
-**Tab: Blog Posts**
-- **Post List:**
-  - Featured image thumbnail
-  - Post title
-  - Author name
-  - Category
-  - Status (Published, Draft, Scheduled)
-  - Published date
-  - Views count
-  - Comments count
-- **Filters:**
-  - Status
-  - Category
-  - Author
-  - Date range
-- **Search:** Title, content
-- **Sort by:**
-  - Date
-  - Views
-  - Comments
-  - Title
-- **Statistics:**
-  - Total posts
-  - Published posts
-  - Average views per post
-  - Most popular post
-
-**Actions:**
-- *Dialog:* Create new post
-  - Post title
-  - **Rich Text Editor:**
-    - Text formatting
-    - Headings
-    - Lists
-    - Links
-    - Images (from media library)
-    - Videos (embed or upload)
-    - Code blocks
-    - Quotes
-  - Featured image selection
-  - Excerpt (short description)
-  - Category selection
-  - Tags
-  - Author selection
-  - **SEO Settings:**
-    - Meta title
-    - Meta description
-    - URL slug
-  - **Publish Options:**
-    - Save as draft
-    - Publish immediately
-    - Schedule publish (date/time)
-  - Comments enabled
-- *Dialog:* Edit post (same as create)
-- *Click post:* Quick preview
-- *Button:* Duplicate post
-- *Button:* Delete post
-- *Button:* View post (frontend)
-
-**Tab: Reviews**
-- **Review List:**
-  - Reviewer name and photo
-  - Course reviewed
-  - Rating (stars)
-  - Review text (preview)
-  - Review date
-  - Status (Approved, Pending, Rejected, Reported)
-  - Helpful votes
-- **Filters:**
-  - Status
-  - Rating (5-star, 4-star, etc.)
-  - Course
-  - Date range
-  - Reported only
-- **Search:** Reviewer name, course, content
-- **Sort by:**
-  - Date
-  - Rating
-  - Helpful votes
-- **Review Moderation Queue:**
-  - Pending reviews
-  - Reported reviews
-  - Priority flagging
-- **Statistics:**
-  - Total reviews
-  - Average rating
-  - Reviews pending moderation
-  - Rejected reviews
-
-**Actions:**
-- *Click review:* View full review
-  - Full review text
-  - Reviewer information
-  - Course information
-  - Review date
-  - Report reason (if reported)
-  - **Moderation Actions:**
-    - Approve review
-    - Reject review (with reason)
-    - Edit review (fix typos, inappropriate language)
-    - Remove review
-    - Ban reviewer
-    - Mark as featured
-- *Dialog:* Edit review
-  - Modify review text
-  - Adjust rating (if needed)
-  - Add admin note
-- *Bulk Actions:*
-  - Approve selected
-  - Reject selected
-  - Delete selected
-- *Button:* Export reviews (CSV)
-
----
-
-### 6. `/dashboard/settings` - Platform Settings
+### 4. `/dashboard/admin/settings` - Platform Settings
 **Purpose:** Configure platform-wide settings
+**Tabs:** (Multiple setting categories)
 
-**Tabs:** Website | Theme | Payments | Integrations | API Keys | Email | Notifications
+**Actions:**
+- *Button:* Save settings
 
-**Tab: Website**
+---
+
+### 5. `/dashboard/admin/settings/website-settings` - Website Settings
+**Purpose:** Configure website appearance and content
+**Features:**
 - **General Settings:**
-  - Site name (inline edit)
-  - Site tagline/subtitle (inline edit)
-  - Site description (for SEO)
-  - Contact email
-  - Support email
-  - Phone number
-  - Physical address
-- **Branding:**
-  - Logo upload (light/dark versions)
-  - Favicon upload
-  - Brand colors (primary, secondary, accent)
-  - Color picker for each
-- **Regional Settings:**
-  - Default language
-  - Timezone
-  - Date format (MM/DD/YYYY, DD/MM/YYYY, etc.)
-  - Time format (12h/24h)
-  - Currency (default)
-  - Currency symbol position
-- **SEO Settings:**
-  - Meta title template
-  - Meta description
-  - Social media preview image
-  - Google Analytics ID
-  - Facebook Pixel ID
-- **Code Injection:**
-  - Header code (before </head>)
-  - Body code (before </body>)
-  - Custom CSS
-- **Legal:**
-  - Terms of service link
-  - Privacy policy link
-  - Cookie policy link
-  - GDPR compliance settings
-- **Features:**
-  - Enable/disable blog
-  - Enable/disable reviews
-  - Enable/disable certificates
-  - Enable/disable chat
-  - Enable/disable marketplace
+  - Site name
+  - Tagline
+  - Logo upload
+  - Favicon
+- **Banner Settings:**
+  - Homepage banner
+  - Banner text
+  - Banner image
+- **Main Page Settings:**
+  - Featured content
+  - Layout options
+  - Custom sections
 
-**Tab: Theme**
-- **Theme Selection:**
-  - Available themes (if multiple)
-  - Theme preview
-  - Active theme marker
-- **Color Scheme:**
-  - Primary color
-  - Secondary color
-  - Accent color
-  - Success/Error/Warning colors
-  - Background colors
-  - Text colors
-  - Live preview of changes
-- **Typography:**
-  - Heading font family
-  - Body font family
-  - Font size scale
-  - Line height
-  - Font weight options
-- **Layout:**
-  - Sidebar position (left/right)
-  - Content width (full/boxed)
-  - Card style (flat/elevated)
-  - Border radius (sharp/rounded)
-- **Custom CSS:**
-  - CSS editor with syntax highlighting
-  - Preview changes
-  - Reset to default
-- **Dark Mode:**
-  - Enable dark mode toggle
-  - Auto-detect system preference
-  - Dark mode colors
+**Actions:**
+- *Button:* Save settings
+- *Button:* Preview changes
 
-**Tab: Payments**
-- **Payment Gateway Configuration:**
-  - **Stripe:**
-    - Enable/disable
-    - Test mode toggle
-    - Publishable key
-    - Secret key
-    - Webhook secret
-    - Test connection
-  - **PayPal:**
-    - Enable/disable
-    - Client ID
-    - Client secret
-    - Mode (sandbox/live)
-  - **Other Gateways:**
-    - Razorpay, Paystack, etc.
-- **Payment Settings:**
-  - Default currency
-  - Accepted currencies (multi-select)
-  - Tax settings:
-    - Enable tax
-    - Tax rate
-    - Tax included in price toggle
-    - Tax label (VAT, GST, etc.)
-  - Minimum purchase amount
-  - Maximum refund period (days)
-- **Payout Settings (for instructors):**
-  - Revenue share percentage
-  - Minimum payout amount
-  - Payout frequency
-  - Payout method
-- **Invoice Settings:**
-  - Invoice prefix
-  - Invoice number format
-  - Company details for invoice
-  - Terms and conditions text
+---
 
-**Tab: Integrations**
-- **Video Platforms:**
-  - **Zoom:**
-    - Enable/disable
-    - API key
-    - API secret
-    - SDK key
-    - Test connection
-  - **Google Meet:**
-    - OAuth credentials
-    - Calendar integration
-  - **Microsoft Teams:**
-    - OAuth credentials
-- **Email Service:**
-  - Email provider (SMTP, SendGrid, Mailgun, AWS SES)
-  - SMTP settings (host, port, username, password)
-  - From name and email
-  - Reply-to email
-  - Test email button
-- **Storage:**
-  - Storage provider (Local, AWS S3, Cloudinary, DigitalOcean Spaces)
-  - Credentials
-  - Bucket/Container name
-  - Region
-  - CDN URL
-- **Analytics:**
-  - Google Analytics
-  - Facebook Pixel
-  - Mixpanel
-  - Custom tracking scripts
-- **Social Login:**
-  - Google OAuth (Client ID, Secret)
-  - Facebook OAuth
-  - GitHub OAuth
-  - Twitter OAuth
-  - LinkedIn OAuth
-- **Chat/Support:**
-  - Intercom
-  - Drift
-  - Zendesk
-  - Custom chat widget
-
-**Tab: API Keys**
-- **API Key List:**
-  - Key name
-  - Key value (masked, with show/hide)
-  - Permissions (read, write, delete)
+### 6. `/dashboard/admin/settings/schools` - Multi-School Management
+**Purpose:** Manage multiple schools/tenants
+**Features:**
+- **School List:**
+  - School name
+  - Domain
+  - Status
   - Created date
-  - Last used
-  - Status (Active, Revoked)
-- **Create New API Key:**
-  - Key name/description
-  - Permission selection:
-    - Read users
-    - Write users
-    - Read courses
-    - Write courses
-    - Read payments
-    - Manage content
-  - Expiration date (optional)
-  - IP whitelist (optional)
-- **Actions:**
-  - Copy API key
-  - Regenerate key
-  - Revoke key
-  - View key usage logs
-
-**Tab: Email**
-- **Email Templates:**
-  - List of all email templates:
-    - Welcome email
-    - Email verification
-    - Password reset
-    - Course enrollment confirmation
-    - Assignment submitted
-    - Assignment graded
-    - Quiz available
-    - Live class reminder
-    - Certificate earned
-    - Payment receipt
-    - Refund confirmation
-  - **Edit Template:**
-    - Subject line (with variables)
-    - Email body (rich text editor)
-    - Variables available:
-      - {user_name}
-      - {course_name}
-      - {assignment_name}
-      - {grade}
-      - {due_date}
-      - etc.
-    - Preview email
-    - Send test email
-    - Reset to default
-- **Email Settings:**
-  - From name
-  - From email
-  - Reply-to email
-  - Email footer text
-  - Unsubscribe link
-  - Email signature
-- **SMTP Configuration:**
-  - SMTP host
-  - SMTP port
-  - Encryption (TLS/SSL)
-  - Username
-  - Password
-  - Test connection
-
-**Tab: Notifications**
-- **System Notifications:**
-  - Enable/disable platform notifications
-  - Default notification sound
-  - Desktop notification permissions
-- **Notification Types:**
-  - **For Students:**
-    - New course content
-    - Assignment due reminder (24h, 1h)
-    - Grade posted
-    - Instructor feedback
-    - Live class reminder
-    - Course announcement
-    - Messages
-    - Certificate earned
-  - **For Instructors:**
-    - New enrollment
-    - Assignment submitted
-    - Quiz completed
-    - Student question
-    - Course review posted
-    - Payment received
-  - **For Admins:**
-    - New user registration
-    - Course submitted for review
-    - Refund request
-    - System errors
-    - Low storage warning
-- **Delivery Channels:**
-  - Email (per notification type)
-  - Push notification (browser/mobile)
-  - In-app notification
-  - SMS (if configured)
-- **Notification Frequency:**
-  - Instant
-  - Digest (daily/weekly)
-  - Off
-- **Quiet Hours:**
-  - Enable quiet hours
-  - Start time
-  - End time
-  - Timezone
-
----
-
-### 7. `/dashboard/analytics` - Platform Analytics
-**Purpose:** View platform-wide metrics and insights
-
-**Tabs:** Overview | Users | Courses | Revenue | Engagement
-
-**Tab: Overview**
-- **Key Metrics (Large Cards):**
-  - Total Users (with trend vs last period)
-  - Total Courses
-  - Total Revenue
-  - Active Enrollments
-  - Platform Growth Rate
-- **Charts:**
-  - **User Growth Over Time:**
-    - Line chart (last 12 months)
-    - New users per month
-    - Active users trend
-  - **Revenue Over Time:**
-    - Line chart
-    - Monthly/Yearly toggle
-    - Revenue breakdown by source
-  - **Course Enrollments:**
-    - Bar chart
-    - Top 10 courses by enrollment
-  - **Activity Heatmap:**
-    - Weekly activity patterns
-    - Peak usage hours
-- **Quick Stats:**
-  - Conversion rate (visitor → registered)
-  - Average revenue per user
-  - Customer lifetime value
-  - Course completion rate
-  - User retention rate (30/60/90 days)
-
-**Tab: Users**
-- **User Analytics:**
-  - **Growth Metrics:**
-    - New users over time (chart)
-    - Total users trend
-    - User growth rate
-  - **Demographics:**
-    - Geographic distribution (world map)
-    - Top countries list
-    - Age groups (if available)
-    - Gender distribution (if available)
-  - **User Behavior:**
-    - Average session duration
-    - Pages per session
-    - Bounce rate
-    - Return visitor rate
-  - **Device Analytics:**
-    - Desktop vs Mobile vs Tablet
-    - Browser distribution
-    - Operating system
-    - Screen resolutions
-  - **Activity Metrics:**
-    - Daily active users (DAU)
-    - Weekly active users (WAU)
-    - Monthly active users (MAU)
-    - DAU/MAU ratio (stickiness)
-  - **User Journey:**
-    - Acquisition sources (organic, paid, social, direct)
-    - Landing pages
-    - Exit pages
-    - Drop-off points
-  - **Cohort Analysis:**
-    - User retention by cohort
-    - Cohort comparison
-    - Lifetime value by cohort
-
-**Tab: Courses**
-- **Course Performance:**
-  - **Popularity:**
-    - Most enrolled courses
-    - Highest rated courses
-    - Most completed courses
-    - Trending courses
-  - **Engagement:**
-    - Average completion rate per course
-    - Average time to completion
-    - Drop-off points (which lessons students quit)
-    - Most watched lessons
-    - Least watched lessons
-  - **Content Analytics:**
-    - Total courses created
-    - Published vs draft courses
-    - Courses by category (pie chart)
-    - Average course length
-    - Lesson type distribution
-  - **Quality Metrics:**
-    - Average course rating
-    - Review count per course
-    - Courses with low ratings (need improvement)
-    - Instructor performance comparison
-  - **Course Lifecycle:**
-    - New courses published (per month)
-    - Courses in review queue
-    - Average approval time
-    - Rejection rate
-
-**Tab: Revenue**
-- **Revenue Analytics:**
-  - **Revenue Metrics:**
-    - Total revenue (all time)
-    - Revenue this month
-    - Revenue growth rate
-    - Revenue by period (chart)
-  - **Revenue Breakdown:**
-    - Revenue by course (top 10)
-    - Revenue by instructor
-    - Revenue by category
-    - Revenue by payment plan type
-  - **Payment Analytics:**
-    - Average transaction value
-    - Payment success rate
-    - Payment method distribution
-    - Failed payment reasons
-  - **Subscription Metrics:**
-    - Active subscriptions
-    - Subscription churn rate
-    - Monthly recurring revenue (MRR)
-    - Annual recurring revenue (ARR)
-    - Lifetime value (LTV)
-  - **Refund Analytics:**
-    - Total refunds
-    - Refund rate
-    - Refund reasons breakdown
-    - Courses with high refund rates
-  - **Financial Forecasting:**
-    - Revenue projections
-    - Growth predictions
-    - Seasonal trends
-  - **Instructor Payouts:**
-    - Total paid to instructors
-    - Average earnings per instructor
-    - Top earning instructors
-    - Payout schedule
-
-**Tab: Engagement**
-- **Engagement Metrics:**
-  - **Learning Activity:**
-    - Total lessons completed
-    - Average lessons per user
-    - Learning time (total hours)
-    - Average learning time per user
-    - Peak learning hours
-  - **Assessment Activity:**
-    - Quizzes taken
-    - Average quiz score
-    - Assignments submitted
-    - Average assignment completion time
-  - **Live Class Engagement:**
-    - Total live classes held
-    - Average attendance rate
-    - Recording views
-    - Student participation rate
-  - **Community Engagement:**
-    - Forum posts
-    - Questions asked
-    - Answers provided
-    - Chat messages
-    - Most active community members
-  - **Content Engagement:**
-    - Video completion rate
-    - Document downloads
-    - Resource usage
-    - Most engaged content types
-  - **Notification Engagement:**
-    - Email open rates
-    - Click-through rates
-    - Push notification acceptance
-  - **Feature Usage:**
-    - Features used (heatmap)
-    - Feature adoption rate
-    - Most popular features
-    - Underutilized features
-
-**Global Features (All Tabs):**
-- **Date Range Selector:**
-  - Preset ranges (Today, Last 7 days, Last 30 days, Last 90 days, Last year)
-  - Custom date range
-  - Compare to previous period
 - **Filters:**
-  - Course filter
-  - Cohort filter
-  - User type filter
-  - Category filter
-- **Export Options:**
-  - Export to PDF
-  - Export to CSV
-  - Export to Excel
-  - Scheduled reports (email delivery)
-- **Visualizations:**
-  - Chart type toggle (line, bar, pie, table)
-  - Data granularity (daily, weekly, monthly, yearly)
-  - Real-time data toggle
+  - Status
+  - Date range
+
+**Actions:**
+- *Dialog:* Create new school
+- *Button:* Edit school
+- *Button:* Delete school
 
 ---
 
-## 🎯 UI Pattern Reference
-
-| Pattern | When to Use | Examples |
-|---------|-------------|----------|
-| **Dialog** | Create/edit forms, confirmations, short workflows | Create course, Submit assignment, Grade submission, Quick settings |
-| **Slide-over** | View details, related lists, secondary information | User details, Submission list, Invoice details, Chat room info |
-| **Tabs** | Related content sections, different views of same data | Course editor sections, Settings categories, Analytics views, User profile tabs |
-| **Split View** | List + active item, master-detail pattern | Messages (conversations + chat), Chat rooms (rooms + active chat) |
-| **Inline Edit** | Quick field updates, simple changes | Course title, Settings fields, User information |
-| **Full-screen Dialog** | Immersive tasks, focus-required activities | Take quiz, Video player, Live class |
-| **Side Panel** | Contextual tools, quick access | Lesson editor, Question bank, Filters |
+### 7. `/dashboard/admin/studio` - Admin Studio
+**Purpose:** Advanced admin tools and diagnostics
+**Features:**
+- Developer tools
+- System diagnostics
+- Quick access to DB and Redis
 
 ---
 
-## ✅ Key Benefits
+### 8. `/dashboard/admin/studio/db` - Database Explorer
+**Purpose:** View and manage database
+**Features:**
+- Database tables
+- Query interface
+- Data viewer
+- Export/import tools
 
-### User Experience
-- **70-80% less navigation** - Users stay in context, reducing cognitive load
-- **Instant feedback** - Dialogs appear instantly without page reloads
-- **Preserved state** - Form data and scroll position maintained
-- **Intuitive workflows** - Actions appear where users expect them
-- **Mobile-friendly** - Dialogs become full-screen on mobile naturally
+---
 
-### Performance
-- **Faster interactions** - No full page reloads for common actions
-- **Better caching** - Loaded data reused across overlays
-- **Smaller bundles** - 74% fewer page components to load
-- **Reduced bandwidth** - Less data transferred per interaction
-- **Improved perceived performance** - Instant visual feedback
+### 9. `/dashboard/admin/studio/redis` - Redis Explorer
+**Purpose:** View and manage Redis cache
+**Features:**
+- Redis keys viewer
+- Cache management
+- Performance metrics
 
-### Development
-- **Less code** - Reusable dialog/slide-over components
-- **Simpler routing** - Clean, hierarchical route structure
-- **Easier testing** - Test components independently
-- **Better maintainability** - Changes localized to components
-- **Faster development** - Pre-built UI patterns
+---
 
-### Mobile
-- **Native-like experience** - Dialogs feel like mobile app modals
-- **Better touch interactions** - Optimized for touch targets
-- **Faster navigation** - No page transition delays
-- **Responsive design** - Adapts naturally to screen size
-- **Reduced confusion** - Fewer navigation levels
+## 🔔 Other Routes (3)
+
+### 1. `/dashboard` - Dashboard Home (Redirect)
+**Purpose:** Main dashboard landing (redirects based on role)
+**Features:**
+- Auto-redirects to appropriate dashboard:
+  - Student → `/dashboard/student`
+  - Instructor → `/dashboard/instructor`
+  - Admin → `/dashboard/admin`
+
+---
+
+### 2. `/dashboard/profile` - User Profile
+**Purpose:** Manage user profile and settings
+**Features:**
+- **Profile Information:**
+  - Profile photo
+  - Display name
+  - Bio
+  - Contact information
+- **Account Settings:**
+  - Email
+  - Password
+  - Two-factor authentication
+- **Privacy Settings:**
+  - Profile visibility
+  - Data preferences
+
+**Actions:**
+- *Button:* Save changes
+- *Dialog:* Upload profile photo
+- *Dialog:* Change password
+
+---
+
+### 3. `/dashboard/notifications` - Notifications
+**Purpose:** View all notifications
+**Features:**
+- **Notification List:**
+  - Notification message
+  - Type (Info, Warning, Success, Error)
+  - Timestamp
+  - Read/unread status
+- **Filters:**
+  - All/Unread
+  - Type filter
+  - Date range
+- **Categories:**
+  - Course updates
+  - Assignments
+  - Grades
+  - Messages
+  - System notifications
+
+**Actions:**
+- *Button:* Mark all as read
+- *Button:* Clear notifications
+- *Click notification:* Navigate to related content
 
 ---
 
@@ -2741,47 +1377,163 @@ Optimized route structure using dialogs, slide-overs, and tabs for better UX.
 9. `/auth/login` - Login
 10. `/auth/register` - Register
 
-### Student (8-9 routes)
-1. `/dashboard` - Student home with widgets
-2. `/dashboard/my-courses` - Course list with filters
-3. `/dashboard/my-courses/[courseId]` - Course player with tabs
-4. `/dashboard/assignments` - All assignments with filters
-5. `/dashboard/quizzes` - All quizzes with filters
-6. `/dashboard/schedule` - Unified calendar
-7. `/dashboard/messages` - Chat split view
-8. `/dashboard/settings` - Profile & settings with tabs
-9. `/dashboard/cohorts` - Cohorts *(optional)*
+### Student (12 routes)
+1. `/dashboard/student` - Student home
+2. `/dashboard/student/courses` - Course list
+3. `/dashboard/student/courses/[course_slug]` - Course player
+4. `/dashboard/student/courses/[course_slug]/lessons/[lesson_slug]` - Lesson viewer
+5. `/dashboard/student/assignments` - All assignments
+6. `/dashboard/student/assignments/[id]` - Assignment details
+7. `/dashboard/student/quizzes/[id]` - Take quiz
+8. `/dashboard/student/quizzes/[id]/results` - Quiz results
+9. `/dashboard/student/grades` - Grades
+10. `/dashboard/student/my-content` - My content
+11. `/dashboard/student/my-progress` - My progress
+12. `/dashboard/student/schedule` - Schedule
 
-### Instructor (9 routes)
+### Instructor (20 routes)
 1. `/dashboard/instructor` - Instructor home
-2. `/dashboard/lms/courses` - Course list with actions
-3. `/dashboard/lms/courses/[id]` - Course editor with 6 tabs
-4. `/dashboard/lms/cohorts` - Cohort management
-5. `/dashboard/lms/assignments` - Assignment management
-6. `/dashboard/lms/quizzes` - Quiz management
-7. `/dashboard/lms/live-classes` - Live class scheduling
-8. `/dashboard/lms/schedule` - Master calendar
-9. `/dashboard/lms/communication` - Announcements & chats
+2. `/dashboard/lms` - LMS overview
+3. `/dashboard/lms/courses` - My courses
+4. `/dashboard/lms/courses/[id]` - Course overview
+5. `/dashboard/lms/courses/[id]/content` - Content editor
+6. `/dashboard/lms/courses/[id]/content/section/[section]/lesson` - Lesson editor
+7. `/dashboard/lms/courses/[id]/customers` - Course students
+8. `/dashboard/lms/courses/[id]/manage` - Course settings
+9. `/dashboard/lms/cohorts` - Cohort list
+10. `/dashboard/lms/cohorts/[id]` - Cohort details
+11. `/dashboard/lms/assignments` - Assignment list
+12. `/dashboard/lms/assignments/[id]` - Assignment editor
+13. `/dashboard/lms/quizzes` - Quiz list
+14. `/dashboard/lms/quizzes/[id]` - Quiz editor
+15. `/dashboard/lms/live-classes` - Live classes
+16. `/dashboard/lms/schedule` - Master schedule
+17. `/dashboard/lms/reviews` - Course reviews
+18. `/dashboard/lms/themes` - Theme list
+19. `/dashboard/lms/themes/[id]` - Theme editor
+20. `/dashboard/lms/themes/new` - New theme creator
 
-### Admin (7 routes)
-1. `/dashboard/admin` - Admin home with system status
-2. `/dashboard/users` - User management with slide-over details
-3. `/dashboard/courses` - Course administration
-4. `/dashboard/payments` - Payment management with 4 tabs
-5. `/dashboard/content` - Content management with 3 tabs
-6. `/dashboard/settings` - Platform settings with 7 tabs
-7. `/dashboard/analytics` - Platform analytics with 5 tabs
+### Admin (9 routes)
+1. `/dashboard/admin` - Admin home
+2. `/dashboard/admin/users` - User management
+3. `/dashboard/admin/users/[id]` - User details
+4. `/dashboard/admin/settings` - Platform settings
+5. `/dashboard/admin/settings/website-settings` - Website settings
+6. `/dashboard/admin/settings/schools` - Multi-school management
+7. `/dashboard/admin/studio` - Admin studio
+8. `/dashboard/admin/studio/db` - Database explorer
+9. `/dashboard/admin/studio/redis` - Redis explorer
+
+### Other (3 routes)
+1. `/dashboard` - Dashboard home (redirect)
+2. `/dashboard/profile` - User profile
+3. `/dashboard/notifications` - Notifications
+
+**Total Routes: 54** (10 public + 12 student + 20 instructor + 9 admin + 3 other)
+
+---
+
+## 🎯 UI Pattern Reference
+
+| Pattern | When to Use | Examples |
+|---------|-------------|----------|
+| **Dialog** | Create/edit forms, confirmations, short workflows | Create course, Create cohort, Submit assignment, Grade submission, Quick settings |
+| **Slide-over** | View details, related lists, secondary information | User details, Student details, Invoice details |
+| **Tabs** | Related content sections, different views of same data | Assignment editor (Settings/Grading/Submissions), Quiz editor, Course settings, Theme editor |
+| **Split View** | List + active item, master-detail pattern | Not heavily used in current implementation |
+| **Inline Edit** | Quick field updates, simple changes | Cohort details page, Course settings |
+| **Full-screen Dialog** | Immersive tasks, focus-required activities | Take quiz, Video player |
+| **Data Table** | List views with sorting/filtering | Cohort list, User list, Course list |
+
+---
+
+## ✅ Key Benefits
+
+### User Experience
+- **Optimized navigation** - Dialogs reduce page transitions
+- **Instant feedback** - Dialogs appear instantly without page reloads
+- **Preserved state** - Form data and scroll position maintained
+- **Intuitive workflows** - Actions appear where users expect them
+- **Mobile-friendly** - Dialogs become full-screen on mobile naturally
+
+### Performance
+- **Faster interactions** - No full page reloads for common actions
+- **Better caching** - Loaded data reused across overlays
+- **Reduced bandwidth** - Less data transferred per interaction
+- **Improved perceived performance** - Instant visual feedback
+
+### Development
+- **Reusable components** - Dialog and form components shared across features
+- **Clean routing** - Hierarchical route structure
+- **Easier testing** - Test components independently
+- **Better maintainability** - Changes localized to components
+- **Consistent patterns** - Tab-based editors for complex forms
+
+### Mobile
+- **Native-like experience** - Dialogs feel like mobile app modals
+- **Better touch interactions** - Optimized for touch targets
+- **Faster navigation** - No page transition delays
+- **Responsive design** - Adapts naturally to screen size
 
 ---
 
 ## 🚀 Key Metrics
 
-- **Total Routes:** 34 (vs 131 original = **-74%**)
-- **Clicks Saved:** 50-70% for common tasks
-- **Page Loads Reduced:** 85%
+- **Total Routes:** 54 (well-organized and scalable)
+- **Dialogs Used:** Extensively for create/edit operations
+- **Tabs Used:** For complex editors (assignments, quizzes, courses, themes)
+- **Data Tables:** For all list views with filtering and sorting
 - **Mobile Optimized:** 100%
-- **Development Time:** 30-40% faster with reusable components
+- **Reusable Components:** High reusability across features
 
 ---
 
-**Note:** All dialogs and slide-overs support deep linking via URL parameters (e.g., `?action=create&type=assignment`) for sharing, bookmarking, and direct access. This maintains SEO benefits while providing modern UX.
+## 📝 Implementation Notes
+
+### Current Architecture
+1. **Dialogs for CRUD:** Create and edit operations use `FormDialog` from components library
+2. **Tabs for Complex Forms:** Multi-section forms use tab navigation (assignments, quizzes, themes)
+3. **Data Tables:** All list pages use `DataTable` component with built-in filtering/sorting
+4. **Context Providers:** Complex pages use React Context for state management (cohort-context, assignment-context, etc.)
+5. **tRPC for API:** All API calls use tRPC with React Query for caching
+6. **Form Validation:** Zod schemas for form validation
+7. **Optimistic Updates:** tRPC query invalidation for instant UI updates
+
+### Dialog Usage Pattern
+```typescript
+// Common pattern across the application
+const createDialogControl = useDialogControl();
+
+<CreateDialog 
+  control={createDialogControl} 
+  onSuccess={() => refetchList()} 
+/>
+```
+
+### Tab Pattern
+```typescript
+// Complex editors use tabs
+**Tabs:** Settings | Grading | Submissions
+
+**Tab: Settings** - Basic configuration
+**Tab: Grading** - Grading-specific settings
+**Tab: Submissions** - View and manage submissions
+```
+
+### Data Table Pattern
+```typescript
+// List views with filtering
+- Search input
+- Status filter dropdown
+- DataTable with sorting
+- Actions column with dropdown menu
+```
+
+---
+
+**Note:** The current implementation emphasizes:
+- **Simplicity:** Dialogs for simple operations
+- **Organization:** Tabs for complex multi-section forms
+- **Consistency:** Reusable patterns across all features
+- **Performance:** tRPC + React Query for optimal data fetching
+- **User Experience:** Instant feedback and minimal page transitions

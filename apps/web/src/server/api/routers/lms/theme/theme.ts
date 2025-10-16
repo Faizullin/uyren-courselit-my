@@ -191,9 +191,12 @@ export const themeRouter = router({
         throw new AuthorizationException();
       }
 
-      Object.keys(input.data).forEach((key) => {
-        (theme as any)[key] = (input.data as any)[key];
-      });
+      if (input.data.name !== undefined) theme.name = input.data.name;
+      if (input.data.description !== undefined) theme.description = input.data.description;
+      if (input.data.publicationStatus !== undefined) theme.publicationStatus = input.data.publicationStatus;
+      if (input.data.assets !== undefined) {
+        theme.set('assets', input.data.assets);
+      }
 
       const saved = await theme.save();
       return jsonify(saved.toObject());

@@ -16,27 +16,29 @@ import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   DomainModel,
-  ISiteInfo,
 } from "@workspace/common-logic/models/organization.model";
+import { IDomain, ISiteInfo } from "@workspace/common-logic/models/organization.types";
 import { checkPermission } from "@workspace/utils";
 import { z } from "zod";
 
 import currencies from "@/data/currencies.json";
 
 const currencyISOCodes = currencies.map((currency) =>
-  currency.isoCode?.toLowerCase(),
+  currency.isoCode,
 );
 
 function validatePaymentSettings(siteInfo: ISiteInfo) {
   if (siteInfo.currencyISOCode) {
-    if (!currencyISOCodes.includes(siteInfo.currencyISOCode.toLowerCase())) {
-      throw new ValidationException("Unrecognised currency code");
+    if (!currencyISOCodes.includes(siteInfo.currencyISOCode)) {
+      throw new ValidationException(
+        `Unrecognised currency code: ${siteInfo.currencyISOCode}`,
+      );
     }
   }
 
   if (siteInfo.paymentMethods?.stripe) {
     if (!siteInfo.currencyISOCode) {
-      throw new ValidationException("Currency ISO code is required");
+      throw new ValidationException("Currency ISO code is required for Stripe");
     }
 
     if (
@@ -45,7 +47,7 @@ function validatePaymentSettings(siteInfo: ISiteInfo) {
         !siteInfo.paymentMethods.stripe.stripeSecret)
     ) {
       throw new ValidationException(
-        `Stripe settings are invalid`,
+        "Stripe publishable key and secret are required",
       );
     }
   }
@@ -64,8 +66,10 @@ export const siteInfoRouter = router({
       "siteInfo.paymentMethods.stripe.stripeWebhookSecret": 0,
     };
 
+    const typedDomainObj = domainObj as IDomain & { _id: string };
+
     const domain = await DomainModel.findById(
-      domainObj._id,
+      typedDomainObj._id,
       exclusionFields,
     ).lean();
 
@@ -89,13 +93,15 @@ export const siteInfoRouter = router({
         throw new NotFoundException("Domain", "current");
       }
 
+      const typedDomainObj = domainObj as IDomain & { _id: string };
+
       const exclusionFields = {
         "siteInfo.paymentMethods.stripe.stripeSecret": 0,
         "siteInfo.paymentMethods.stripe.stripeWebhookSecret": 0,
       };
 
       const domain = await DomainModel.findById(
-        domainObj._id,
+        typedDomainObj._id,
         exclusionFields,
       ).lean();
 
@@ -140,7 +146,8 @@ export const siteInfoRouter = router({
         throw new NotFoundException("Domain", "current");
       }
 
-      return jsonify(domain);
+      // Return only siteInfo to match frontend expectations
+      return jsonify(domain.siteInfo || {});
     }),
 
   updateSiteInfo: protectedProcedure
@@ -173,10 +180,10 @@ export const siteInfoRouter = router({
         (domain.siteInfo as any)[key] = (input.data as any)[key];
       });
 
-      await DomainManager.removeFromCache(domain.toObject());
+      await DomainManager.removeFromCache(domain);
       const saved = await domain.save();
 
-      return jsonify(saved.toObject());
+      return jsonify(saved.toObject().siteInfo);
     }),
 
   updatePaymentInfo: protectedProcedure
@@ -204,8 +211,7 @@ export const siteInfoRouter = router({
       }
 
       if (input.data.currencyISOCode) {
-        domain.siteInfo.currencyISOCode =
-          input.data.currencyISOCode.toUpperCase();
+        domain.siteInfo.currencyISOCode = input.data.currencyISOCode;
       }
 
       if (
@@ -239,7 +245,7 @@ export const siteInfoRouter = router({
 
       validatePaymentSettings(domain.siteInfo);
 
-      await DomainManager.removeFromCache(domain.toObject());
+      await DomainManager.removeFromCache(domain);
       const saved = await domain.save();
 
       return jsonify(saved.toObject());

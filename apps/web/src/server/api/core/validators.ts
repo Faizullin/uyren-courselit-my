@@ -34,18 +34,17 @@ export const toSlug = (s: string) =>
 
 export const mediaWrappedFieldValidator = (zod = z) => {
   return zod.object({
+    orgId: documentIdValidator(),
+    ownerId: documentIdValidator(),
     mediaId: z.string(),
     originalFileName: z.string(),
     mimeType: z.string(),
     size: z.number(),
     access: z.nativeEnum(MediaAccessTypeEnum),
     thumbnail: z.string(),
-    // caption is an optional string
     caption: z.string().optional(),
-    // file is an optional string
     file: z.string().optional(),
     url: z.string(),
-    // storageProvider must be one of 'local' or 'cloudinary'
     storageProvider: z.enum(["local", "cloudinary", "custom"]),
     domain: z.string().optional(),
     userId: z.string().optional(),

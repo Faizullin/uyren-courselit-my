@@ -55,12 +55,17 @@ export default function CustomizationsSettings() {
           codeInjectionBody: data.codeInjectionBody,
         },
       });
+      await loadSettingsQuery.refetch();
       toast({
         title: "Success",
         description: "Settings saved",
       });
     } catch (error) {
-      // Error handling is done in the mutation
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
     }
   };
 
@@ -117,7 +122,7 @@ export default function CustomizationsSettings() {
 
           <Button
             type="submit"
-            disabled={isDisabled}
+            disabled={!form.formState.isDirty || isDisabled}
             className="w-full sm:w-auto"
           >
             {isSaving || isSubmitting ? "Saving..." : "Save"}

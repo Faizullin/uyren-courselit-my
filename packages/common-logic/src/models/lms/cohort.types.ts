@@ -16,7 +16,7 @@ export interface ICohort {
     status: CohortStatusEnum;
     beginDate?: Date;
     endDate?: Date;
-    duration_in_weeks?: number;
+    durationInWeeks?: number;
     description?: string;
     inviteCode?: string;
     maxCapacity?: number;

@@ -1,6 +1,5 @@
 "use client";
 
-import { Metadata, ResolvingMetadata } from "next";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { CreateButton } from "@/components/dashboard/layout/create-button";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
@@ -105,16 +104,16 @@ export default function Page() {
                     review.author?.avatar?.thumbnail ||
                     "/courselit_backdrop_square.webp"
                   }
-                  alt={review.author?.name || review.author?.userId}
+                  alt={review.author?.fullName || review.author?.username || "User"}
                 />
                 <AvatarFallback>
-                  {(review.author?.name || " ").charAt(0)}
+                  {(review.author?.fullName || review.author?.username || " ").charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <div className="font-medium">{review.title}</div>
                 <div className="text-sm text-muted-foreground">
-                  {review.author?.name || review.authorId || "Anonymous"}
+                  {review.author?.fullName || review.author?.username || "Anonymous"}
                 </div>
               </div>
             </div>
@@ -135,10 +134,10 @@ export default function Page() {
         },
       },
       {
-        accessorKey: "targetType",
+        accessorKey: "target",
         header: t("table.target_type"),
         cell: ({ row }) => {
-          const targetType = row.original.targetType;
+          const targetType = row.original.target?.entityType || "unknown";
           return (
             <Badge variant="outline">
               {targetType.charAt(0).toUpperCase() + targetType.slice(1)}
@@ -162,7 +161,7 @@ export default function Page() {
         header: t("table.status"),
         cell: ({ row }) => {
           const published = row.original.published;
-          const isFeatured = row.original.isFeatured;
+          const isFeatured = row.original.featured;
 
           if (isFeatured) {
             return <Badge variant="default">{t("table.featured")}</Badge>;
@@ -279,7 +278,7 @@ export default function Page() {
     pageCount: parsedPageination.pageCount,
     enableGlobalFilter: true,
     initialState: {
-      sorting: [{ id: "createdAt", desc: true }],
+      sorting: [{ id: "rating", desc: true }],
     },
   });
 
@@ -291,32 +290,23 @@ export default function Page() {
         take: tableState.pagination.pageSize,
       },
       filter: {
-        published: Array.isArray(
-          tableState.columnFilters.find((filter) => filter.id === "published")
-            ?.value,
-        )
-          ? (
-              tableState.columnFilters.find(
-                (filter) => filter.id === "published",
-              )?.value as string[]
-            )[0] === "true"
-          : undefined,
-        targetType: Array.isArray(
-          tableState.columnFilters.find((filter) => filter.id === "targetType")
-            ?.value,
-        )
-          ? (
-              tableState.columnFilters.find(
-                (filter) => filter.id === "targetType",
-              )?.value as string[]
-            )[0]
-          : undefined,
+        published: (() => {
+          const filterValue = tableState.columnFilters.find((filter) => filter.id === "published")?.value;
+          if (Array.isArray(filterValue)) {
+            return filterValue[0] === "true";
+          }
+          return undefined;
+        })(),
+        targetType: (() => {
+          const filterValue = tableState.columnFilters.find((filter) => filter.id === "targetType")?.value;
+          return Array.isArray(filterValue) ? filterValue[0] : undefined;
+        })(),
       },
     };
 
     if (tableState.sorting[0]) {
       parsed.orderBy = {
-        field: tableState.sorting[0].id as any,
+        field: tableState.sorting[0].id,
         direction: tableState.sorting[0].desc ? "desc" : "asc",
       };
     }
@@ -352,35 +342,33 @@ export default function Page() {
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <div className="flex flex-col gap-4">
-        <HeaderTopbar
-          header={{
-            title: t("lms.modules.reviews.title"),
-            subtitle: t("lms.modules.reviews.description"),
-          }}
-          rightAction={
-            <CreateButton
-              onClick={handleCreateReview}
-              text="Add Review"
+      <HeaderTopbar
+        header={{
+          title: t("lms.modules.reviews.title"),
+          subtitle: t("lms.modules.reviews.description"),
+        }}
+        rightAction={
+          <CreateButton
+            onClick={handleCreateReview}
+            text="Add Review"
+          />
+        }
+      />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <Input
+              placeholder={t("table.search_placeholder")}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="max-w-sm"
             />
-          }
-        />
-        <Card>
-          <CardContent>
-            <div className="flex flex-col gap-2">
-              <Input
-                placeholder={t("table.search_placeholder")}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="h-8 w-40 lg:w-56"
-              />
-              <DataTable table={table}>
-                <DataTableToolbar table={table} />
-              </DataTable>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <DataTable table={table}>
+              <DataTableToolbar table={table} />
+            </DataTable>
+          </div>
+        </CardContent>
+      </Card>
     </DashboardContent>
   );
 }

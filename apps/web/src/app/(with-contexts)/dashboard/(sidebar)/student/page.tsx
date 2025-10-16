@@ -11,13 +11,11 @@ export default function Page() {
 
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>
-            <div className="flex flex-col gap-4">
-                <HeaderTopbar
-                    header={{
-                        title: t("common:dashboard.student.title"),
-                    }}
-                />
-            </div>
+            <HeaderTopbar
+                header={{
+                    title: t("common:dashboard.student.title"),
+                }}
+            />
         </DashboardContent>
     )
 }

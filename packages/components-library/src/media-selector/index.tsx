@@ -1,15 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Progress } from "@workspace/ui/components/progress";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -21,7 +15,8 @@ import {
 import { Upload, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { toast as sonnerToast } from "sonner";
 import { z } from "zod";
 import Dialog2 from "../dialog2";
 import { useToast } from "../hooks/use-toast";
@@ -56,23 +51,24 @@ interface Strings {
   removeButtonCaption?: string;
 }
 
+interface MediaSelectorFunctions {
+  uploadFile: (files: File[], type: string) => Promise<any[]>;
+}
+
 interface MediaSelectorProps {
-  profile: Omit<Profile, "fetched">;
-  onError?: (err: Error) => void;
-  address: Address;
   title: string;
   src: string;
   srcTitle: string;
-  onSelection: (...args: any[]) => void;
-  onRemove?: (...args: any[]) => void;
-  mimeTypesToShow?: string[];
-  access?: Access;
+  onSelection: (media: any) => void;
+  onRemove?: () => void;
+  functions: MediaSelectorFunctions;
   strings: Strings;
   mediaId?: string;
   type: "course" | "lesson" | "page" | "user" | "domain" | "community";
   hidePreview?: boolean;
-  tooltip?: string;
   disabled?: boolean;
+  access?: Access;
+  mimeTypesToShow?: string[];
 }
 
 const mediaSelectorSchema = z.object({
@@ -83,34 +79,17 @@ type MediaSelectorFormData = z.infer<typeof mediaSelectorSchema>;
 
 const MediaSelector = (props: MediaSelectorProps) => {
   const [dialogOpened, setDialogOpened] = useState(false);
-  const [error, setError] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const defaultUploadData = {
-    caption: "",
-    uploading: false,
-    public: props.access === "public",
-  };
-  const [uploadData, setUploadData] = useState(defaultUploadData);
   const fileInput = React.createRef<HTMLInputElement>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [caption, setCaption] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const {
     strings,
-    address,
     src,
-    title,
     srcTitle,
-    tooltip,
+    functions,
     disabled = false,
-    onError = (err: Error) => {
-      toast({
-        title: "Error",
-        description: `Media upload: ${err.message}`,
-        variant: "destructive",
-      });
-    },
+    access = "public",
   } = props;
   const form = useForm<MediaSelectorFormData>({
     resolver: zodResolver(mediaSelectorSchema),
@@ -120,101 +99,47 @@ const MediaSelector = (props: MediaSelectorProps) => {
     },
   });
 
-  const onSelection = (media: Media) => {
+  const onSelection = (media: any) => {
     props.onSelection(media);
   };
 
   useEffect(() => {
     if (!dialogOpened) {
       setSelectedFile(null);
-      setCaption("");
-      setUploadProgress(0);
+      form.reset();
     }
-  }, [dialogOpened]);
+  }, [dialogOpened, form]);
 
-  const uploadToCloudinary = async (file: File, caption: string): Promise<Media> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("caption", caption);
-    formData.append("access", uploadData.public ? "public" : "private");
-    formData.append("type", props.type);
-
-    // Create XMLHttpRequest for progress tracking
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.addEventListener("progress", (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round(
-            (event.loaded / event.total) * 100,
-          );
-          setUploadProgress(percentComplete);
-        }
-      });
-
-      xhr.addEventListener("load", () => {
-        if (xhr.status === 200) {
-          try {
-            const media = JSON.parse(xhr.responseText);
-            resolve(media);
-          } catch (err) {
-            reject(new Error("Invalid response format"));
-          }
-        } else {
-          try {
-            const error = JSON.parse(xhr.responseText);
-            reject(new Error(error.message || "Upload failed"));
-          } catch (err) {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
-          }
-        }
-      });
-
-      xhr.addEventListener("error", () => {
-        reject(new Error("Network error during upload"));
-      });
-
-      xhr.open(
-        "POST",
-        `${address.backend}/api/services/media/upload?storageType=cloudinary`,
-      );
-      xhr.send(formData);
-    });
-  };
-
-  const uploadFile = async (data: MediaSelectorFormData) => {
-    const file = data.file;
-
-    if (!file) {
-      setError("File is required");
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setUploadProgress(0);
-      const media = await uploadToCloudinary(file, data.caption || "");
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, caption }: { file: File; caption: string }) => {
+      const results = await functions.uploadFile([file], props.type);
+      return results[0];
+    },
+    onSuccess: (media) => {
+      queryClient.invalidateQueries({ queryKey: ["media"] });
       onSelection(media);
-      toast({
-        title: "Success",
-        description: strings.fileUploaded || "File uploaded successfully",
-      });
-    } catch (err: any) {
-      onError(err);
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
+      sonnerToast.success(strings.fileUploaded || "File uploaded successfully");
       setSelectedFile(null);
-      setCaption("");
+      form.reset();
       setDialogOpened(false);
-    }
+    },
+    onError: (err: any) => {
+      const errorMessage = err.message || "Upload failed";
+      sonnerToast.error(errorMessage);
+    },
+  });
+
+  const handleUploadFile = (data: MediaSelectorFormData) => {
+    const file = data.file;
+    if (!file) return;
+
+    uploadMutation.mutate({ file, caption: data.caption || "" });
   };
 
-  const removeFile = async () => {
-    try {
-      setUploading(true);
+  const removeMutation = useMutation({
+    mutationFn: async (mediaId: string) => {
       const response = await fetch(
-        `${address.backend}/api/services/media/${props.mediaId}?storageType=cloudinary`,
+        `/api/services/media/${mediaId}?storageType=cloudinary`,
         {
           method: "DELETE",
           headers: {
@@ -229,19 +154,24 @@ const MediaSelector = (props: MediaSelectorProps) => {
         throw new Error(result.error || "Delete failed");
       }
 
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["media"] });
       if (props.onRemove) {
         props.onRemove();
       }
-
-      toast({
-        title: "Success",
-        description: strings.mediaDeleted || "Media deleted successfully",
-      });
-    } catch (err: any) {
-      onError(err);
-    } finally {
-      setUploading(false);
+      sonnerToast.success(strings.mediaDeleted || "Media deleted successfully");
       setDialogOpened(false);
+    },
+    onError: (err: any) => {
+      sonnerToast.error(`Media delete: ${err.message || "Delete failed"}`);
+    },
+  });
+
+  const removeFile = () => {
+    if (props.mediaId) {
+      removeMutation.mutate(props.mediaId);
     }
   };
 
@@ -270,12 +200,14 @@ const MediaSelector = (props: MediaSelectorProps) => {
         {props.mediaId && (
           <Button
             onClick={removeFile}
-            disabled={uploading || disabled}
+            disabled={removeMutation.isPending || disabled}
             size="sm"
             variant="outline"
           >
             <X className="mr-2 h-4 w-4" />
-            {uploading ? "Working..." : strings.removeButtonCaption || "Remove"}
+            {removeMutation.isPending
+              ? "Working..."
+              : strings.removeButtonCaption || "Remove"}
           </Button>
         )}
         {!props.mediaId && (
@@ -293,45 +225,44 @@ const MediaSelector = (props: MediaSelectorProps) => {
                 <Button
                   type="submit"
                   form="media-upload-form"
-                  disabled={uploading}
+                  disabled={uploadMutation.isPending || !selectedFile}
                 >
-                  {uploading
-                    ? strings.uploading || "Uploading"
+                  {uploadMutation.isPending
+                    ? strings.uploading || "Uploading..."
                     : strings.uploadButtonText || "Upload"}
                 </Button>
               }
             >
-              {error && <div>{error}</div>}
-              <Form {...form}>
-                <form
-                  id="media-upload-form"
-                  encType="multipart/form-data"
-                  className="flex flex-col gap-4"
-                  onSubmit={form.handleSubmit((data) => uploadFile(data))}
-                >
-                  <FormField
+              <form
+                id="media-upload-form"
+                encType="multipart/form-data"
+                className="flex flex-col gap-4"
+                onSubmit={form.handleSubmit((data) => handleUploadFile(data))}
+              >
+                <FieldGroup>
+                  <Controller
                     control={form.control}
                     name="file"
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <FormItem>
-                        <FormLabel>File</FormLabel>
-                        <FormControl>
-                          <Input
-                            ref={fileInput}
-                            type="file"
-                            accept={props.mimeTypesToShow?.join(",")}
+                    render={({ field: { onChange, value, ...field }, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>File</FieldLabel>
+                        <Input
+                          ref={fileInput}
+                          type="file"
+                          accept={props.mimeTypesToShow?.join(",")}
                             onChange={(e: any) => {
-                              const file = e.target.files?.[0];
-                              setSelectedFile(file);
-                              onChange(file);
-                            }}
-                            disabled={uploading}
-                            className="mt-2"
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                            const file = e.target.files?.[0];
+                            setSelectedFile(file);
+                            onChange(file);
+                          }}
+                          disabled={uploadMutation.isPending}
+                          required
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
                     )}
                   />
 
@@ -347,37 +278,43 @@ const MediaSelector = (props: MediaSelectorProps) => {
                         </span>
                       </div>
 
-                      {uploading && (
+                      {uploadMutation.isPending && (
                         <div className="space-y-2">
                           <div className="flex justify-between text-xs text-gray-600">
                             <span>Uploading...</span>
-                            <span>{uploadProgress}%</span>
                           </div>
-                          <Progress value={uploadProgress} className="h-2" />
+                          <Progress className="h-2" />
+                        </div>
+                      )}
+                      
+                      {uploadMutation.isError && (
+                        <div className="text-sm text-destructive">
+                          {(uploadMutation.error as any)?.message || "Upload failed"}
                         </div>
                       )}
                     </div>
                   )}
 
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="caption"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Caption</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            rows={5}
-                            disabled={uploading}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>Caption</FieldLabel>
+                        <Textarea
+                          {...field}
+                          rows={5}
+                          disabled={uploadMutation.isPending}
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
                     )}
                   />
-                </form>
-              </Form>
+                </FieldGroup>
+              </form>
             </Dialog2>
           </div>
         )}

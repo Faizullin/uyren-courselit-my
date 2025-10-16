@@ -9,14 +9,7 @@ import {
     useDialogControl,
     useToast
 } from "@workspace/components-library";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
     Select,
@@ -26,7 +19,8 @@ import {
     SelectValue,
 } from "@workspace/ui/components/select";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useCallback } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
@@ -78,7 +72,7 @@ export function CourseCreateDialog(props: {
                 props.control.hide();
                 router.push(`/dashboard/lms/courses/${response._id}`);
             },
-            onError: (err: any) => {
+            onError: (err) => {
                 toast({
                     title: t("common:dashboard.error"),
                     description: err.message,
@@ -87,7 +81,7 @@ export function CourseCreateDialog(props: {
             },
         });
 
-    const handleSubmit = (data: CourseFormDataType) => {
+    const handleSubmit = useCallback((data: CourseFormDataType) => {
         createCourseMutation.mutateAsync({
             data: {
                 title: data.title,
@@ -96,7 +90,7 @@ export function CourseCreateDialog(props: {
                 language: data.language,
             },
         })
-    };
+    }, [createCourseMutation]);
 
     const isSubmitting = form.formState.isSubmitting;
     const isSaving = createCourseMutation.isPending;
@@ -124,84 +118,112 @@ export function CourseCreateDialog(props: {
             cancelText={t("common:dashboard.cancel")}
             maxWidth="xl"
         >
-            <Form {...form}>
-                <div className="space-y-4 min-h-[300px]">
-                    <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t("courses.form.course_title")}</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder={t("products.form.title_placeholder")} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="courseCode"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Course Code</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="e.g., CS101, MATH201" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="level"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t("courses.form.type")}</FormLabel>
-                                <FormControl>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder={t("courses.form.level_placeholder")} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {
-                                                Object.entries(CourseLevelEnum).map(([key, value]) => (
-                                                    <SelectItem key={key} value={value}>{value}</SelectItem>
-                                                ))
-                                            }
-                                        </SelectContent>
-                                    </Select>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="language"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Language</FormLabel>
-                                <FormControl>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Select language" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {
-                                                Object.entries(LanguagesMap).map(([key, value]) => (
-                                                    <SelectItem key={key} value={key}>{value}</SelectItem>
-                                                ))
-                                            }
-                                        </SelectContent>
-                                    </Select>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-            </Form>
+            <FieldGroup className="min-h-[300px]">
+                <Controller
+                    control={form.control}
+                    name="title"
+                    render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel>{t("courses.form.course_title")}</FieldLabel>
+                            <Input
+                                {...field}
+                                placeholder={t("products.form.title_placeholder")}
+                                aria-invalid={fieldState.invalid}
+                            />
+                            {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                            )}
+                        </Field>
+                    )}
+                />
+                <Controller
+                    control={form.control}
+                    name="courseCode"
+                    render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel>Course Code</FieldLabel>
+                            <Input
+                                {...field}
+                                placeholder="e.g., CS101, MATH201"
+                                aria-invalid={fieldState.invalid}
+                            />
+                            {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                            )}
+                        </Field>
+                    )}
+                />
+                <Controller
+                    control={form.control}
+                    name="level"
+                    render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel htmlFor="course-level">
+                                {t("courses.form.type")}
+                            </FieldLabel>
+                            <div>
+                                <Select
+                                    name={field.name}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                >
+                                    <SelectTrigger
+                                        id="course-level"
+                                        aria-invalid={fieldState.invalid}
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder={t("courses.form.level_placeholder")} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(CourseLevelEnum).map(([key, value]) => (
+                                            <SelectItem key={key} value={value}>
+                                                {value}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                            )}
+                        </Field>
+                    )}
+                />
+                <Controller
+                    control={form.control}
+                    name="language"
+                    render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel htmlFor="course-language">Language</FieldLabel>
+                            <div>
+                                <Select
+                                    name={field.name}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                >
+                                    <SelectTrigger
+                                        id="course-language"
+                                        aria-invalid={fieldState.invalid}
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select language" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(LanguagesMap).map(([key, value]) => (
+                                            <SelectItem key={key} value={key}>
+                                                {value}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                            )}
+                        </Field>
+                    )}
+                />
+            </FieldGroup>
         </FormDialog>
     );
 } 

@@ -16,8 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
+import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -41,10 +41,9 @@ import {
   Type
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useThemeContext } from "./theme-context";
-;
 
 // Simple Monaco-like editor component (you can replace this with actual Monaco editor)
 function MonacoEditor({
@@ -375,26 +374,29 @@ function MailList({
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-3"
               >
-                <div>
-                  <Label htmlFor="asset-name" className="text-sm font-medium">
-                    Filename
-                  </Label>
-                  <Input
-                    id="asset-name"
-                    placeholder="style.css"
-                    {...form.register("name")}
-                    onChange={(e) => {
-                      form.setValue("name", e.target.value);
-                      handleNameChange(e.target.value);
-                    }}
-                    className="mt-1"
-                  />
-                  {form.formState.errors.name && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {form.formState.errors.name.message}
-                    </p>
+                <Controller
+                  control={form.control}
+                  name="name"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel className="text-sm font-medium">
+                        Filename
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        placeholder="style.css"
+                        onChange={(e) => {
+                          field.onChange(e.target.value);
+                          handleNameChange(e.target.value);
+                        }}
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
-                </div>
+                />
                 <div className="flex gap-2 pt-2">
                   <Button
                     type="submit"
@@ -566,47 +568,55 @@ function AssetEditor({ selectedAsset, onSave }: AssetEditorProps) {
 
           <TabsContent value="properties" className="mt-4">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <Label htmlFor="name" className="text-sm font-medium">
-                  Name
-                </Label>
-                <Input id="name" {...form.register("name")} className="mt-1" />
-                {form.formState.errors.name && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {form.formState.errors.name.message}
-                  </p>
+              <Controller
+                control={form.control}
+                name="name"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Name</FieldLabel>
+                    <Input {...field} aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
                 )}
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Type</Label>
+              />
+
+              <Field>
+                <FieldLabel>Type</FieldLabel>
                 <Badge
                   variant="secondary"
                   className={getAssetTypeColor(form.watch("assetType"))}
                 >
                   {form.watch("assetType")}
                 </Badge>
-              </div>
-              <div>
-                <Label htmlFor="url" className="text-sm font-medium">
-                  URL
-                </Label>
-                <Input id="url" {...form.register("url")} className="mt-1" />
-                {form.formState.errors.url && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {form.formState.errors.url.message}
-                  </p>
+              </Field>
+
+              <Controller
+                control={form.control}
+                name="url"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>URL</FieldLabel>
+                    <Input {...field} aria-invalid={fieldState.invalid} />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
                 )}
-              </div>
-              <div>
-                <Label htmlFor="description" className="text-sm font-medium">
-                  Description
-                </Label>
-                <Input
-                  id="description"
-                  {...form.register("description")}
-                  className="mt-1"
-                />
-              </div>
+              />
+
+              <Controller
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Description</FieldLabel>
+                    <Input {...field} />
+                  </Field>
+                )}
+              />
+
               <Button
                 type="submit"
                 className="w-full"
@@ -623,17 +633,20 @@ function AssetEditor({ selectedAsset, onSave }: AssetEditorProps) {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
-                <div>
-                  <Label htmlFor="content" className="text-sm font-medium">
-                    Content
-                  </Label>
-                  <textarea
-                    id="content"
-                    {...form.register("content")}
-                    className="w-full h-64 p-3 font-mono text-sm border border-input rounded-md resize-none"
-                    placeholder={`Enter your ${selectedAsset.assetType === ThemeAssetTypeEnum.STYLESHEET ? "CSS" : "JavaScript"} code here`}
-                  />
-                </div>
+                <Controller
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <Field>
+                      <FieldLabel>Content</FieldLabel>
+                      <textarea
+                        {...field}
+                        className="w-full h-64 p-3 font-mono text-sm border border-input rounded-md resize-none"
+                        placeholder={`Enter your ${selectedAsset.assetType === ThemeAssetTypeEnum.STYLESHEET ? "CSS" : "JavaScript"} code here`}
+                      />
+                    </Field>
+                  )}
+                />
                 <Button
                   type="submit"
                   className="w-full"
@@ -646,7 +659,6 @@ function AssetEditor({ selectedAsset, onSave }: AssetEditorProps) {
               <div className="text-center text-muted-foreground py-8">
                 <p>
                   Code editing is only available for stylesheet and script assets
-                  assets
                 </p>
               </div>
             )}

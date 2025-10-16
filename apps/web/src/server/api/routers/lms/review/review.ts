@@ -1,4 +1,4 @@
-import { Log } from "@/lib/logger";
+
 import { NotFoundException } from "@/server/api/core/exceptions";
 import {
   createDomainRequiredMiddleware,
@@ -11,7 +11,8 @@ import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import {
   documentIdValidator,
-  mediaWrappedFieldValidator
+  mediaWrappedFieldValidator,
+  textEditorContentValidator
 } from "@/server/api/core/validators";
 import { deleteMedia } from "@/server/services/media";
 import { jsonify } from "@workspace/common-logic/lib/response";
@@ -19,7 +20,7 @@ import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { ReviewModel } from "@workspace/common-logic/models/review.model";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
-import { FilterQuery, RootFilterQuery } from "mongoose";
+import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
 
@@ -95,7 +96,7 @@ export const reviewRouter = router({
           .sort(sortObject)
           .lean(),
         paginationMeta.includePaginationCount
-          ? ReviewModel.countDocuments(query as any)
+          ? ReviewModel.countDocuments(query)
           : Promise.resolve(null),
       ]);
 
@@ -152,7 +153,7 @@ export const reviewRouter = router({
     .input(
       getFormDataSchema({
         title: z.string().min(1).max(200),
-        content: z.string(),
+        content: textEditorContentValidator(),
         rating: z.number().min(1).max(10),
         targetType: z.string().min(1),
         targetId: documentIdValidator().optional(),
@@ -164,7 +165,13 @@ export const reviewRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const review = await ReviewModel.create({
-        ...input.data,
+        title: input.data.title,
+        content: input.data.content,
+        rating: input.data.rating,
+        published: input.data.published,
+        featured: input.data.featured,
+        featuredImage: input.data.featuredImage,
+        tags: input.data.tags,
         orgId: ctx.domainData.domainObj.orgId,
         authorId: ctx.user._id,
         target: {
@@ -174,10 +181,6 @@ export const reviewRouter = router({
         },
       });
 
-      Log.info("Review created", {
-        reviewId: review._id,
-        userId: ctx.user._id,
-      });
       return jsonify(review.toObject());
     }),
 
@@ -192,7 +195,7 @@ export const reviewRouter = router({
     .input(
       getFormDataSchema({
         title: z.string().min(1).max(200).optional(),
-        content: z.string().optional(),
+        content: textEditorContentValidator().optional(),
         rating: z.number().min(1).max(10).optional(),
         targetType: z.string().min(1).optional(),
         targetId: documentIdValidator().optional(),
@@ -221,32 +224,34 @@ export const reviewRouter = router({
         throw new Error("You don't have permission to update this review");
       }
 
-      const updateData: FilterQuery<typeof ReviewModel> = {};
-      if (input.data.title !== undefined) updateData.title = input.data.title;
-      if (input.data.content !== undefined)
-        updateData.content = input.data.content;
-      if (input.data.rating !== undefined)
-        updateData.rating = input.data.rating;
-      if (input.data.targetType !== undefined)
-        updateData.targetType = input.data.targetType;
-      if (input.data.targetId !== undefined)
-        updateData.targetId = input.data.targetId;
-      if (input.data.published !== undefined)
-        updateData.published = input.data.published;
-      if (input.data.featured !== undefined)
-        updateData.featured = input.data.featured;
-      if (input.data.featuredImage !== undefined)
-        updateData.featuredImage = input.data.featuredImage;
-      if (input.data.tags !== undefined) updateData.tags = input.data.tags;
-      if (input.data.authorId !== undefined)
-        updateData.authorId = input.data.authorId;
+      if (input.data.title !== undefined) review.title = input.data.title;
+      if (input.data.content !== undefined) {
+        review.content = input.data.content;
+        review.markModified('content');
+      }
+      if (input.data.rating !== undefined) review.rating = input.data.rating;
+      if (input.data.published !== undefined) review.published = input.data.published;
+      if (input.data.featured !== undefined) review.featured = input.data.featured;
+      if (input.data.featuredImage !== undefined) {
+        review.set('featuredImage', input.data.featuredImage);
+      }
+      if (input.data.tags !== undefined) {
+        review.tags = input.data.tags.map(t => new mongoose.Types.ObjectId(t));
+      }
+      if (input.data.authorId !== undefined) {
+        review.authorId = new mongoose.Types.ObjectId(input.data.authorId);
+      }
+
+      if (input.data.targetType !== undefined || input.data.targetId !== undefined) {
+        review.target = {
+          entityType: input.data.targetType || review.target.entityType,
+          entityId: input.data.targetId ? new mongoose.Types.ObjectId(input.data.targetId) : review.target.entityId,
+          entityIdStr: input.data.targetId || review.target.entityIdStr,
+        };
+        review.markModified('target');
+      }
 
       const saved = await review.save();
-
-      Log.info("Review updated", {
-        reviewId: saved._id,
-        userId: ctx.user._id,
-      });
       return jsonify(saved.toObject());
     }),
 
@@ -285,10 +290,6 @@ export const reviewRouter = router({
 
       await ReviewModel.findByIdAndDelete(input.id);
 
-      Log.info("Review deleted", {
-        reviewId: input.id,
-        userId: ctx.user._id,
-      });
       return { success: true };
     }),
 

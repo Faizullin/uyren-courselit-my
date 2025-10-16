@@ -11,7 +11,7 @@ import {
 } from "react";
 
 type SettingsType =
-  GeneralRouterOutputs["siteModule"]["siteInfo"]["getSiteInfo"]["settings"];
+  GeneralRouterOutputs["siteModule"]["siteInfo"]["getSiteInfo"];
 
 interface SettingsContextType {
   settings: SettingsType | null;
@@ -44,16 +44,14 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const updateSettingsMutation =
     trpc.siteModule.siteInfo.updateSiteInfo.useMutation({
       onSuccess: (response) => {
-        if (response?.settings) {
-          setSettings(response.settings);
-        }
+        setSettings(response!);
         loadSettingsQuery.refetch();
       },
     });
 
   useEffect(() => {
-    if (loadSettingsQuery.data?.settings) {
-      setSettings(loadSettingsQuery.data.settings);
+    if (loadSettingsQuery.data) {
+      setSettings(loadSettingsQuery.data);
     }
   }, [loadSettingsQuery.data]);
 

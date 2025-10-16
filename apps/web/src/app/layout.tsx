@@ -61,6 +61,8 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   } catch (error) {
     if (error instanceof TRPCError) {
       hasError = true;
+    } else {
+      throw error;
     }
   }
   if (hasError || !serverSiteInfo) {

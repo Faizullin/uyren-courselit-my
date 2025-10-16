@@ -7,7 +7,7 @@ import {
   ScrollGroup,
 } from "@/components/public/scroll-animation";
 import { trpc } from "@/utils/trpc";
-import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course";
+import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";

@@ -3,28 +3,26 @@ import {
   NotFoundException,
 } from "@/server/api/core/exceptions";
 import {
+  adminProcedure,
   createDomainRequiredMiddleware,
-  createPermissionMiddleware,
-  protectedProcedure,
+  publicProcedure
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
-import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { TagModel } from "@workspace/common-logic/models/post/tag.model";
 import { slugify } from "@workspace/utils";
-import { FilterQuery } from "mongoose";
+import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
 export const tagRouter = router({
-  list: protectedProcedure
+  list: adminProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageSite]))
     .input(ListInputSchema)
     .query(async ({ ctx, input }) => {
-      const query: FilterQuery<typeof TagModel> = {
+      const query: RootFilterQuery<typeof TagModel> = {
         orgId: ctx.domainData.domainObj.orgId,
       };
 
@@ -33,6 +31,7 @@ export const tagRouter = router({
       }
 
       const paginationMeta = paginate(input.pagination);
+      console.log(paginationMeta);
       const orderBy = input.orderBy || {
         field: "createdAt",
         direction: "desc",
@@ -59,9 +58,8 @@ export const tagRouter = router({
       });
     }),
 
-  getById: protectedProcedure
+  getById: adminProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageSite]))
     .input(z.object({ id: documentIdValidator() }))
     .query(async ({ ctx, input }) => {
       const tag = await TagModel.findOne({
@@ -76,9 +74,8 @@ export const tagRouter = router({
       return jsonify(tag);
     }),
 
-  create: protectedProcedure
+  create: adminProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageSite]))
     .input(
       getFormDataSchema({
         name: z.string().min(1).max(100),
@@ -105,9 +102,8 @@ export const tagRouter = router({
       return jsonify(tag.toObject());
     }),
 
-  update: protectedProcedure
+  update: adminProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageSite]))
     .input(
       getFormDataSchema(
         {
@@ -147,9 +143,8 @@ export const tagRouter = router({
       return jsonify(saved.toObject());
     }),
 
-  delete: protectedProcedure
+  delete: adminProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageSite]))
     .input(z.object({ id: documentIdValidator() }))
     .mutation(async ({ ctx, input }) => {
       const tag = await TagModel.findOne({
@@ -163,6 +158,29 @@ export const tagRouter = router({
 
       await tag.deleteOne();
       return { success: true };
+    }),
+
+  publicList: publicProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(ListInputSchema)
+    .query(async ({ ctx, input }) => {
+      const query: RootFilterQuery<typeof TagModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
+      };
+      const paginationMeta = paginate(input.pagination);
+      const orderBy = input.orderBy || {
+        field: "createdAt",
+        direction: "desc",
+      };
+      const sortObject: Record<string, 1 | -1> = {
+        [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
+      };
+      const tags = await TagModel.find(query).skip(paginationMeta.skip).limit(paginationMeta.take).sort(sortObject).lean();
+      return jsonify({
+        items: tags,
+        total: tags.length,
+        meta: paginationMeta,
+      });
     }),
 });
 

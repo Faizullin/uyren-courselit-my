@@ -37,14 +37,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@workspace/ui/components/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Separator } from "@workspace/ui/components/separator";
@@ -54,7 +47,7 @@ import { Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 
 const DescriptionEditor = dynamic(() =>
@@ -327,59 +320,60 @@ export default function ProductManageClient({
           }}
         />
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
-          >
-            <FormField
+        <form
+          onSubmit={form.handleSubmit(handleSubmit)}
+          className="space-y-6"
+        >
+          <FieldGroup>
+            <Controller
               control={form.control}
               name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold">
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="text-base font-semibold">
                     Title
-                  </FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  </FieldLabel>
+                  <Input {...field} aria-invalid={fieldState.invalid} />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <FormField
+            <Controller
               control={form.control}
               name="shortDescription"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold">
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="text-base font-semibold">
                     Short Description
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Enter a brief description for your product (max 500 characters)..."
-                      maxLength={500}
-                    />
-                  </FormControl>
+                  </FieldLabel>
+                  <Textarea
+                    {...field}
+                    placeholder="Enter a brief description for your product (max 500 characters)..."
+                    maxLength={500}
+                    aria-invalid={fieldState.invalid}
+                  />
                   <div className="text-xs text-muted-foreground text-right">
                     {field.value?.length || 0}/500
                   </div>
-                  <FormMessage />
-                </FormItem>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <FormItem>
-              <FormLabel
+            <Field>
+              <FieldLabel
                 className="text-base font-semibold"
                 onClick={() => {
                   editorRef.current!.commands.focus("end");
                 }}
               >
                 Description
-              </FormLabel>
+              </FieldLabel>
               <DescriptionEditor
                 placeholder="Enter a detailed description for your product..."
                 onEditor={(editor, meta) => {
@@ -395,52 +389,51 @@ export default function ProductManageClient({
                   });
                 }}
               />
-              <FormMessage />
-            </FormItem>
+            </Field>
 
-            <FormField
+            <Controller
               control={form.control}
               name="themeId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold">
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="text-base font-semibold">
                     Course Theme
-                  </FormLabel>
-                  <FormControl>
-                    <ComboBox2<{ key: string; title: string }>
-                      title="Select a theme"
-                      valueKey="key"
-                      value={selectedTheme || undefined}
-                      searchFn={fetchThemes}
-                      renderText={(item) => item.title}
-                      onChange={(item) => {
-                        setSelectedTheme(item || null);
-                        field.onChange(item?.key || null);
-                      }}
-                      multiple={false}
-                      showCreateButton={true}
-                      showEditButton={true}
-                      onCreateClick={() => {
-                        window.open(`/dashboard/lms/themes/new`, "_blank");
-                      }}
-                      onEditClick={(item) => {
-                        window.open(
-                          `/dashboard/lms/themes/${item.key}`,
-                          "_blank",
-                        );
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                  </FieldLabel>
+                  <ComboBox2<{ key: string; title: string }>
+                    title="Select a theme"
+                    valueKey="key"
+                    value={selectedTheme || undefined}
+                    searchFn={fetchThemes}
+                    renderText={(item) => item.title}
+                    onChange={(item) => {
+                      setSelectedTheme(item || null);
+                      field.onChange(item?.key || null);
+                    }}
+                    multiple={false}
+                    showCreateButton={true}
+                    showEditButton={true}
+                    onCreateClick={() => {
+                      window.open(`/dashboard/lms/themes/new`, "_blank");
+                    }}
+                    onEditClick={(item) => {
+                      window.open(
+                        `/dashboard/lms/themes/${item.key}`,
+                        "_blank",
+                      );
+                    }}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
             <Button type="submit" disabled={isSaving || isSubmitting}>
               Save Changes
             </Button>
-          </form>
-        </Form>
+          </FieldGroup>
+        </form>
 
         <Separator />
 

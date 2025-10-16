@@ -17,10 +17,70 @@ interface CourseCardBaseProps {
 
 type ICourseItem = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["list"]["items"][number];
 
-export function CourseCard({ course, className }: CourseCardBaseProps & {
-    course: ICourseItem,
-}) {
+interface CourseCardProps extends CourseCardBaseProps {
+    course: ICourseItem;
+    viewMode?: "grid" | "list";
+}
+
+export function CourseCard({ course, className, viewMode = "grid" }: CourseCardProps) {
     const { siteInfo } = useSiteInfo();
+    
+    if (viewMode === "list") {
+        return (
+            <CourseCardContent.Card className={cn("py-0", className)}>
+                <div className="flex flex-row">
+                    <div className="w-48 flex-shrink-0">
+                        <CourseCardContent.CardImage src={course.featuredImage?.url || "/courselit_backdrop_square.webp"} alt={course.title} />
+                    </div>
+                    <CourseCardContent.CardContent className="p-4 flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <CourseCardContent.CardHeader>
+                                    {course.title}
+                                </CourseCardContent.CardHeader>
+                                {course.shortDescription && (
+                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                        {course.shortDescription}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            {course.published ? (
+                                                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                                            ) : (
+                                                <CircleDashed className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {course.published ? "Published" : "Draft"}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm mt-2">
+                            <Badge variant="outline">
+                                <BookOpen className="h-3 w-3 mr-1" />
+                                {course.level || "Beginner"}
+                            </Badge>
+                            <div className="flex items-center text-muted-foreground">
+                                <span>
+                                    <span className="text-base">
+                                        {getSymbolFromCurrency(siteInfo.currencyISOCode || "USD")}{" "}
+                                    </span>
+                                    {course.statsEnrollmentCount.toLocaleString()} sales
+                                </span>
+                            </div>
+                        </div>
+                    </CourseCardContent.CardContent>
+                </div>
+            </CourseCardContent.Card>
+        );
+    }
+    
     return (
         <CourseCardContent.Card className={cn("py-0", className)}>
             <CourseCardContent.CardImage src={course.featuredImage?.url || "/courselit_backdrop_square.webp"} alt={course.title} />
@@ -33,24 +93,6 @@ export function CourseCard({ course, className }: CourseCardBaseProps & {
                         <BookOpen className="h-4 w-4 mr-1" />
                     </Badge>
                     <div className="flex items-center gap-2">
-                        {/* <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    {course.privacy?.toLowerCase() ===
-                                        CourseAccessTypeEnum.PUBLIC ? (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                    ) : (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                    )}
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {course.privacy?.toLowerCase() ===
-                                        CourseAccessTypeEnum.PUBLIC
-                                        ? "Public"
-                                        : "Hidden"}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider> */}
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -76,10 +118,6 @@ export function CourseCard({ course, className }: CourseCardBaseProps & {
                             {course.statsEnrollmentCount.toLocaleString()} sales
                         </span>
                     </div>
-                    {/* <div className="flex items-center text-muted-foreground">
-                <Users className="h-4 w-4 mr-2" />
-                <span>{course.statsEnrollmentCount.toLocaleString()} customers</span>
-                </div> */}
                 </div>
             </CourseCardContent.CardContent>
         </CourseCardContent.Card>

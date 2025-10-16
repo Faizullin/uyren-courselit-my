@@ -12,14 +12,7 @@ import {
 import { useToast } from "@workspace/components-library";
 import { ContentEditorRef } from "@workspace/text-editor/tiptap-sh";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import {
@@ -34,7 +27,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import * as z from "zod";
 
@@ -294,68 +287,68 @@ export default function LessonPage() {
           }
         />
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FieldGroup>
+            <Controller
               control={form.control}
               name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("lesson.title")}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t("lesson.title_placeholder")} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>{t("lesson.title")}</FieldLabel>
+                  <Input placeholder={t("lesson.title_placeholder")} {...field} aria-invalid={fieldState.invalid} />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <FormField
+            <Controller
               control={form.control}
               name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("lesson.type")}</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      {getLessonTypes(t).map((type) => {
-                        const Icon = type.icon;
-                        return (
-                          <div key={type.value}>
-                            <RadioGroupItem
-                              value={type.value}
-                              id={type.value}
-                              className="peer sr-only"
-                            />
-                            <Label
-                              htmlFor={type.value}
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                            >
-                              <Icon className="mb-2 h-5 w-5" />
-                              {type.label}
-                            </Label>
-                          </div>
-                        );
-                      })}
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>{t("lesson.type")}</FieldLabel>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    {getLessonTypes(t).map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <div key={type.value}>
+                          <RadioGroupItem
+                            value={type.value}
+                            id={type.value}
+                            className="peer sr-only"
+                          />
+                          <Label
+                            htmlFor={type.value}
+                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                          >
+                            <Icon className="mb-2 h-5 w-5" />
+                            {type.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <FormItem>
-              <FormLabel
+            <Field>
+              <FieldLabel
                 onClick={() => {
                   editorRef.current!.commands.focus("end");
                 }}
               >
                 {t("lesson.content")}
-              </FormLabel>
+              </FieldLabel>
               <LessonContentEditor
                 onEditor={(editor, meta) => {
                   if (meta.reason === "create") {
@@ -370,53 +363,49 @@ export default function LessonPage() {
                   });
                 }}
               />
-            </FormItem>
+            </Field>
 
-            <FormItem>
-              <FormField
+            <div className="space-y-4">
+              <Controller
                 control={form.control}
                 name="requiresEnrollment"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">
+                      <FieldLabel className="text-base">
                         {t("lesson.requires_enrollment")}
-                      </FormLabel>
+                      </FieldLabel>
                       <p className="text-sm text-muted-foreground">
                         {t("lesson.requires_enrollment_description")}
                       </p>
                     </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </div>
                 )}
               />
 
-              <FormField
+              <Controller
                 control={form.control}
                 name="downloadable"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">{t("lesson.downloadable")}</FormLabel>
+                      <FieldLabel className="text-base">{t("lesson.downloadable")}</FieldLabel>
                       <p className="text-sm text-muted-foreground">
                         {t("lesson.downloadable_description")}
                       </p>
                     </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </div>
                 )}
               />
-            </FormItem>
+            </div>
 
             <div className="flex items-center justify-end gap-4">
               <Button variant="outline" asChild>
@@ -432,8 +421,8 @@ export default function LessonPage() {
                     : t("lesson.create_lesson")}
               </Button>
             </div>
-          </form>
-        </Form>
+          </FieldGroup>
+        </form>
       </div>
     </DashboardContent>
   );

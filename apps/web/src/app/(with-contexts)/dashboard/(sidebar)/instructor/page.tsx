@@ -11,13 +11,11 @@ export default function InstructorPage() {
     ];
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>
-            <div className="flex flex-col gap-4">
-                <HeaderTopbar
-                    header={{
-                        title: t("sidebar.instructor"),
-                    }}
-                />
-            </div>
+            <HeaderTopbar
+                header={{
+                    title: t("sidebar.instructor"),
+                }}
+            />
         </DashboardContent>
     );
 }

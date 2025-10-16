@@ -10,14 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
   Select,
@@ -27,10 +20,11 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { Switch } from "@workspace/ui/components/switch";
 import { Link, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 import { useQuizContext } from "./quiz-context";
 
@@ -68,7 +62,7 @@ export default function QuizSettings() {
     defaultValues: {
       title: "",
       description: "",
-      course: undefined as any,
+      course: undefined,
       timeLimit: 30,
       passingScore: 70,
       maxAttempts: 3,
@@ -129,7 +123,7 @@ export default function QuizSettings() {
         });
       }
     },
-    [mode],
+    [mode, quiz, createMutation, updateMutation],
   );
 
   useEffect(() => {
@@ -151,7 +145,7 @@ export default function QuizSettings() {
         totalPoints: quiz.totalPoints || 0,
       });
     }
-  }, [quiz, form.reset]);
+  }, [quiz, mode, form]);
 
   const trpcUtils = trpc.useUtils();
   const fetchCourses = useCallback(
@@ -206,199 +200,211 @@ export default function QuizSettings() {
   }, [quiz?._id, toast]);
 
   return (
-    <div className="space-y-6">
-      {/* NEW FORM IMPLEMENTATION WITH Form COMPONENTS */}
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={mode === "create" || !quiz?._id}
-              onClick={handleCopyLink}
-              className="flex items-center gap-2"
-            >
-              <Link className="h-4 w-4" />
-              Copy Link
-            </Button>
-            <Button type="submit" disabled={isSaving || isSubmitting}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
-            </Button>
-          </div>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={mode === "create" || !quiz?._id}
+          onClick={handleCopyLink}
+          className="flex items-center gap-2"
+        >
+          <Link className="h-4 w-4" />
+          Copy Link
+        </Button>
+        <Button type="submit" disabled={isSaving || isSubmitting}>
+          <Save className="h-4 w-4 mr-2" />
+          {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
+        </Button>
+      </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Quiz Title</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter quiz title" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Enter quiz description"
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="course"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Course</FormLabel>
-                      <FormControl>
-                        <ComboBox2<CourseSelectItemType>
-                          title="Select a course"
-                          valueKey="key"
-                          value={field.value || undefined}
-                          searchFn={fetchCourses}
-                          renderLabel={(item) => item.title}
-                          onChange={field.onChange}
-                          multiple={false}
-                          showCreateButton={true}
-                          showEditButton={true}
-                          onCreateClick={() => {
-                            window.open(`/dashboard/products/new`, "_blank");
-                          }}
-                          onEditClick={(item) => {
-                            window.open(
-                              `/dashboard/products/${item.key}`,
-                              "_blank",
-                            );
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="title"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Quiz Title</FieldLabel>
+                    <Input
+                      {...field}
+                      placeholder="Enter quiz title"
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="description"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Description</FieldLabel>
+                    <Textarea
+                      {...field}
+                      placeholder="Enter quiz description"
+                      rows={3}
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="course"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Course</FieldLabel>
+                    <ComboBox2<CourseSelectItemType>
+                      title="Select a course"
+                      valueKey="key"
+                      value={field.value || undefined}
+                      searchFn={fetchCourses}
+                      renderLabel={(item) => item.title}
+                      onChange={field.onChange}
+                      multiple={false}
+                      showCreateButton={true}
+                      showEditButton={true}
+                      onCreateClick={() => {
+                        window.open(`/dashboard/products/new`, "_blank");
+                      }}
+                      onEditClick={(item) => {
+                        window.open(
+                          `/dashboard/products/${item.key}`,
+                          "_blank",
+                        );
+                      }}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            </FieldGroup>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Quiz Configuration (New Form)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="timeLimit"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Time Limit (minutes)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="passingScore"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Passing Score (%)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="maxAttempts"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Max Attempts</FormLabel>
+        <Card>
+          <CardHeader>
+            <CardTitle>Quiz Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  control={form.control}
+                  name="timeLimit"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Time Limit (minutes)</FieldLabel>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name="passingScore"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Passing Score (%)</FieldLabel>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Controller
+                  control={form.control}
+                  name="maxAttempts"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="max-attempts">Max Attempts</FieldLabel>
+                      <div>
                         <Select
+                          name={field.name}
+                          value={field.value.toString()}
                           onValueChange={(value) =>
                             field.onChange(parseInt(value))
                           }
-                          value={field.value.toString()}
                         >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
+                          <SelectTrigger
+                            id="max-attempts"
+                            className="w-full"
+                            aria-invalid={fieldState.invalid}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent position="item-aligned">
                             <SelectItem value="1">1 Attempt</SelectItem>
                             <SelectItem value="2">2 Attempts</SelectItem>
                             <SelectItem value="3">3 Attempts</SelectItem>
                             <SelectItem value="-1">Unlimited</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="totalPoints"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Total Points</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          // readOnly
-                          // className="bg-muted"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </form>
-      </Form>
-    </div>
+                      </div>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name="totalPoints"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Total Points</FieldLabel>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </div>
+            </FieldGroup>
+          </CardContent>
+        </Card>
+      </div>
+    </form>
   );
 }

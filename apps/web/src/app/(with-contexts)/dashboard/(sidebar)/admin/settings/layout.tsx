@@ -6,9 +6,9 @@ export async function generateMetadata(
   _: any,
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const t = await getT("sidebar.settings");
+  const { t } = await getT("sidebar.settings");
   return {
-    title: `${getT("sidebar.settings")} | ${(await parent)?.title?.absolute}`,
+    title: `${t("sidebar.settings")} | ${(await parent)?.title?.absolute}`,
   };
 }
 

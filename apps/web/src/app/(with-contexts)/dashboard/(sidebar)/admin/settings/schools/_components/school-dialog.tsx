@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { FormMode } from "@/components/dashboard/layout/types";
+import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -13,19 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import { trpc } from "@/utils/trpc";
-import { useToast } from "@workspace/components-library";
 import { Building2, Edit, Plus } from "lucide-react";
-import { FormMode } from "@/components/dashboard/layout/types";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 
 // Validation schema
 const schoolSchema = z
@@ -212,117 +205,118 @@ export default function SchoolDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FieldGroup>
             <div className="grid grid-cols-2 gap-4">
-              <FormField
+              <Controller
                 control={form.control}
                 name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subdomain *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="school-name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-muted-foreground">
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Subdomain *</FieldLabel>
+                    <Input placeholder="school-name" {...field} aria-invalid={fieldState.invalid} />
+                    <FieldDescription>
                       Will be accessible at: {field.value}.yourdomain.com
-                    </p>
-                  </FormItem>
+                    </FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
                 )}
               />
-              <FormField
+              <Controller
                 control={form.control}
                 name="customDomain"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Custom Domain</FormLabel>
-                    <FormControl>
-                      <Input placeholder="school.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-muted-foreground">
-                      Optional custom domain
-                    </p>
-                  </FormItem>
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Custom Domain</FieldLabel>
+                    <Input placeholder="school.com" {...field} aria-invalid={fieldState.invalid} />
+                    <FieldDescription>Optional custom domain</FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
                 )}
               />
             </div>
 
-            <FormField
+            <Controller
               control={form.control}
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Admin Email *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="admin@school.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Admin Email *</FieldLabel>
+                  <Input
+                    type="email"
+                    placeholder="admin@school.com"
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <FormField
+            <Controller
               control={form.control}
               name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>School Name *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="School Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>School Name *</FieldLabel>
+                  <Input placeholder="School Name" {...field} aria-invalid={fieldState.invalid} />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <FormField
+            <Controller
               control={form.control}
               name="subtitle"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>School Description</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Brief description of the school"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>School Description</FieldLabel>
+                  <Input
+                    placeholder="Brief description of the school"
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                {isLoading
-                  ? mode === "create"
-                    ? "Creating..."
-                    : "Updating..."
-                  : mode === "create"
-                    ? "Create School"
-                    : "Update School"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          </FieldGroup>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              {isLoading
+                ? mode === "create"
+                  ? "Creating..."
+                  : "Updating..."
+                : mode === "create"
+                  ? "Create School"
+                  : "Update School"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

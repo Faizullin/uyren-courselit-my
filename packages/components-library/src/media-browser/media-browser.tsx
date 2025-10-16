@@ -1,10 +1,12 @@
 "use client";
 
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
@@ -15,35 +17,60 @@ import {
   TabsList,
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
-import {
-  Upload,
-  X
-} from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Upload, X } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import NiceModal, { NiceModalHocProps } from "../nice-modal";
 import MediaComponents from "./media-components";
-import { IAttachmentMedia } from "@workspace/common-logic";
-// Main MediaBrowser component (merged into MediaDialog)
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface MediaDialogConfig {
+  title?: string;
+  description?: string;
+  allowUpload?: boolean;
+  allowDelete?: boolean;
+  allowSelection?: boolean;
+  showFilters?: boolean;
+  showPagination?: boolean;
+  perPage?: number;
+  initialFileType?: string;
+}
+
+export interface MediaDialogFunctions {
+  fetchList: (params: {
+    search: string;
+    mimeType: string;
+    skip: number;
+    take: number;
+  }) => Promise<{ items: IAttachmentMedia[]; total: number; hasMore?: boolean }>;
+  deleteItem?: (id: string) => Promise<void>;
+  uploadFile: (files: File[], type: string) => Promise<IAttachmentMedia[]>;
+}
+
+const getMediaQueryKey = (
+  searchTerm: string,
+  fileType: string,
+  page: number,
+  perPage: number
+) => ["media-browser", searchTerm, fileType, page, perPage];
+
 const MediaBrowserContent: React.FC<{
   onSelect: (media: IAttachmentMedia) => void;
-  onUpload?: (media: IAttachmentMedia) => void;
   onTotalChange?: (total: number) => void;
-  type?: string;
-  initialFileType?: string;
-}> = ({ onSelect, onTotalChange, initialFileType }) => {
+  functions: MediaDialogFunctions;
+  config: Required<MediaDialogConfig>;
+}> = ({ onSelect, onTotalChange, functions, config }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedFileType, setSelectedFileType] = useState<string>(
-    initialFileType ?? "all",
+    config.initialFileType,
   );
   const [currentPage, setCurrentPage] = useState(0);
-  const [media, setMedia] = useState<IAttachmentMedia[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const PER_PAGE = 20;
 
   // Debounce search term to limit API requests while typing
   useEffect(() => {
@@ -51,129 +78,113 @@ const MediaBrowserContent: React.FC<{
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const mapTypeToMime = (type: string) => {
+  const mapTypeToMime = useCallback((type: string) => {
     if (type === "image") return "image/";
     if (type === "video") return "video/";
     if (type === "audio") return "audio/";
     if (type === "document") return "application/";
     if (type === "json") return "application/json";
     return "";
-  };
+  }, []);
 
-  const loadMedia = useCallback(
-    async (page: number, reset: boolean = false) => {
-      try {
-        setLoading(true);
-        setError(null);
-        const query: any = {
-          q: debouncedSearchTerm || "",
-          skip: (page * PER_PAGE).toString(),
-          take: String(PER_PAGE),
-        };
-        if (selectedFileType !== "all") {
-          const mapped = mapTypeToMime(selectedFileType);
-          if (mapped) query.mimeType = mapped;
-        }
-        const url = "/api/services/media?" + new URLSearchParams(query);
-        const response = await fetch(url);
-        const result = await response.json();
-
-        setMedia(result.items);
-        if (reset) setCurrentPage(page);
-
-        setTotal(result.total);
-        // Support both result.hasMore and result.meta?.hasMore
-        const nextHasMore = result.hasMore ?? result.meta?.hasMore ?? false;
-        setHasMore(!!nextHasMore);
-        onTotalChange?.(result.total);
-      } catch (error) {
-        console.error("Failed to fetch media:", error);
-        setError("Failed to load media");
-      } finally {
-        setLoading(false);
-      }
+  const { data: queryResult, isLoading, isError, error, refetch } = useQuery({
+    queryKey: getMediaQueryKey(
+      debouncedSearchTerm,
+      selectedFileType,
+      currentPage,
+      config.perPage
+    ),
+    queryFn: async () => {
+      const mimeType = selectedFileType !== "all" ? mapTypeToMime(selectedFileType) : "";
+      return await functions.fetchList({
+        search: debouncedSearchTerm || "",
+        mimeType,
+        skip: currentPage * config.perPage,
+        take: config.perPage,
+      });
     },
-    [debouncedSearchTerm, selectedFileType],
-  );
+    enabled: true,
+  });
 
-  // Load initial data
+  const items = queryResult?.items || [];
+  const total = queryResult?.total || 0;
+  const errorText = error instanceof Error ? error.message : "Failed to load media";
+
+  // Update total when data changes
   useEffect(() => {
-    loadMedia(0, true);
-  }, [loadMedia]);
-
-  // Reset and reload when search or filter changes
-  useEffect(() => {
-    setMedia([]);
-    loadMedia(0, true);
-  }, [debouncedSearchTerm, selectedFileType]);
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      if (!loading) {
-        loadMedia(page, true);
-      }
-    },
-    [loading, loadMedia],
-  );
+    if (total > 0) {
+      onTotalChange?.(total);
+    }
+  }, [total, onTotalChange]);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
+    setCurrentPage(0);
   }, []);
 
   const handleMimeTypeFilterChange = useCallback((type: string) => {
     setSelectedFileType(type);
+    setCurrentPage(0);
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
   }, []);
 
   return (
     <div className="flex flex-col h-full">
-      <MediaComponents.MediaFilters
-        typeValue={selectedFileType}
-        setTypeValue={handleMimeTypeFilterChange}
-        searchTermValue={searchTerm}
-        setSearchTermValue={handleSearchChange}
-        viewModeValue={viewMode}
-        setViewModeValue={setViewMode as any}
-        showFilters
-        showViewToggle
-      />
+      {config.showFilters && (
+        <MediaComponents.MediaFilters
+          typeValue={selectedFileType}
+          setTypeValue={handleMimeTypeFilterChange}
+          searchTermValue={searchTerm}
+          setSearchTermValue={handleSearchChange}
+          viewModeValue={viewMode}
+          setViewModeValue={setViewMode as any}
+          showFilters={config.showFilters}
+          showViewToggle
+        />
+      )}
 
       {viewMode === "grid" ? (
         <MediaComponents.MediaGrid
-          items={media}
-          isLoading={loading}
-          isError={!!error}
-          errorText={error || undefined}
-          onRetry={() => loadMedia(currentPage, true)}
+          items={items}
+          isLoading={isLoading}
+          isError={isError}
+          errorText={errorText}
+          onRetry={() => refetch()}
           onSelect={onSelect}
           compact={false}
         />
       ) : (
         <MediaComponents.MediaList
-          items={media}
+          items={items}
           onSelect={onSelect}
           compact={false}
         />
       )}
 
-      <div className="mt-auto px-4 pb-4">
-        <MediaComponents.PaginationBar
-          page={currentPage}
-          total={total}
-          perPage={PER_PAGE}
-          onChange={handlePageChange}
-          disabled={loading}
-        />
-      </div>
+      {config.showPagination && items.length > 0 && (
+        <div className="mt-auto px-4 pb-4">
+          <MediaComponents.PaginationBar
+            page={currentPage}
+            total={total}
+            perPage={config.perPage}
+            onChange={handlePageChange}
+            disabled={isLoading}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 // Enhanced File Upload Component with better design
 const FileUploadTab: React.FC<{
-  type?: string;
-  onUpload?: (media: IAttachmentMedia) => void;
-  onComplete?: (media: Media) => void;
-}> = ({ type = "page", onUpload, onComplete }) => {
+  type: string;
+  uploadFile: MediaDialogFunctions["uploadFile"];
+  onComplete?: (media: IAttachmentMedia) => void;
+}> = ({ type, uploadFile: uploadFileFn, onComplete }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -203,67 +214,27 @@ const FileUploadTab: React.FC<{
     setError(null);
 
     try {
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        if (!file) continue;
-
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("caption", file.name);
-        formData.append("access", "public");
-        formData.append("type", type);
-
-        const xhr = new XMLHttpRequest();
-
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            const fileProgress = Math.round((event.loaded / event.total) * 100);
-            const totalProgress = Math.round(
-              ((i + fileProgress / 100) / selectedFiles.length) * 100,
-            );
-            setUploadProgress(totalProgress);
-          }
-        });
-
-        const uploadPromise = new Promise<IAttachmentMedia>((resolve, reject) => {
-          xhr.onload = () => {
-            if (xhr.status === 200) {
-              try {
-                const response = JSON.parse(xhr.responseText);
-                resolve(response);
-              } catch (e) {
-                reject(new Error("Invalid response format"));
-              }
-            } else {
-              reject(new Error(`Upload failed with status ${xhr.status}`));
-            }
-          };
-
-          xhr.onerror = () => reject(new Error("Upload failed"));
-
-          xhr.open("POST", `/api/services/media/upload?storageType=cloudinary`);
-          xhr.send(formData);
-        });
-
-        const result = await uploadPromise;
-        onUpload?.(result);
-
-        // Complete callback for last file
-        if (i === selectedFiles.length - 1) {
-          onComplete?.(result);
+      const results = await uploadFileFn(selectedFiles, type);
+      
+      if (results.length > 0) {
+        const lastResult = results[results.length - 1];
+        if (lastResult) {
+          onComplete?.(lastResult);
         }
+        toast.success(`Successfully uploaded ${results.length} file${results.length > 1 ? 's' : ''}`);
       }
 
-      // Reset form
       setSelectedFiles([]);
       setUploadProgress(0);
     } catch (err) {
       console.error("Upload error:", err);
-      setError(err instanceof Error ? err.message : "Upload failed");
+      const errorMessage = err instanceof Error ? err.message : "Upload failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
-  }, [selectedFiles, onUpload, onComplete]);
+  }, [selectedFiles, uploadFileFn, type, onComplete]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -405,20 +376,38 @@ const FileUploadTab: React.FC<{
   );
 };
 
-// MediaBrowserNiceDialog component
+
 const MediaBrowserComponent = (
   props: {
+    config?: Partial<MediaDialogConfig>;
+    functions: MediaDialogFunctions;
+    type?: string;
     selectMode?: boolean;
     selectedMedia?: IAttachmentMedia | null;
-    initialFileType?: string;
   } & NiceModalHocProps,
 ) => {
-  const { selectMode = false, selectedMedia } = props;
+  const { config: configProp, functions, type = "page", selectMode, selectedMedia } = props;
+  
+  const config: Required<MediaDialogConfig> = {
+    title: "Media Library",
+    description: "Browse and manage your media files",
+    allowUpload: true,
+    allowDelete: false,
+    allowSelection: true,
+    showFilters: true,
+    showPagination: true,
+    perPage: 20,
+    initialFileType: "all",
+    ...configProp,
+  };
+
   const { visible, hide, resolve } = NiceModal.useModal();
-  const [activeTab, setActiveTab] = useState("browse");
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"browse" | "upload">("browse");
   const [internalSelectedMedia, setInternalSelectedMedia] =
     useState<IAttachmentMedia | null>(selectedMedia || null);
   const [total, setTotal] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleMediaSelect = (media: IAttachmentMedia) => {
     setInternalSelectedMedia(media);
@@ -437,14 +426,52 @@ const MediaBrowserComponent = (
     [hide],
   );
 
-  const handleUploadComplete = (media: IAttachmentMedia) => {
-    setActiveTab("browse");
-    if (selectMode) {
-      setInternalSelectedMedia(media);
-    } else {
-      handleSubmit(media);
-    }
-  };
+  const handleUploadComplete = useCallback(
+    (media: IAttachmentMedia) => {
+      queryClient.invalidateQueries({ queryKey: ["media-browser"] });
+      setActiveTab("browse");
+      if (selectMode) {
+        setInternalSelectedMedia(media);
+      } else {
+        handleSubmit(media);
+      }
+    },
+    [queryClient, selectMode, handleSubmit]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!functions.deleteItem) return;
+      
+      const confirmed = window.confirm("Are you sure you want to delete this media file?");
+      if (!confirmed) return;
+      
+      setIsDeleting(true);
+      try {
+        await functions.deleteItem(id);
+        queryClient.invalidateQueries({ queryKey: ["media-browser"] });
+        toast.success("Media deleted successfully");
+      } catch (error) {
+        toast.error(`Failed to delete media: ${error instanceof Error ? error.message : "Unknown error"}`);
+      } finally {
+        setIsDeleting(false);
+      }
+    },
+    [functions, queryClient]
+  );
+
+  const emptyAction = useMemo(() => {
+    if (!config.allowUpload) return null;
+    return (
+      <button
+        onClick={() => setActiveTab("upload")}
+        className="mt-2 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        Upload Media
+      </button>
+    );
+  }, [config.allowUpload]);
 
   return (
     <Dialog
@@ -458,24 +485,29 @@ const MediaBrowserComponent = (
       <DialogContent className="!max-w-[1000px] w-[1000px] h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-semibold">
-            Media Library
+            {config.title}
             {activeTab === "browse" && total > 0 && (
               <Badge variant="outline" className="ml-2 align-middle">
                 {total} total
               </Badge>
             )}
           </DialogTitle>
+          {config.description && (
+            <DialogDescription>{config.description}</DialogDescription>
+          )}
         </DialogHeader>
 
         <div className="flex-1 flex flex-col min-h-0">
           <Tabs
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={(v) => setActiveTab(v as "browse" | "upload")}
             className="w-full h-full flex flex-col"
           >
             <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
               <TabsTrigger value="browse">Browse Media</TabsTrigger>
-              <TabsTrigger value="upload">Upload Files</TabsTrigger>
+              {config.allowUpload && (
+                <TabsTrigger value="upload">Upload Files</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent
@@ -504,22 +536,23 @@ const MediaBrowserComponent = (
               )}
               <div className="flex-1 overflow-hidden">
                 <MediaBrowserContent
-                  onSelect={handleMediaSelect}
-                  // onUpload={onUpload}
+                  onSelect={config.allowSelection ? handleMediaSelect : () => {}}
                   onTotalChange={setTotal}
-                  // type={type}
-                  initialFileType={(props as any).initialFileType}
+                  functions={functions}
+                  config={config}
                 />
               </div>
             </TabsContent>
 
-            <TabsContent value="upload" className="flex-1 min-h-0">
-              <FileUploadTab
-                // type={type}
-                // onUpload={onUpload}
-                onComplete={handleUploadComplete}
-              />
-            </TabsContent>
+            {config.allowUpload && (
+              <TabsContent value="upload" className="flex-1 min-h-0">
+                <FileUploadTab
+                  type={type}
+                  uploadFile={functions.uploadFile}
+                  onComplete={handleUploadComplete}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </DialogContent>

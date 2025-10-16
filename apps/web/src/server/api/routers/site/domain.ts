@@ -184,7 +184,10 @@ export const domainRouter = router({
       await DomainManager.removeFromCache(existing.toObject());
 
       if (input.data.siteInfo) {
-        Object.assign(existing.siteInfo, input.data.siteInfo);
+        if (!existing.siteInfo) {
+          existing.siteInfo = {} as any;
+        }
+        Object.assign(existing.siteInfo!, input.data.siteInfo);
         delete (input.data as any).siteInfo;
       }
 

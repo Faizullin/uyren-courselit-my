@@ -9,14 +9,19 @@ import { formattedLocaleDate } from "@/lib/ui/utils";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";
+import { DeleteConfirmNiceDialog, NiceModal, useToast } from "@workspace/components-library";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu";
 import { Input } from "@workspace/ui/components/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { useDebounce } from "@workspace/ui/hooks/use-debounce";
-import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 
 type UserItemType =
@@ -27,14 +32,38 @@ type QueryParams = Parameters<
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
-    const breadcrumbs = [{ label: t("sidebar.users"), href: "#" }];
+    const { toast } = useToast();
+    const breadcrumbs = useMemo(() => [{ label: t("sidebar.users"), href: "#" }], [t]);
 
     const [searchQuery, setSearchQuery] = useState("");
-    const debouncedSearchQuery = useDebounce(searchQuery, 500);
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "restricted">("all");
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [parsedData, setParsedData] = useState<Array<UserItemType>>([]);
     const [parsedPagination, setParsedPagination] = useState({
         pageCount: 1,
     });
+
+    const deleteMutation = trpc.userModule.user.delete.useMutation({
+        onSuccess: () => {
+            toast({ title: t("common:dashboard.success"), description: "User deleted successfully" });
+            loadUsersQuery.refetch();
+        },
+        onError: (err: any) => {
+            toast({ title: t("common:dashboard.error"), description: err.message, variant: "destructive" });
+        },
+    });
+
+    const handleDelete = useCallback((user: UserItemType) => {
+        NiceModal.show(DeleteConfirmNiceDialog, {
+            title: "Delete User",
+            message: `Are you sure you want to delete "${user.fullName || user.email}"?`,
+            data: user,
+        }).then((result) => {
+            if (result.reason === "confirm") {
+                deleteMutation.mutate({ id: user._id });
+            }
+        });
+    }, [deleteMutation]);
 
     const getUserNamePreview = (user?: UserItemType) => {
         if (!user?.firstName || !user?.lastName) return user?.email?.charAt(0) || "";
@@ -116,14 +145,52 @@ export default function Page() {
                     );
                 },
             },
+            {
+                id: "actions",
+                header: t("table.actions"),
+                cell: ({ row }) => {
+                    const user = row.original;
+                    return (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Open menu</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/dashboard/admin/users/${user._id}`}>
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        {t("table.view_details")}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/dashboard/admin/users/${user._id}`}>
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        {t("table.edit")}
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(user)} className="text-red-600">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    {t("table.delete")}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    );
+                },
+            },
         ];
-    }, [t]);
+    }, [t, handleDelete]);
 
     const { table } = useDataTable({
         columns,
         data: parsedData,
         pageCount: parsedPagination.pageCount,
-        enableGlobalFilter: false,
+        enableGlobalFilter: true,
+        initialState: {
+            sorting: [{ id: "createdAt", desc: true }],
+        },
     });
 
     const tableState = table.getState();
@@ -160,31 +227,53 @@ export default function Page() {
 
     useEffect(() => {
         if (!loadUsersQuery.data) return;
-        const parsed = loadUsersQuery.data.items || [];
+        let parsed = loadUsersQuery.data.items || [];
+
+        // Apply client-side status filter
+        if (statusFilter !== "all") {
+            parsed = parsed.filter(user =>
+                statusFilter === "active" ? user.active : !user.active
+            );
+        }
+
         setParsedData(parsed);
         setParsedPagination({
             pageCount: Math.ceil(
                 (loadUsersQuery.data.total || 0) / loadUsersQuery.data.meta.take,
             ),
         });
-    }, [loadUsersQuery.data]);
+    }, [loadUsersQuery.data, statusFilter]);
 
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>
             <HeaderTopbar
                 header={{
                     title: t("sidebar.users"),
+                    subtitle: "Manage your platform users",
                 }}
             />
+
             <Card>
                 <CardContent>
-                    <div className="flex flex-col gap-2">
-                        <Input
-                            placeholder={t("table.search_placeholder")}
-                            value={searchQuery}
-                            onChange={(event) => setSearchQuery(event.target.value)}
-                            className="h-8 w-40 lg:w-56"
-                        />
+                    <div className="flex flex-col gap-4 pt-6">
+                        <div className="flex flex-wrap gap-4">
+                            <Input
+                                placeholder={t("table.search_placeholder")}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="max-w-sm"
+                            />
+                            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "active" | "restricted")}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter by status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Users</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="restricted">Restricted</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <DataTable table={table}>
                             <DataTableToolbar table={table} />
                         </DataTable>

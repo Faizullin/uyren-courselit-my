@@ -34,7 +34,7 @@ export const CohortSchema = new mongoose.Schema<ICohort>({
     },
     beginDate: Date,
     endDate: Date,
-    duration_in_weeks: Number,
+    durationInWeeks: Number,
     description: String,
     inviteCode: {
         type: String,

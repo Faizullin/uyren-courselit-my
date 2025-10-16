@@ -1,10 +1,8 @@
 "use client";
 
-import { useProfile } from "@/components/contexts/profile-context";
 import { useSettingsContext } from "./settings-context";
 
 export default function DomainManagement() {
-  const { profile } = useProfile();
   const { loadSettingsQuery } = useSettingsContext();
 
   return (

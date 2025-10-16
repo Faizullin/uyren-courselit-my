@@ -20,17 +20,7 @@ interface ThemeContextType {
   >;
 }
 
-const ThemeContext = createContext<ThemeContextType>({
-  initialItemId: null,
-  theme: null,
-  mode: "create",
-  loadDetailQuery: (() => {
-    throw new Error("loadDetailQuery is not implemented");
-  }) as any,
-  updateMutation: (() => {
-    throw new Error("updateMutation is not implemented");
-  }) as any,
-});
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({
   children,
@@ -55,10 +45,10 @@ export function ThemeProvider({
 
   const updateMutation = trpc.lmsModule.themeModule.theme.update.useMutation({
     onSuccess: (response) => {
-      setTheme(response as any);
-    },
-    onError: (error) => {
-      // Error handling is done in the components
+      setTheme(prev => ({
+        ...response,
+        owner: prev!.owner,
+      }));
     },
   });
 

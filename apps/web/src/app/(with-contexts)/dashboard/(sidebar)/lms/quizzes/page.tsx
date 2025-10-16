@@ -283,30 +283,28 @@ export default function Page() {
   }, [loadListQuery.data]);
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <div className="flex flex-col gap-4">
-        <HeaderTopbar
-          header={{
-            title: t("lms.modules.quizzes.title"),
-            subtitle: t("lms.modules.quizzes.description"),
-          }}
-          rightAction={<CreateButton href="/dashboard/lms/quizzes/new" />}
-        />
-        <Card>
-          <CardContent>
-            <div className="flex flex-col gap-2">
-              <Input
-                placeholder={t("table.search_placeholder")}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="h-8 w-40 lg:w-56"
-              />
-              <DataTable table={table}>
-                <DataTableToolbar table={table} />
-              </DataTable>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <HeaderTopbar
+        header={{
+          title: t("lms.modules.quizzes.title"),
+          subtitle: t("lms.modules.quizzes.description"),
+        }}
+        rightAction={<CreateButton href="/dashboard/lms/quizzes/new" />}
+      />
+      <Card>
+        <CardContent>
+          <div className="flex flex-col gap-2">
+            <Input
+              placeholder={t("table.search_placeholder")}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="h-8 w-40 lg:w-56"
+            />
+            <DataTable table={table}>
+              <DataTableToolbar table={table} />
+            </DataTable>
+          </div>
+        </CardContent>
+      </Card>
     </DashboardContent>
   );
 }

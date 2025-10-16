@@ -1,25 +1,12 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@workspace/ui/components/form";
-import { Textarea } from "@workspace/ui/components/textarea";
-import { useToast } from "@workspace/components-library";
-import {
-  SITE_MAILING_ADDRESS_SETTING_HEADER,
-  SITE_MAILING_ADDRESS_SETTING_EXPLANATION,
-  BUTTON_SAVE,
-  APP_MESSAGE_SETTINGS_SAVED,
-  TOAST_TITLE_SUCCESS,
-} from "@/lib/ui/config/strings";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@workspace/components-library";
+import { Button } from "@workspace/ui/components/button";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
+import { Textarea } from "@workspace/ui/components/textarea";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useSettingsContext } from "./settings-context";
 
@@ -56,12 +43,17 @@ export default function MailsSettings() {
           mailingAddress: data.mailingAddress,
         },
       });
+      await loadSettingsQuery.refetch();
       toast({
-        title: TOAST_TITLE_SUCCESS,
-        description: APP_MESSAGE_SETTINGS_SAVED,
+        title: "Success",
+        description: "Settings saved",
       });
     } catch (error) {
-      // Error handling is done in the mutation
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
     }
   };
 
@@ -72,39 +64,40 @@ export default function MailsSettings() {
 
   return (
     <div className="space-y-6">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FieldGroup>
+          <Controller
             control={form.control}
             name="mailingAddress"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{SITE_MAILING_ADDRESS_SETTING_HEADER}</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    rows={5}
-                    placeholder="Enter mailing address..."
-                    disabled={isDisabled}
-                  />
-                </FormControl>
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Mailing Address</FieldLabel>
+                <Textarea
+                  {...field}
+                  rows={5}
+                  placeholder="Enter mailing address..."
+                  disabled={isDisabled}
+                  aria-invalid={fieldState.invalid}
+                />
+                <FieldDescription>
+                  This address will be used in transactional emails and on your site.
+                </FieldDescription>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
             )}
           />
 
-          <p className="text-xs text-muted-foreground">
-            {SITE_MAILING_ADDRESS_SETTING_EXPLANATION}
-          </p>
-
           <Button
             type="submit"
-            disabled={isDisabled}
+            disabled={!form.formState.isDirty || isDisabled}
             className="w-full sm:w-auto"
           >
-            {isSaving || isSubmitting ? "Saving..." : BUTTON_SAVE}
+            {isSaving || isSubmitting ? "Saving..." : "Save"}
           </Button>
-        </form>
-      </Form>
+        </FieldGroup>
+      </form>
     </div>
   );
 }

@@ -5,31 +5,17 @@ import { useProfile } from "@/components/contexts/profile-context";
 import { CommentEditorField } from "@/components/editors/tiptap/templates/comment/comment-editor";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UIConstants } from "@workspace/common-models";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
   ComboBox2,
+  FormDialog,
   NiceModal,
   NiceModalHocProps,
+  useDialogControl,
   useToast,
 } from "@workspace/components-library";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
   Select,
   SelectContent,
@@ -37,27 +23,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
+import { Switch } from "@workspace/ui/components/switch";
 import { checkPermission } from "@workspace/utils";
-import { Loader2, Star } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
-const { permissions } = UIConstants;
-
 const reviewSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title too long"),
-  content: z.any().optional(),
-  rating: z
-    .number()
-    .min(1, "Rating must be at least 1")
-    .max(10, "Rating cannot exceed 10"),
-  targetType: z.enum(["website", "course", "product", "blog"]),
+  title: z.string().min(1, "Title is required").max(200),
+  content: z.object({
+    type: z.literal("doc"),
+    content: z.string(),
+    assets: z.array(z.object({
+      url: z.string(),
+      caption: z.string().optional(),
+    })),
+    widgets: z.array(z.object({
+      type: z.string(),
+      objectId: z.string(),
+      title: z.string(),
+      data: z.record(z.unknown()),
+    })),
+    config: z.object({
+      editorType: z.union([z.literal("tiptap"), z.literal("text")]),
+    }),
+  }),
+  rating: z.number().min(1).max(10),
+  targetType: z.string().min(1),
   targetId: z.string().optional(),
   published: z.boolean(),
-  isFeatured: z.boolean(),
-  tags: z.string().optional(),
-  authorId: z.string().nullable().optional(),
+  featured: z.boolean(),
+  authorId: z.string().optional(),
 });
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
@@ -65,73 +61,34 @@ type ReviewFormData = z.infer<typeof reviewSchema>;
 interface ReviewFormDialogProps extends NiceModalHocProps {
   mode: FormMode;
   reviewId?: string;
-  initialData?: Partial<ReviewFormData>;
 }
 
-type UserSelectItemType = {
-  key: string;
-  title: string;
+type UserItem = {
+  _id: string;
+  fullName: string;
   email: string;
 };
 
 export const ReviewFormDialog = NiceModal.create<
   ReviewFormDialogProps,
-  { reason: "cancel"; data: null } | { reason: "submit"; data: ReviewFormData }
->(({ mode, reviewId, initialData }) => {
+  { reason: "cancel" | "submit" }
+>(({ mode, reviewId }) => {
   const { visible, hide, resolve } = NiceModal.useModal();
   const { toast } = useToast();
   const { profile } = useProfile();
   const trpcUtils = trpc.useUtils();
 
   const canManageSite = checkPermission(profile.permissions!, [
-    permissions.manageSite,
+    UIConstants.permissions.manageSite,
   ]);
-
-  const createReviewMutation =
-    trpc.lmsModule.reviewModule.review.create.useMutation({
-      onSuccess: () => {
-        toast({ title: "Success", description: "Review created successfully" });
-        resolve({ reason: "submit", data: form.getValues() });
-        hide();
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
-
-  const updateReviewMutation =
-    trpc.lmsModule.reviewModule.review.update.useMutation({
-      onSuccess: () => {
-        toast({ title: "Success", description: "Review updated successfully" });
-        resolve({ reason: "submit", data: form.getValues() });
-        hide();
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
-
-  const loadExistingReviewQuery =
-    trpc.lmsModule.reviewModule.review.getByReviewId.useQuery(
-      { reviewId: reviewId! },
-      { enabled: mode === "edit" && !!reviewId },
-    );
 
   const form = useForm<ReviewFormData>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
       title: "",
       content: {
-        content: "",
         type: "doc",
+        content: "",
         assets: [],
         widgets: [],
         config: { editorType: "tiptap" },
@@ -140,348 +97,293 @@ export const ReviewFormDialog = NiceModal.create<
       targetType: "website",
       targetId: "",
       published: false,
-      isFeatured: false,
-      tags: "",
-      authorId: null,
+      featured: false,
+      authorId: "",
     },
   });
 
+  const createMutation = trpc.lmsModule.reviewModule.review.create.useMutation({
+    onSuccess: () => {
+      toast({ title: "Success", description: "Review created successfully" });
+      resolve({ reason: "submit" });
+      hide();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = trpc.lmsModule.reviewModule.review.update.useMutation({
+    onSuccess: () => {
+      toast({ title: "Success", description: "Review updated successfully" });
+      resolve({ reason: "submit" });
+      hide();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const loadQuery = trpc.lmsModule.reviewModule.review.getByReviewId.useQuery(
+    { reviewId: reviewId! },
+    { enabled: mode === "edit" && !!reviewId },
+  );
+
   useEffect(() => {
-    const existingReview = loadExistingReviewQuery.data;
-    if (existingReview && mode === "edit") {
+    const review = loadQuery.data;
+    if (review && mode === "edit") {
+      const content = review.content;
+      const contentValue: ReviewFormData["content"] = {
+        type: "doc",
+        content: content?.content || "",
+        assets: content?.assets?.map(a => ({
+          url: a.url,
+          caption: a.caption,
+        })) || [],
+        widgets: content?.widgets?.map(w => ({
+          type: w.type,
+          objectId: w.objectId,
+          title: w.title,
+          data: w.data,
+        })) || [],
+        config: { editorType: content?.config?.editorType || "tiptap" },
+      };
+
       form.reset({
-        title: existingReview.title,
-        content: existingReview.content || {
-          content: "",
-          type: "doc",
-          assets: [],
-          widgets: [],
-          config: { editorType: "tiptap" },
-        },
-        rating: existingReview.rating,
-        targetType: existingReview.targetType as any,
-        targetId: existingReview.targetId || "",
-        published: existingReview.published,
-        isFeatured: existingReview.isFeatured,
-        tags: existingReview.tags?.join(", ") || "",
-        authorId: existingReview.authorId || null,
+        title: review.title,
+        content: contentValue,
+        rating: review.rating,
+        targetType: review.target?.entityType || "website",
+        targetId: review.target?.entityId || "",
+        published: review.published,
+        featured: review.featured,
+        authorId: review.authorId || "",
       });
     }
-  }, [form, mode, loadExistingReviewQuery.data]);
+  }, [form, mode, loadQuery.data]);
 
-  const onSubmit = (data: ReviewFormData) => {
-    const tags = data.tags
-      ? data.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-      : [];
-
-    // Clean up authorId - if empty string, set to null
-    const cleanData = {
-      ...data,
-      authorId:
-        data.authorId && data.authorId.trim() !== "" ? data.authorId : null,
-      tags,
+  const handleSubmit = useCallback(async (data: ReviewFormData) => {
+    const submitData = {
+      title: data.title,
+      rating: data.rating,
+      content: data.content,
+      targetType: data.targetType,
+      targetId: data.targetId || undefined,
+      featured: data.featured,
+      published: data.published,
+      tags: [],
+      authorId: data.authorId && data.authorId.trim() !== "" ? data.authorId : undefined,
     };
 
     if (mode === "create") {
-      createReviewMutation.mutate({
-        data: cleanData,
-      } as any);
+      await createMutation.mutateAsync({ data: submitData });
     } else if (mode === "edit" && reviewId) {
-      updateReviewMutation.mutate({
-        data: {
-          reviewId,
-          ...cleanData,
-        },
+      await updateMutation.mutateAsync({
+        data: submitData,
+        id: reviewId,
       });
     }
-  };
+  }, [mode, reviewId, createMutation, updateMutation]);
 
-  const handleCancel = () => {
-    resolve({ reason: "cancel", data: null });
-    hide();
-  };
-
-  const isLoading =
-    createReviewMutation.isPending || updateReviewMutation.isPending;
-
-  // Function to fetch users for ComboBox2
-  const fetchUsers = async (search: string) => {
-    try {
-      const result = await trpcUtils.userModule.user.list.fetch({
-        pagination: { take: 15 },
-        search: { q: search || undefined },
-      });
-
-      return result.items.map((user) => ({
-        key: user.userId,
-        title: user.name || user.email,
-        email: user.email,
-      }));
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      return [];
-    }
-  };
+  const searchUsers = useCallback(async (search: string, offset: number, size: number): Promise<UserItem[]> => {
+    const result = await trpcUtils.userModule.user.list.fetch({
+      pagination: { skip: offset, take: size },
+      search: search ? { q: search } : undefined,
+    });
+    return result.items.map(user => ({
+      _id: user._id,
+      fullName: user.fullName || user.email,
+      email: user.email,
+    }));
+  }, [trpcUtils]);
 
   return (
-    <Dialog open={visible} onOpenChange={(v) => !v && handleCancel()}>
-      <DialogContent className="max-w-2xl h-[600px] flex flex-col">
-        <ScrollArea className="w-full h-full px-3">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>
-              {mode === "create" ? "Create New Review" : "Edit Review"}
-            </DialogTitle>
-            <DialogDescription>
-              {mode === "create"
-                ? "Add a new customer review or testimonial"
-                : "Update review details"}
-            </DialogDescription>
-          </DialogHeader>
+    <FormDialog
+      open={visible}
+      onOpenChange={(open) => {
+        if (!open) {
+          hide();
+          form.reset();
+        }
+      }}
+      title={mode === "create" ? "Create Review" : "Edit Review"}
+      description={mode === "create" ? "Add a new review" : "Update review details"}
+      onSubmit={form.handleSubmit(handleSubmit)}
+      onCancel={() => {
+        resolve({ reason: "cancel" });
+        hide();
+      }}
+      isLoading={createMutation.isPending || updateMutation.isPending || form.formState.isSubmitting}
+      submitText={mode === "create" ? "Create" : "Save"}
+      cancelText="Cancel"
+      maxWidth="xl"
+    >
+      <FieldGroup>
+        <Controller
+          control={form.control}
+          name="title"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>Title</FieldLabel>
+              <Input
+                {...field}
+                placeholder="Enter review title"
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid && (
+                <FieldError errors={[fieldState.error]} />
+              )}
+            </Field>
+          )}
+        />
 
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-col flex-1"
-            >
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 border-t border-b border-border/50">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter review title" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="rating"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rating</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={field.value.toString()}
-                              onValueChange={(value) =>
-                                field.onChange(parseInt(value))
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
-                                  (rating) => (
-                                    <SelectItem
-                                      key={rating}
-                                      value={rating.toString()}
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                                        {rating}/10
-                                      </div>
-                                    </SelectItem>
-                                  ),
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+        <div className="grid grid-cols-2 gap-4">
+          <Controller
+            control={form.control}
+            name="rating"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="review-rating">Rating</FieldLabel>
+                <div>
+                  <Select
+                    name={field.name}
+                    value={field.value.toString()}
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                  >
+                    <SelectTrigger id="review-rating" aria-invalid={fieldState.invalid}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="item-aligned">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(rating => (
+                        <SelectItem key={rating} value={rating.toString()}>
+                          ⭐ {rating}/10
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                {canManageSite && (
-                  <FormField
-                    control={form.control}
-                    name="authorId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Link to User (Optional)</FormLabel>
-                        <FormControl>
-                          <ComboBox2<UserSelectItemType>
-                            title="Select a user"
-                            valueKey="key"
-                            value={
-                              field.value
-                                ? { key: field.value, title: "", email: "" }
-                                : undefined
-                            }
-                            searchFn={fetchUsers}
-                            renderText={(item) =>
-                              `${item.title} (${item.email})`
-                            }
-                            onChange={(item) =>
-                              field.onChange(item?.key || null)
-                            }
-                            multiple={false}
-                            showCreateButton={false}
-                            showEditButton={false}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
                 )}
+              </Field>
+            )}
+          />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="targetType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Target Type</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select target type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="website">Website</SelectItem>
-                            <SelectItem value="course">Course</SelectItem>
-                            <SelectItem value="product">Product</SelectItem>
-                            <SelectItem value="blog">Blog</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="targetId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Target ID (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter target ID" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+          <Controller
+            control={form.control}
+            name="targetType"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="target-type">Target Type</FieldLabel>
+                <div>
+                  <Select
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger id="target-type" aria-invalid={fieldState.invalid}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="item-aligned">
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="course">Course</SelectItem>
+                      <SelectItem value="product">Product</SelectItem>
+                      <SelectItem value="blog">Blog</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+        </div>
 
-                <FormField
-                  control={form.control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Review Content</FormLabel>
-                      <FormControl>
-                        <CommentEditorField
-                          name={field.name}
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Enter review content..."
-                          className="min-h-[120px]"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+        {canManageSite && (
+          <Controller
+            control={form.control}
+            name="authorId"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Link to User (Optional)</FieldLabel>
+                <ComboBox2<UserItem>
+                  title="Select user"
+                  valueKey="_id"
+                  value={field.value ? { _id: field.value, fullName: "", email: "" } : undefined}
+                  searchFn={searchUsers}
+                  renderLabel={(item) => `${item.fullName} (${item.email})`}
+                  onChange={(item) => field.onChange(item?._id || "")}
+                  multiple={false}
                 />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+        )}
 
-                <FormField
-                  control={form.control}
-                  name="tags"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tags (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter tags separated by commas"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+        <Controller
+          control={form.control}
+          name="content"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>Review Content</FieldLabel>
+              <CommentEditorField
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Enter review content..."
+                className="min-h-[120px]"
+              />
+              {fieldState.invalid && (
+                <FieldError errors={[fieldState.error]} />
+              )}
+            </Field>
+          )}
+        />
+
+        <div className="flex items-center gap-6">
+          <Controller
+            control={form.control}
+            name="published"
+            render={({ field }) => (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="published"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
                 />
-
-                <div className="flex items-center gap-6">
-                  <FormField
-                    control={form.control}
-                    name="published"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={field.onChange}
-                            className="h-4 w-4 rounded border-gray-300"
-                          />
-                        </FormControl>
-                        <FormLabel>Published</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="isFeatured"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={field.onChange}
-                            className="h-4 w-4 rounded border-gray-300"
-                          />
-                        </FormControl>
-                        <FormLabel>Featured</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FieldLabel htmlFor="published" className="cursor-pointer">Published</FieldLabel>
               </div>
+            )}
+          />
 
-              <div className="flex justify-end gap-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {mode === "create" ? "Creating..." : "Updating..."}
-                    </>
-                  ) : mode === "create" ? (
-                    "Create Review"
-                  ) : (
-                    "Update Review"
-                  )}
-                </Button>
+          <Controller
+            control={form.control}
+            name="featured"
+            render={({ field }) => (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="featured"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <FieldLabel htmlFor="featured" className="cursor-pointer">Featured</FieldLabel>
               </div>
-            </form>
-          </Form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+            )}
+          />
+        </div>
+      </FieldGroup>
+    </FormDialog>
   );
 });

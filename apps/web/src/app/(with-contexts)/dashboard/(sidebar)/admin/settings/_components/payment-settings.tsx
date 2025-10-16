@@ -8,13 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label"; 
 import currencies from "@/data/currencies.json";
@@ -31,10 +25,10 @@ import {
 import { capitalize } from "@workspace/utils";
 import { Copy, Info } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useSettingsContext } from "./settings-context";
-import { PaymentMethodEnum } from "@workspace/common-logic/models/payment/payment";
+import { PaymentMethodEnum } from "@workspace/common-logic/models/payment/payment.types";
 
 const paymentSchema = z.object({
   currencyISOCode: z.string().min(1, "Currency is required"),
@@ -91,11 +85,11 @@ export default function PaymentSettings() {
     if (settings) {
       setNewSettings(settings);
       paymentForm.reset({
-        currencyISOCode: (settings.currencyISOCode || "").toUpperCase(),
+        currencyISOCode: settings.currencyISOCode || "",
         paymentMethod: PaymentMethodEnum.STRIPE,
       });
       stripeForm.reset({
-        stripeKey: settings.stripeKey || "",
+        stripeKey: settings.paymentMethods?.stripe?.stripeKey || "",
         stripeSecret: "",
       });
     }
@@ -108,18 +102,24 @@ export default function PaymentSettings() {
           currencyISOCode: data.currencyISOCode,
         },
       });
+      loadSettingsQuery.refetch();
     } catch (error) {
       // Error handling is done in the mutation
     }
   };
 
-  const onSubmitStripe = (data: StripeFormData) => {
-    updatePaymentMutation.mutateAsync({
-      data: {
-        stripeKey: data.stripeKey,
-        stripeSecret: data.stripeSecret,
-      },
-    });
+  const onSubmitStripe = async (data: StripeFormData) => {
+    try {
+      await updatePaymentMutation.mutateAsync({
+        data: {
+          stripeKey: data.stripeKey,
+          stripeSecret: data.stripeSecret,
+        },
+      });
+      loadSettingsQuery.refetch();
+    } catch (error) {
+      // Error handling is done in the mutation
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -136,48 +136,51 @@ export default function PaymentSettings() {
 
   return (
     <div className="space-y-8">
-      <Form {...paymentForm}>
-        <form
-          onSubmit={paymentForm.handleSubmit(onSubmitPayment)}
-          className="space-y-6"
-        >
-          <FormField
+      <form
+        onSubmit={paymentForm.handleSubmit(onSubmitPayment)}
+        className="space-y-6"
+      >
+        <FieldGroup>
+          <Controller
             control={paymentForm.control}
             name="currencyISOCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Currency</FormLabel> 
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={isDisabled}
-                >
-                  <FormControl>
-                    <SelectTrigger>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="currency-select">Currency</FieldLabel>
+                <div>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={isDisabled}
+                  >
+                    <SelectTrigger id="currency-select" aria-invalid={fieldState.invalid}>
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {currencies.map((currency) => (
-                      <SelectItem
-                        key={currency.isoCode}
-                        value={currency.isoCode}
-                      >
-                        {currency.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
+                    <SelectContent>
+                      {currencies.map((currency) => (
+                        <SelectItem
+                          key={currency.isoCode}
+                          value={currency.isoCode}
+                        >
+                          {currency.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
             )}
           />
 
-          <FormField
+          <Controller
             control={paymentForm.control}
             name="paymentMethod"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Method</FormLabel>
+              <Field>
+                <FieldLabel>Payment Method</FieldLabel>
                 <div className="flex items-center gap-2 p-3 border rounded-md bg-muted">
                   <span className="text-sm font-medium">
                     {capitalize(PaymentMethodEnum.STRIPE.toLowerCase())}
@@ -187,7 +190,7 @@ export default function PaymentSettings() {
                   </span>
                 </div>
                 <input type="hidden" {...field} value={PaymentMethodEnum.STRIPE} />
-              </FormItem>
+              </Field>
             )}
           />
 
@@ -198,46 +201,47 @@ export default function PaymentSettings() {
           >
             {isSaving ? "Saving..." : "Save"}
           </Button>
-        </form>
-      </Form>
+        </FieldGroup>
+      </form>
 
       {/* Stripe Settings */}
       <div>
-        <Form {...stripeForm}>
-          <form
-            onSubmit={stripeForm.handleSubmit(onSubmitStripe)}
-            className="space-y-6"
-          >
-            <h3 className="text-lg font-semibold">Stripe Settings</h3>
-            <FormField
+        <form
+          onSubmit={stripeForm.handleSubmit(onSubmitStripe)}
+          className="space-y-6"
+        >
+          <h3 className="text-lg font-semibold">Stripe Settings</h3>
+          <FieldGroup>
+            <Controller
               control={stripeForm.control}
               name="stripeKey"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Stripe Publishable Key
-                  </FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled={isDisabled} />
-                  </FormControl>
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Stripe Publishable Key</FieldLabel>
+                  <Input {...field} disabled={isDisabled} aria-invalid={fieldState.invalid} />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
-            <FormField
+            <Controller
               control={stripeForm.control}
               name="stripeSecret"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stripe Secret</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="password"
-                      autoComplete="off"
-                      disabled={isDisabled}
-                    />
-                  </FormControl>
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Stripe Secret</FieldLabel>
+                  <Input
+                    {...field}
+                    type="password"
+                    autoComplete="off"
+                    disabled={isDisabled}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
             />
             <Button
@@ -247,8 +251,8 @@ export default function PaymentSettings() {
             >
               {isSaving ? "Saving..." : "Save"}
             </Button>
-          </form>
-        </Form>
+          </FieldGroup>
+        </form>
       </div>
 
       {/* Webhook Information */}

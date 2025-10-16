@@ -22,14 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
@@ -57,7 +50,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import z from "zod";
 import { useQuizContext } from "./quiz-context";
 
@@ -507,99 +500,104 @@ function EditQuestionDialog({
                 : "Create a new question for this quiz. Type-specific options can be configured after creation."}
             </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleSubmit)}
-              className="flex flex-col flex-1"
-            >
-              <div className="flex-1 px-6 py-4 space-y-6 border-t border-b border-border/50">
-                <FormField
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="flex flex-col flex-1"
+          >
+            <div className="flex-1 px-6 py-4 space-y-6 border-t border-b border-border/50">
+              <FieldGroup>
+                <Controller
                   control={form.control}
                   name="text"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Question Text</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Enter your question"
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Question Text</FieldLabel>
+                      <Textarea
+                        {...field}
+                        placeholder="Enter your question"
+                        rows={3}
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Question Type</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={isEdit} // Readonly on edit
-                        >
-                          <FormControl>
-                            <SelectTrigger>
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="question-type">Question Type</FieldLabel>
+                        <div>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={isEdit} // Readonly on edit
+                          >
+                            <SelectTrigger id="question-type" aria-invalid={fieldState.invalid}>
                               <SelectValue placeholder="Select type" />
                             </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="multiple_choice">
-                              Multiple Choice
-                            </SelectItem>
-                            <SelectItem value="short_answer">
-                              Short Answer
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                            <SelectContent>
+                              <SelectItem value="multiple_choice">
+                                Multiple Choice
+                              </SelectItem>
+                              <SelectItem value="short_answer">
+                                Short Answer
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
                     )}
                   />
 
-                  <FormField
+                  <Controller
                     control={form.control}
                     name="points"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Points</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            placeholder="5"
-                            min="1"
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>Points</FieldLabel>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="5"
+                          min="1"
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 0)
+                          }
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
                     )}
                   />
                 </div>
 
-                <FormField
+                <Controller
                   control={form.control}
                   name="explanation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Explanation (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Explain the correct answer..."
-                          rows={2}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Explanation (Optional)</FieldLabel>
+                      <Textarea
+                        {...field}
+                        placeholder="Explain the correct answer..."
+                        rows={2}
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
                 />
 
@@ -623,20 +621,20 @@ function EditQuestionDialog({
                     )}
                   </>
                 )}
-              </div>
+              </FieldGroup>
+            </div>
 
-              <DialogFooter className="pt-4">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit" disabled={createQuestionMutation.isPending ||updateQuestionMutation.isPending }>
-                  {isEdit ? "Update Question" : "Add Question"}
+            <DialogFooter className="pt-4">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
                 </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+              </DialogClose>
+              <Button type="submit" disabled={createQuestionMutation.isPending ||updateQuestionMutation.isPending }>
+                {isEdit ? "Update Question" : "Add Question"}
+              </Button>
+            </DialogFooter>
+          </form>
         </ScrollArea>
       </DialogContent>
     </Dialog>
@@ -658,7 +656,7 @@ function MultipleChoiceFields({
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between">
-        <FormLabel>Answer Options</FormLabel>
+        <FieldLabel>Answer Options</FieldLabel>
         <Button type="button" variant="outline" size="sm" onClick={addOption}>
           <Plus className="h-3 w-3 mr-1" />
           Add Option
@@ -667,30 +665,24 @@ function MultipleChoiceFields({
       <div className="space-y-2">
         {options.map((option, index) => (
           <div key={option.uid} className="flex items-center gap-2">
-            <FormField
+            <Controller
               control={form.control}
               name={`options.${index}.text`}
               render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input {...field} placeholder={`Option ${index + 1}`} />
-                  </FormControl>
-                </FormItem>
+                <div className="flex-1">
+                  <Input {...field} placeholder={`Option ${index + 1}`} />
+                </div>
               )}
             />
-            <FormField
+            <Controller
               control={form.control}
               name={`options.${index}.isCorrect`}
               render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                    />
-                  </FormControl>
-                </FormItem>
+                <input
+                  type="checkbox"
+                  checked={field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                />
               )}
             />
             <Button
@@ -727,7 +719,7 @@ function ShortAnswerFields({
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between">
-        <FormLabel>Correct Answers</FormLabel>
+        <FieldLabel>Correct Answers</FieldLabel>
         <Button
           type="button"
           variant="outline"
@@ -741,20 +733,18 @@ function ShortAnswerFields({
       <div className="space-y-2">
         {correctAnswers.map((field, index) => (
           <div key={field.id} className="flex items-center gap-2">
-            <FormField
+            <Controller
               control={form.control}
               name={`correctAnswers.${index}`}
               render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder={`Correct answer ${index + 1}`}
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value)}
-                    />
-                  </FormControl>
-                </FormItem>
+                <div className="flex-1">
+                  <Input
+                    {...field}
+                    placeholder={`Correct answer ${index + 1}`}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
+                </div>
               )}
             />
             <Button

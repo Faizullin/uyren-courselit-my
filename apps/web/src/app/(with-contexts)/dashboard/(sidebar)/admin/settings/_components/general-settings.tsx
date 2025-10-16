@@ -1,27 +1,19 @@
 "use client";
 
-import { useProfile } from "@/components/contexts/profile-context";
+import { uploadLogo } from "@/server/actions/site/media";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { MediaSelector, useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useSettingsContext } from "./settings-context";
 
 const generalSettingsSchema = z.object({
   title: z.string().min(1, "Title is required"),
   subtitle: z.string().optional(),
-  hideCourseLitBranding: z.boolean(),
 });
 
 type GeneralSettingsFormData = z.infer<typeof generalSettingsSchema>;
@@ -29,16 +21,14 @@ type GeneralSettingsFormData = z.infer<typeof generalSettingsSchema>;
 export default function GeneralSettings() {
   const { settings, updateSettingsMutation, loadSettingsQuery } =
     useSettingsContext();
-  const { profile } = useProfile();
   const { toast } = useToast();
-  const [logo, setLogo] = useState<IAttachmentMedia | null>(null);
+  const [logo, setLogo] = useState<any>(null);
 
   const form = useForm<GeneralSettingsFormData>({
     resolver: zodResolver(generalSettingsSchema),
     defaultValues: {
       title: "",
       subtitle: "",
-      hideCourseLitBranding: false,
     },
   });
 
@@ -47,7 +37,6 @@ export default function GeneralSettings() {
       form.reset({
         title: settings.title || "",
         subtitle: settings.subtitle || "",
-        hideCourseLitBranding: settings.hideCourseLitBranding || false,
       });
       setLogo(settings.logo || null);
     }
@@ -61,29 +50,17 @@ export default function GeneralSettings() {
           subtitle: data.subtitle,
         },
       });
+      await loadSettingsQuery.refetch();
       toast({
         title: "Success",
         description: "Settings saved",
       });
     } catch (error) {
-      // Error handling is done in the mutation
-    }
-  };
-
-  const saveLogo = async (media?: IAttachmentMedia) => {
-    try {
-      await updateSettingsMutation.mutateAsync({
-        data: {
-          logo: media || null,
-        },
-      });
-      setLogo(media || null);
       toast({
-        title: "Success",
-        description: "Settings saved",
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
       });
-    } catch (error) {
-      // Error handling is done in the mutation
     }
   };
 
@@ -94,90 +71,81 @@ export default function GeneralSettings() {
 
   return (
     <div className="space-y-8">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FieldGroup>
+          <Controller
             control={form.control}
             name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input {...field} required disabled={isDisabled} />
-                </FormControl>
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Title</FieldLabel>
+                <Input {...field} required disabled={isDisabled} aria-invalid={fieldState.invalid} />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
             )}
           />
 
-          <FormField
+          <Controller
             control={form.control}
             name="subtitle"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Subtitle</FormLabel>
-                <FormControl>
-                  <Input {...field} disabled={isDisabled} />
-                </FormControl>
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Subtitle</FieldLabel>
+                <Input {...field} disabled={isDisabled} aria-invalid={fieldState.invalid} />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
             )}
           />
-          {/* 
-          <FormField
-            control={form.control}
-            name="hideCourseLitBranding"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      {SITE_SETTINGS_COURSELIT_BRANDING_CAPTION}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {SITE_SETTINGS_COURSELIT_BRANDING_SUB_CAPTION}
-                    </p>
-                  </div>
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={isDisabled}
-                    />
-                  </FormControl>
-                </div>
-              </FormItem>
-            )}
-          /> */}
 
           <Button
             type="submit"
             disabled={isDisabled}
             className="w-full sm:w-auto"
           >
-            {isSaving || isSubmitting ? "Saving..." : "Save"}
+            {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
           </Button>
-        </form>
-      </Form>
+        </FieldGroup>
+      </form>
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Logo</h3>
         <MediaSelector
-          profile={profile}
+          functions={{
+            uploadFile: async (files: File[]) => {
+              const formData = new FormData();
+              files.forEach(file => formData.append("file", file));
+              
+              const result = await uploadLogo(formData);
+              if (!result.success) throw new Error(result.error);
+              return result.media || [];
+            },
+          }}
           title=""
           src={logo?.thumbnail || ""}
           srcTitle={logo?.originalFileName || ""}
-          onSelection={(media) => {
-            if (media) {
-              saveLogo(media);
-            }
+          onSelection={async (media) => {
+            await loadSettingsQuery.refetch();
           }}
-          mimeTypesToShow={[...MIMETYPE_IMAGE]}
+          mimeTypesToShow={[
+            "image/png",
+            "image/jpeg",
+            "image/jpg",
+            "image/webp",
+            "image/gif",
+          ]}
           access="public"
           strings={{
-            buttonCaption: MEDIA_SELECTOR_UPLOAD_BTN_CAPTION,
-            removeButtonCaption: MEDIA_SELECTOR_REMOVE_BTN_CAPTION,
+            buttonCaption: "Upload",
+            removeButtonCaption: "Remove",
           }}
-          mediaId={logo?.mediaId || ""}
-          onRemove={() => saveLogo()}
+          mediaId={logo?.id || ""}
+          onRemove={async () => {
+            await loadSettingsQuery.refetch();
+          }}
           type="domain"
           disabled={isDisabled}
         />

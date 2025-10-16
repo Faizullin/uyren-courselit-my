@@ -7,8 +7,8 @@
 import { createUser } from "@/server/api/routers/user/helpers";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { DomainModel, OrganizationModel } from "@workspace/common-logic/models/organization";
-import { UserModel } from "@workspace/common-logic/models/user";
+import { DomainModel, OrganizationModel } from "@workspace/common-logic/models/organization.model";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 

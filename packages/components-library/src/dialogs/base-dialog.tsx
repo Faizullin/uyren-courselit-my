@@ -42,7 +42,7 @@ export function BaseDialog({
             >
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
-                    {description && <DialogDescription>{description}</DialogDescription>}
+                    <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
                 {children}
                 {footer && (

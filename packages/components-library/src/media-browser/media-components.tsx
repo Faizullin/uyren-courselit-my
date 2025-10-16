@@ -1,6 +1,6 @@
 "use client";
 
-import { IAttachmentMedia } from "@workspace/common-logic";
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -269,9 +269,9 @@ function MediaGrid({
 
     return (
         <div className={`grid ${gridCols} gap-4 p-4`}>
-            {items.map((media) => (
+            {items.map((media, index) => (
                 <MediaCard
-                    key={media.mediaId}
+                    key={index}
                     media={media}
                     onSelect={onSelect}
                     onView={onView}
@@ -326,13 +326,13 @@ function MediaList({
 
     return (
         <div className="space-y-2 p-4">
-            {items.map((media) => {
+            {items.map((media, index) => {
                 const fileType = getFileType(media.mimeType);
                 const thumbnailSize = compact ? 48 : 64;
 
                 return (
                     <Card
-                        key={media.mediaId}
+                        key={index}
                         className={`cursor-pointer transition-all hover:shadow-sm p-0 ${compact ? "hover:shadow-none" : ""}`}
                         onClick={() => handleSelect(media)}
                     >

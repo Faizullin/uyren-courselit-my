@@ -7,7 +7,6 @@ import {
   TabsTrigger,
 } from "@workspace/ui/components/tabs";
 import { useRouter } from "next/navigation";
-import ApiKeysSettings from "./api-keys-settings";
 import CustomizationsSettings from "./customizations-settings";
 import DomainManagement from "./domain-management";
 import GeneralSettings from "./general-settings";
@@ -24,7 +23,6 @@ export default function Settings({ selectedTab }: SettingsProps) {
     "Payment",
     "Mails",
     "Customizations",
-    "API Keys",
     "Domain Management",
   ].includes(selectedTab)
     ? selectedTab
@@ -36,7 +34,6 @@ export default function Settings({ selectedTab }: SettingsProps) {
     "Payment",
     "Mails",
     "Customizations",
-    "API Keys",
     "Domain Management",
   ];
 
@@ -85,13 +82,6 @@ export default function Settings({ selectedTab }: SettingsProps) {
           className="flex flex-col gap-8"
         >
           <CustomizationsSettings />
-        </TabsContent>
-
-        <TabsContent
-          value="API Keys"
-          className="flex flex-col gap-8"
-        >
-          <ApiKeysSettings />
         </TabsContent>
 
         <TabsContent value="Domain Management" className="flex flex-col gap-8">

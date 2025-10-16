@@ -21,7 +21,7 @@ import {
 import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.types";
 import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
 import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
-import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
+import { IUserHydratedDocument, UserModel } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
@@ -175,7 +175,7 @@ export const cohortRouter = router({
                     .default(CohortStatusEnum.UPCOMING),
                 beginDate: z.string().datetime().optional(),
                 endDate: z.string().datetime().optional(),
-                duration_in_weeks: z.number().min(1).optional(),
+                durationInWeeks: z.number().min(1).optional(),
                 inviteCode: z.string().min(6).max(50),
                 maxCapacity: z.number().min(1).optional(),
             }),
@@ -199,6 +199,12 @@ export const cohortRouter = router({
                 throw new ConflictException("Cohort with this slug already exists");
             }
 
+            const isAdmin = ctx.user.roles.includes(UIConstants.roles.admin);
+
+            if (input.data.instructorId && !isAdmin) {
+                throw new AuthorizationException("You are not authorized to create a cohort with a custom instructor");
+            }
+
             const cohort = await CohortModel.create({
                 title: input.data.title,
                 slug: input.data.slug,
@@ -210,7 +216,7 @@ export const cohortRouter = router({
                     ? new Date(input.data.beginDate)
                     : undefined,
                 endDate: input.data.endDate ? new Date(input.data.endDate) : undefined,
-                duration_in_weeks: input.data.duration_in_weeks,
+                durationInWeeks: input.data.durationInWeeks,
                 inviteCode: input.data.inviteCode,
                 maxCapacity: input.data.maxCapacity,
                 orgId: ctx.domainData.domainObj.orgId,
@@ -232,10 +238,11 @@ export const cohortRouter = router({
                     slug: z.string().min(1).max(255).optional(),
                     description: z.string().optional(),
                     instructorId: documentIdValidator().optional(),
+                    courseId: documentIdValidator().optional(),
                     status: z.nativeEnum(CohortStatusEnum).optional(),
                     beginDate: z.string().datetime().optional(),
                     endDate: z.string().datetime().optional(),
-                    duration_in_weeks: z.number().min(1).optional(),
+                    durationInWeeks: z.number().min(1).optional(),
                     inviteCode: z.string().min(6).max(50).optional(),
                     maxCapacity: z.number().min(1).optional(),
                 },
@@ -249,9 +256,33 @@ export const cohortRouter = router({
                 _id: input.id,
                 orgId: ctx.domainData.domainObj.orgId,
             });
+            const isAdmin = ctx.user.roles.includes(UIConstants.roles.admin);
 
             if (!cohort) {
                 throw new NotFoundException("Cohort", input.id);
+            }
+
+            if (input.data.instructorId && !cohort.instructorId.equals(input.data.instructorId)) {
+
+                if (!isAdmin) {
+                    throw new AuthorizationException("You are not authorized to update the instructor");
+                }
+
+                const instructor = await UserModel.findOne({
+                    _id: input.data.instructorId,
+                    orgId: ctx.domainData.domainObj.orgId,
+                });
+
+                if (!instructor) {
+                    throw new NotFoundException("Instructor", input.data.instructorId);
+                }
+
+            }
+
+            if (input.data.courseId && !cohort.courseId.equals(input.data.courseId)) {
+                if (!isAdmin) {
+                    throw new AuthorizationException("You are not authorized to update the course");
+                }
             }
 
             if (input.data.slug && input.data.slug !== cohort.slug) {
@@ -469,6 +500,59 @@ export const cohortRouter = router({
             }
 
             return jsonify(cohort);
+        }),
+
+    getStats: protectedProcedure
+        .use(createDomainRequiredMiddleware())
+        .use(
+            createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+        )
+        .query(async ({ ctx }) => {
+            const orgId = ctx.domainData.domainObj.orgId;
+
+            const [totalCohorts, activeCohorts, completedCohorts, enrollmentStats] = await Promise.all([
+                CohortModel.countDocuments({ orgId }),
+                CohortModel.countDocuments({
+                    orgId,
+                    status: { $in: [CohortStatusEnum.LIVE, CohortStatusEnum.UPCOMING] },
+                }),
+                CohortModel.countDocuments({
+                    orgId,
+                    status: CohortStatusEnum.COMPLETED,
+                }),
+                EnrollmentModel.aggregate([
+                    {
+                        $match: {
+                            orgId: orgId,
+                            cohortId: { $exists: true, $ne: null },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalStudents: { $sum: 1 },
+                        },
+                    },
+                ]),
+            ]);
+
+            const totalCapacityResult = await CohortModel.aggregate([
+                { $match: { orgId } },
+                {
+                    $group: {
+                        _id: null,
+                        totalCapacity: { $sum: { $ifNull: ["$maxCapacity", 0] } },
+                    },
+                },
+            ]);
+
+            return jsonify({
+                totalCohorts,
+                activeCohorts,
+                completedCohorts,
+                totalStudents: enrollmentStats[0]?.totalStudents || 0,
+                totalCapacity: totalCapacityResult[0]?.totalCapacity || 0,
+            });
         }),
 });
 
