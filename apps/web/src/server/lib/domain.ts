@@ -46,7 +46,6 @@ export async function getDomainData(
     console.warn("[getDomainData] Domain lookup failed:", error);
     throw error;
   }
-
   return { headers: domainHeaders, domainObj };
 }
 

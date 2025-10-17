@@ -63,7 +63,7 @@ export function SortableItem({
   );
 }
 
-const DragAndDrop = <T extends { id: string }>({
+const DragAndDrop = <T extends { id: number }>({
   items,
   onChange,
   Renderer,
@@ -73,52 +73,60 @@ const DragAndDrop = <T extends { id: string }>({
   Renderer: FC<T>;
 }) => {
   const [data, setData] = useState<T[]>(items);
+  const [isDragging, setIsDragging] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
+      // Only activate drag on the drag handle, not on other interactive elements
       activationConstraint: {
-        distance: 10,
+        distance: 8, // Require 8px movement to prevent accidental drags
+      },
+    }),
+    useSensor(TouchSensor, {
+      // Press delay to prevent interference with taps/clicks
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
-    useSensor(MouseSensor, {
-      // Require the mouse to move by 10 pixels before activating
-      activationConstraint: {
-        distance: 10,
-      },
-    }),
-    useSensor(TouchSensor, {
-      // Press delay of 250ms, with tolerance of 5px of movement
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    }),
   );
 
-  const findPositionOfItems = (id: string) =>
+  const findPositionOfItems = (id: number) =>
     data.findIndex((item: T) => item.id === id);
 
   const handleDragEnd = (event: { active: any; over: any }) => {
     const { active, over } = event;
 
-    if (active.id === over.id) return;
+    if (active.id === over.id) {
+      setIsDragging(false);
+      return;
+    }
     setData((data: T[]) => {
       const originalPos = findPositionOfItems(active.id);
       const newPos = findPositionOfItems(over.id);
-      return arrayMove(data, originalPos, newPos);
+      const newArray = arrayMove(data, originalPos, newPos);
+      setIsDragging(false);
+      return newArray;
     });
   };
 
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  // Only call onChange when data changes from user drag, not from items prop sync
   useEffect(() => {
-    if (onChange && JSON.stringify(data) !== JSON.stringify(items)) {
+    if (isDragging === false && onChange && JSON.stringify(data) !== JSON.stringify(items)) {
       onChange(data);
     }
-  }, [data]);
+  }, [data, isDragging]);
 
+  // Sync internal state with items prop
   useEffect(() => {
+    console.log("items", items);
     setData(items);
   }, [items]);
 
@@ -126,13 +134,14 @@ const DragAndDrop = <T extends { id: string }>({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SortableContext
         items={data.map((item: { id: any }) => item.id)}
         strategy={verticalListSortingStrategy}
       >
-        {data.map((item: any) => (
+        {data.map((item) => (
           <SortableItem
             key={item.id}
             id={item.id}

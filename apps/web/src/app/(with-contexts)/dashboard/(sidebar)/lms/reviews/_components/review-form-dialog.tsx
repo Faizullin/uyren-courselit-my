@@ -215,7 +215,6 @@ export const ReviewFormDialog = NiceModal.create<
         }
       }}
       title={mode === "create" ? "Create Review" : "Edit Review"}
-      description={mode === "create" ? "Add a new review" : "Update review details"}
       onSubmit={form.handleSubmit(handleSubmit)}
       onCancel={() => {
         resolve({ reason: "cancel" });

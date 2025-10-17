@@ -2,11 +2,12 @@
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { useActivities } from "@/hooks/use-activities";
-import { trpc } from "@/utils/trpc";
 import { ActivityTypeEnum } from "@workspace/common-logic/lib/ui/activity";
+import { trpc } from "@/utils/trpc";
 import { useToast } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,27 +31,18 @@ import {
   Eye,
   GraduationCap,
   Settings,
-  UserPlus
+  Users
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useState } from "react";
 import MetricCard from "./_components/metric-card";
 import SalesCard from "./_components/sales-card";
+import { useCourseContext } from "./_components/course-context";
 
-export default function ProductPage() {
+export default function Page() {
   const [timeRange, setTimeRange] = useState("7d");
-  const params = useParams<{
-    id: string;
-  }>();
   const { toast } = useToast();
-
-  const loadCourseDetailedQuery = trpc.lmsModule.courseModule.course.getById.useQuery({
-    id: params.id,
-  }, {
-    enabled: !!params.id,
-  });
-  const course = loadCourseDetailedQuery.data;
+  const { course, isLoading: courseLoading } = useCourseContext();
 
   const breadcrumbs = [
     { label: "Manage Courses", href: "/dashboard/lms/courses" },
@@ -67,7 +59,14 @@ export default function ProductPage() {
     true,
   );
 
-  if (loadCourseDetailedQuery.isLoading || !course) {
+  const loadCohortsQuery = trpc.lmsModule.cohortModule.cohort.list.useQuery({
+    pagination: { skip: 0, take: 5 },
+    filter: { courseId: course?._id },
+  }, {
+    enabled: !!course?._id,
+  });
+
+  if (courseLoading || !course) {
     return (
       <DashboardContent breadcrumbs={breadcrumbs}>
         <div className="space-y-8">
@@ -146,28 +145,23 @@ export default function ProductPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link
-                    href={`/dashboard/lms/courses/${course._id}/customers/new`}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Invite a Customer
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/courses/${course._id}/manage`}>
                     <Settings className="mr-2 h-4 w-4" />
-                    Manage
+                    Manage Course
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link
-                    href={`/dashboard/lms/courses/${course._id}/customers`}
-                  >
+                  <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
+                    <Users className="mr-2 h-4 w-4" />
+                    Cohort Groups
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={`/courses/${course._id}`}>
                     <Eye className="mr-2 h-4 w-4" />
-                    View Customers
+                    Preview Course
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -185,14 +179,14 @@ export default function ProductPage() {
           entityId={course._id}
         />
 
-        <Link href={`/dashboard/lms/courses/${course._id}/customers`}>
-          {/* <MetricCard
-            title="Customers"
+        <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
+          <MetricCard
+            title="Cohort Groups"
             icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            type={ActivityType.ENROLLED}
+            type={ActivityTypeEnum.ENROLLED}
             duration={timeRange}
             entityId={course._id}
-          /> */}
+          />
         </Link>
         <MetricCard
           title="People who completed the course"
@@ -205,18 +199,52 @@ export default function ProductPage() {
 
       <SalesCard data={salesData} loading={salesLoading} />
 
-      {/* <Resources
-        links={[
-          {
-            href: "https://docs.courselit.app/en/products/overview",
-            text: "Product Management Guide",
-          },
-          {
-            href: "https://docs.courselit.app/en/products/content",
-            text: "Content Management",
-          },
-        ]}
-      /> */}
+      <Card className="mt-6">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Cohort Groups</CardTitle>
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
+              View All
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loadCohortsQuery.isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : loadCohortsQuery.data?.items.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No cohort groups yet.{" "}
+              <Link href={`/dashboard/lms/courses/${course._id}/cohorts`} className="text-primary hover:underline">
+                Create one
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {loadCohortsQuery.data?.items.map((cohort) => (
+                <Link
+                  key={cohort._id}
+                  href={`/dashboard/lms/cohorts/${cohort._id}`}
+                  target="_blank"
+                  className="block p-3 rounded-lg border hover:bg-accent transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium">{cohort.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {cohort.instructor?.fullName || "No instructor"}
+                      </div>
+                    </div>
+                    <Badge variant="secondary">{cohort.status}</Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </DashboardContent>
   );
 }

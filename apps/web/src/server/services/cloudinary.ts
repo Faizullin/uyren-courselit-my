@@ -38,11 +38,12 @@ export class CloudinaryService {
     try {
       // Generate unique filename
       const mediaId = generateUniqueId();
-      const timestamp = Date.now();
-      const publicId = `${type}/${userId}/${timestamp}_${mediaId}`;
 
       // Get folder prefix from environment or use default
-      const folderPrefix = process.env.UPLOAD_FOLDER_PREFIX || "courselit";
+      const folderPrefix = process.env.UPLOAD_FOLDER_PREFIX;
+      if (!folderPrefix) {
+        throw new Error("UPLOAD_FOLDER_PREFIX is not set");
+      }
       const folderPath = `${folderPrefix}/${domain.name}-${domain._id}/${type}`;
 
       let uploadResult: any;
@@ -73,7 +74,6 @@ export class CloudinaryService {
           cloudinary.uploader
             .upload_stream(
               {
-                public_id: publicId,
                 resource_type: "auto",
                 folder: folderPath,
                 transformation: [{ quality: "auto", fetch_format: "auto" }],
@@ -114,6 +114,7 @@ export class CloudinaryService {
         metadata: {
           public_id: uploadResult.public_id,
         },
+        mediaId: mediaId,
       };
 
       return media;
@@ -123,13 +124,19 @@ export class CloudinaryService {
     }
   }
 
-  static async deleteFile(mediaId: string): Promise<boolean> {
+  static async deleteFile(item: IAttachmentMedia): Promise<boolean> {
+    if (!item.metadata?.public_id) {
+      throw new Error("Public ID not found for media");
+    }
     try {
-      const result = await cloudinary.uploader.destroy(mediaId);
-      return result.result === "ok" || result.result === "not found";
+      const result = await cloudinary.uploader.destroy(item.metadata.public_id);
+      if (result.result === "not found") {
+        throw new Error("File not found for mediaId: " + item.metadata.public_id);
+      }
+      return result.result === "ok";
     } catch (error: any) {
       console.error("Cloudinary delete error:", error);
-      throw new Error(`Delete failed: ${error.message}`);
+      throw new Error(`Delete failed for mediaId: ${item.metadata.public_id}: ${error.message}`);
     }
   }
 

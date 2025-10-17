@@ -63,7 +63,6 @@ export function ExternalApiKeyCreateEditDialog({ control, onSuccess }: ExternalA
     { id: control.data! },
     {
       enabled: mode === "edit" && !!control.data && control.isVisible,
-      refetchOnWindowFocus: false,
     },
   );
 

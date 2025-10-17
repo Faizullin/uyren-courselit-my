@@ -1,42 +1,28 @@
 "use client";
 
-import { useProfile } from "@/components/contexts/profile-context";
 import { useSiteInfo } from "@/components/contexts/site-info-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import PaymentPlanList from "@/components/dashboard/payments/payment-plan-list";
-import { usePaymentPlanOperations } from "@/hooks/use-payment-plan-operations";
-import { MIMETYPE_IMAGE } from "@/lib/ui/config/constants";
-import {
-  APP_MESSAGE_COURSE_SAVED,
-  BTN_DELETE_COURSE,
-  BUTTON_CANCEL_TEXT,
-  DANGER_ZONE_HEADER,
-  TOAST_TITLE_ERROR,
-  TOAST_TITLE_SUCCESS,
-} from "@/lib/ui/config/strings";
-import { GeneralRouterOutputs } from "@/server/api/types";
+import { removeFeaturedImage, uploadFeaturedImage } from "@/server/actions/course/media";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Editor } from "@tiptap/react";
-import { Constants, Media, Profile } from "@workspace/common-models";
+import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
+import { IPaymentPlan, PaymentPlanTypeEnum } from "@workspace/common-logic/models/payment/payment-plan.types";
+import { SerializedCourse } from "../../_components/types";
+import { useCourseContext } from "../../_components/course-context";
 import {
   ComboBox2,
+  DeleteConfirmNiceDialog,
   getSymbolFromCurrency,
   MediaSelector,
+  NiceModal,
   useToast,
 } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@workspace/ui/components/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
@@ -56,8 +42,6 @@ const DescriptionEditor = dynamic(() =>
   ).then((mod) => ({ default: mod.DescriptionEditor })),
 );
 
-const { PaymentPlanType: paymentPlanType, MembershipEntityType } = Constants;
-
 const ProductSchema = z.object({
   title: z
     .string()
@@ -67,14 +51,62 @@ const ProductSchema = z.object({
     .string()
     .max(500, "Short description must be less than 500 characters")
     .optional(),
-  description: z.any().optional(),
+  description: z.custom<ITextEditorContent>().optional(),
   themeId: z.string().nullable(),
 });
 
 type ProductFormDataType = z.infer<typeof ProductSchema>;
 
 interface ProductManageClientProps {
-  product: GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["getByCourseDetailed"];
+  product: SerializedCourse;
+}
+
+interface UsePaymentPlanOperationsProps {
+  id: string;
+}
+
+type PaymentPlanWithId = IPaymentPlan & { _id: string };
+
+function usePaymentPlanOperations({
+  id,
+}: UsePaymentPlanOperationsProps) {
+  const [paymentPlans, setPaymentPlans] = useState<PaymentPlanWithId[]>([]);
+  const [defaultPaymentPlanId, setDefaultPaymentPlanId] = useState<string>();
+
+  const createPaymentPlanMutation = trpc.paymentModule.paymentPlan.create.useMutation();
+  const archivePaymentPlanMutation =  trpc.paymentModule.paymentPlan.archive.useMutation();
+  const setDefaultPlanMutation = trpc.paymentModule.paymentPlan.setDefault.useMutation();
+
+  const onPlanSubmitted = useCallback(async (values: any) => {
+    try {
+      const response = await createPaymentPlanMutation.mutateAsync({
+        data: values,
+      });
+      setPaymentPlans([...paymentPlans, response as unknown as PaymentPlanWithId]);
+    } catch (error) {
+      console.error("Error submitting plan:", error);
+    }
+  }, [createPaymentPlanMutation, paymentPlans]);
+
+  const onPlanArchived = useCallback(async (plan: PaymentPlanWithId) => {
+    const response = await archivePaymentPlanMutation.mutateAsync({
+      id: plan._id,
+    });
+    setPaymentPlans(paymentPlans.filter((p) => p._id !== plan._id));
+    return response;
+  }, [archivePaymentPlanMutation, paymentPlans]);
+
+  const onDefaultPlanChanged = useCallback(async (plan: PaymentPlanWithId) => {
+    const response = await setDefaultPlanMutation.mutateAsync({
+      id: plan._id,
+    });
+    if (response) {
+      setDefaultPaymentPlanId(plan._id);
+    }
+    return response;
+  }, [setDefaultPlanMutation, paymentPlans, setDefaultPaymentPlanId, setDefaultPaymentPlanId]);
+
+  return { paymentPlans, defaultPaymentPlanId, onPlanSubmitted, onPlanArchived, onDefaultPlanChanged };
 }
 
 export default function ProductManageClient({
@@ -82,26 +114,24 @@ export default function ProductManageClient({
 }: ProductManageClientProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { profile } = useProfile();
   const { siteInfo } = useSiteInfo();
+  const { refetch: refetchCourse } = useCourseContext();
+  const trpcUtils = trpc.useUtils();
 
-  const [editorContent, setEditorContent] = useState({
-    type: "doc" as const,
+  const [editorContent, setEditorContent] = useState<ITextEditorContent>({
+    type: "doc",
     content: "",
-    assets: [] as any[],
-    widgets: [] as any[],
+    assets: [],
+    widgets: [],
     config: {
-      editorType: "tiptap" as const,
+      editorType: "tiptap",
     },
   });
   const editorRef = useRef<Editor | null>(null);
-  const [featuredImage, setFeaturedImage] = useState<Media | null>(
-    product.featuredImage || null,
+  const [featuredImage, setFeaturedImage] = useState<IAttachmentMedia | null>(
+    product.featuredImage ? (product.featuredImage as unknown as IAttachmentMedia) : null
   );
   const [published, setPublished] = useState(product.published || false);
-  const [isPrivate, setPrivate] = useState(
-    product.privacy === "unlisted" || false,
-  );
   const [selectedTheme, setSelectedTheme] = useState<{
     key: string;
     title: string;
@@ -109,45 +139,37 @@ export default function ProductManageClient({
 
   const {
     paymentPlans,
-    setPaymentPlans,
-    defaultPaymentPlan,
-    setDefaultPaymentPlan,
+    defaultPaymentPlanId,
     onPlanSubmitted,
     onPlanArchived,
     onDefaultPlanChanged,
   } = usePaymentPlanOperations({
-    id: product.courseId,
-    entityType: MembershipEntityType.COURSE,
+    id: product._id,
   });
 
-
-  const hasFreePlan = (product.attachedPaymentPlans || []).some(
-    (p) => p.type === Constants.PaymentPlanType.FREE,
-  );
   const [allowEnrollment, setAllowEnrollment] = useState<boolean>(product?.allowEnrollment || false);
+  const [allowSelfEnrollment, setAllowSelfEnrollment] = useState<boolean>(product?.allowSelfEnrollment || false);
   const form = useForm<ProductFormDataType>({
     resolver: zodResolver(ProductSchema),
     defaultValues: {
       title: product.title || "",
       shortDescription: product.shortDescription || "",
-      description: product.description || "",
+      description: product.description as ITextEditorContent | undefined,
       themeId: product.themeId || null,
     },
   });
-
-  const trpcUtils = trpc.useUtils();
+  
   const fetchThemes = useCallback(
-    async (search: string) => {
+    async (search: string, offset: number, size: number) => {
       try {
-        const response = await trpcUtils.lmsModule.themeModule.theme.list.fetch(
-          {
-            pagination: { skip: 0, take: 15 },
-            search: search ? { q: search } : undefined,
-            filter: { status: "published" },
-          },
-        );
+        const response = await trpcUtils.lmsModule.themeModule.theme.list.fetch({
+          pagination: { skip: offset, take: size },
+          search: search ? { q: search } : undefined,
+          filter: { publicationStatus: PublicationStatusEnum.PUBLISHED },
+        });
+        
         return response.items.map((theme) => ({
-          key: theme._id.toString(),
+          key: theme._id,
           title: theme.name,
         }));
       } catch (error) {
@@ -158,72 +180,81 @@ export default function ProductManageClient({
     [trpcUtils],
   );
 
-  const updateCourseMutation =
-    trpc.lmsModule.courseModule.course.update.useMutation({
-      onSuccess: () => {
-        toast({
-          title: TOAST_TITLE_SUCCESS,
-          description: APP_MESSAGE_COURSE_SAVED,
-        });
-      },
-      onError: (err: any) => {
-        toast({
-          title: TOAST_TITLE_ERROR,
-          description: err.message,
-          variant: "destructive",
-        });
-      },
-    });
+  const updateCourseMutation = trpc.lmsModule.courseModule.course.update.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Course saved successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const deleteProductMutation =
-    trpc.lmsModule.courseModule.course.delete.useMutation({
-      onSuccess: () => {
-        toast({
-          title: TOAST_TITLE_SUCCESS,
-          description: "Product deleted successfully",
-        });
-        router.push("/dashboard/products");
-      },
-      onError: (err: any) => {
-        toast({
-          title: TOAST_TITLE_ERROR,
-          description: err.message,
-          variant: "destructive",
-        });
-      },
-    });
+  const deleteCourseMutation = trpc.lmsModule.courseModule.course.delete.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Course deleted successfully",
+      });
+      router.push("/dashboard/lms/courses");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const updateAllowEnrollment = async (checked: boolean) => {
     try {
       await updateCourseMutation.mutateAsync({
-        courseId: product.courseId,
+        id: product._id,
         data: { allowEnrollment: checked },
       });
+      setAllowEnrollment(checked);
     } catch (error) {
       console.error("Error updating allowEnrollment:", error);
     }
   };
 
-  // Initialize payment plans and default plan
-  useEffect(() => {
-    if (product) {
-      setPaymentPlans(product.attachedPaymentPlans || []);
-      setDefaultPaymentPlan(product?.defaultPaymentPlan || "");
-      setSelectedTheme(
-        product.attachedTheme
-          ? {
-            key: product.attachedTheme._id,
-            title: product.attachedTheme.name,
-          }
-          : null,
-      );
+  const updateAllowSelfEnrollment = async (checked: boolean) => {
+    try {
+      await updateCourseMutation.mutateAsync({
+        id: product._id,
+        data: { allowSelfEnrollment: checked },
+      });
+      setAllowSelfEnrollment(checked);
+    } catch (error) {
+      console.error("Error updating allowSelfEnrollment:", error);
     }
-  }, [product, setPaymentPlans, setDefaultPaymentPlan, setSelectedTheme]);
+  };
+
+  useEffect(() => {
+    if (product?.description && typeof product.description !== 'string') {
+      setEditorContent(product.description);
+    }
+    
+    const theme = product.theme as { _id: string; name: string } | undefined;
+    if (theme) {
+      setSelectedTheme({
+        key: theme._id || "",
+        title: theme.name || "",
+      });
+    }
+  }, [product]);
 
   const handleSubmit = async (data: ProductFormDataType) => {
     try {
       await updateCourseMutation.mutateAsync({
-        courseId: product.courseId,
+        id: product._id,
         data: {
           title: data.title,
           shortDescription: data.shortDescription,
@@ -236,24 +267,11 @@ export default function ProductManageClient({
     }
   };
 
-  const saveFeaturedImage = async (media?: Media) => {
-    if (!product?.courseId) return;
-    try {
-      await updateCourseMutation.mutateAsync({
-        courseId: product.courseId,
-        data: {
-          featuredImage: media || null,
-        },
-      });
-    } catch (error) {
-      console.error("Error updating featured image:", error);
-    }
-  };
 
   const updatePublishedStatus = async (published: boolean) => {
     try {
       await updateCourseMutation.mutateAsync({
-        courseId: product.courseId,
+        id: product._id,
         data: { published },
       });
     } catch (error) {
@@ -261,23 +279,9 @@ export default function ProductManageClient({
     }
   };
 
-  const updatePrivacy = async (isPrivate: boolean) => {
-    try {
-      await updateCourseMutation.mutateAsync({
-        courseId: product.courseId,
-        data: {
-          privacy: isPrivate ? "unlisted" : "public",
-        },
-      });
-    } catch (error) {
-      console.error("Error updating privacy:", error);
-    }
-  };
-
   const isSubmitting = form.formState.isSubmitting;
   const isSaving = updateCourseMutation.isPending;
 
-  // Initialize editor content with product description
   useEffect(() => {
     if (product.description) {
       try {
@@ -294,7 +298,6 @@ export default function ProductManageClient({
     }
   }, [product.description]);
 
-  // Initialize themeId in form when product loads
   useEffect(() => {
     if (product.themeId) {
       form.setValue("themeId", product.themeId);
@@ -302,17 +305,16 @@ export default function ProductManageClient({
   }, [product.themeId, form]);
 
   const breadcrumbs = [
-    { label: "Products", href: "/dashboard/products" },
+    { label: "Courses", href: "/dashboard/lms/courses" },
     {
-      label: product.title || "Product",
-      href: `/dashboard/products/${product.courseId}`,
+      label: product.title || "Course",
+      href: `/dashboard/lms/courses/${product._id}`,
     },
     { label: "Manage", href: "#" },
   ];
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <div className="flex flex-col gap-6">
         <HeaderTopbar
           header={{
             title: "Manage",
@@ -404,7 +406,7 @@ export default function ProductManageClient({
                     valueKey="key"
                     value={selectedTheme || undefined}
                     searchFn={fetchThemes}
-                    renderText={(item) => item.title}
+                    renderLabel={(item) => item.title}
                     onChange={(item) => {
                       setSelectedTheme(item || null);
                       field.onChange(item?.key || null);
@@ -443,26 +445,60 @@ export default function ProductManageClient({
             The hero image for your product
           </p>
           <MediaSelector
-            title=""
-            src={(featuredImage && featuredImage.thumbnail) || ""}
-            srcTitle={(featuredImage && featuredImage.originalFileName) || ""}
-            onSelection={(media?: Media) => {
+            media={featuredImage}
+            onSelection={(media) => {
               if (media) {
                 setFeaturedImage(media);
-                saveFeaturedImage(media);
               }
             }}
-            mimeTypesToShow={[...MIMETYPE_IMAGE]}
-            access="public"
-            strings={{}}
-            profile={profile as Profile}
-            address={address}
-            mediaId={(featuredImage && featuredImage.mediaId) || ""}
             onRemove={() => {
               setFeaturedImage(null);
-              saveFeaturedImage();
+              refetchCourse();
             }}
+            mimeTypesToShow={["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]}
             type="course"
+            strings={{
+              buttonCaption: "Upload Image",
+              removeButtonCaption: "Remove",
+            }}
+            functions={{
+              uploadFile: async (files: File[]) => {
+                const formData = new FormData();
+                files.forEach(file => formData.append("file", file));
+                
+                const result = await uploadFeaturedImage(product._id, formData);
+                
+                if (!result.success) {
+                  throw new Error(result.error || "Upload failed");
+                }
+                
+                const uploadedMedia = result.media?.[0];
+                if (uploadedMedia) {
+                  setFeaturedImage(uploadedMedia);
+                }
+                
+                refetchCourse();
+                
+                toast({
+                  title: "Success",
+                  description: "Featured image uploaded successfully",
+                });
+                
+                return result.media || [];
+              },
+              removeFile: async (mediaId: string) => {
+                const result = await removeFeaturedImage(product._id);
+                
+                if (!result.success) {
+                  throw new Error(result.error || "Failed to remove image");
+                }
+                
+                toast({
+                  title: "Success",
+                  description: "Featured image removed successfully",
+                });
+              }
+            }}
           />
         </div>
 
@@ -483,29 +519,32 @@ export default function ProductManageClient({
             onPlanSubmit={async (values) => {
               try {
                 await onPlanSubmitted(values);
-              } catch (err: any) {
+              } catch (err) {
+                const error = err instanceof Error ? err : new Error(String(err));
                 toast({
-                  title: TOAST_TITLE_ERROR,
-                  description: err.message,
+                  title: "Error",
+                  description: error.message,
+                  variant: "destructive",
                 });
               }
             }}
-            onPlanArchived={async (id) => {
+            onPlanArchived={async (plan) => {
               try {
-                await onPlanArchived(id);
-              } catch (err: any) {
+                await onPlanArchived(plan);
+              } catch (err) {
+                const error = err instanceof Error ? err : new Error(String(err));
                 toast({
-                  title: TOAST_TITLE_ERROR,
-                  description: err.message,
+                  title: "Error",
+                  description: error.message,
                   variant: "destructive",
                 });
               }
             }}
             allowedPlanTypes={[
-              paymentPlanType.SUBSCRIPTION,
-              paymentPlanType.FREE,
-              paymentPlanType.ONE_TIME,
-              paymentPlanType.EMI,
+              PaymentPlanTypeEnum.SUBSCRIPTION,
+              PaymentPlanTypeEnum.FREE,
+              PaymentPlanTypeEnum.ONE_TIME,
+              PaymentPlanTypeEnum.EMI,
             ]}
             currencySymbol={getSymbolFromCurrency(
               siteInfo.currencyISOCode || "USD",
@@ -514,14 +553,16 @@ export default function ProductManageClient({
             onDefaultPlanChanged={async (id) => {
               try {
                 await onDefaultPlanChanged(id);
-              } catch (err: any) {
+              } catch (err) {
+                const error = err instanceof Error ? err : new Error(String(err));
                 toast({
-                  title: TOAST_TITLE_ERROR,
-                  description: err.message,
+                  title: "Error",
+                  description: error.message,
+                  variant: "destructive",
                 });
               }
             }}
-            defaultPaymentPlanId={defaultPaymentPlan}
+            defaultPaymentPlanId={defaultPaymentPlanId}
             paymentMethod={siteInfo.paymentMethod}
           />
         </div>
@@ -533,7 +574,7 @@ export default function ProductManageClient({
             <div className="space-y-0.5">
               <Label className="text-base font-semibold">Published</Label>
               <p className="text-sm text-muted-foreground">
-                Make this product available to customers
+                Make this course available to users
               </p>
             </div>
             <Switch
@@ -544,31 +585,11 @@ export default function ProductManageClient({
               }}
             />
           </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label
-                className={`${!published ? "text-muted-foreground" : ""} text-base font-semibold`}
-              >
-                Visibility
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Only accessible via direct link
-              </p>
-            </div>
-            <Switch
-              checked={isPrivate}
-              onCheckedChange={(checked) => {
-                setPrivate(checked);
-                updatePrivacy(checked);
-              }}
-              disabled={!published}
-            />
-          </div>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label className={`text-base font-semibold ${!published ? "text-muted-foreground" : ""}`}>
+            <Label className="text-base font-semibold">
               Allow enrollment
             </Label>
             <p className="text-sm text-muted-foreground">
@@ -585,49 +606,52 @@ export default function ProductManageClient({
           />
         </div>
 
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label className="text-base font-semibold">
+              Allow self enrollment
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Allow students to enroll themselves in this course
+            </p>
+          </div>
+          <Switch
+            checked={allowSelfEnrollment}
+            onCheckedChange={async (checked) => {
+              setAllowSelfEnrollment(checked);
+              await updateAllowSelfEnrollment(checked);
+            }}
+            disabled={!published}
+          />
+        </div>
+
         <Separator />
 
         <div className="space-y-4">
           <h2 className="text-destructive font-semibold">
-            {DANGER_ZONE_HEADER}
+            Danger Zone
           </h2>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button type="button" variant="destructive" disabled={isSaving}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                {BTN_DELETE_COURSE}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  Are you sure you want to delete this product?
-                </DialogTitle>
-                <DialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  product and remove all associated data from our servers.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">{BUTTON_CANCEL_TEXT}</Button>
-                </DialogClose>
-                <Button
-                  variant="destructive"
-                  onClick={() =>
-                    deleteProductMutation.mutateAsync({
-                      courseId: product.courseId,
-                    })
-                  }
-                  disabled={isSaving}
-                >
-                  {BTN_DELETE_COURSE}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isSaving}
+            onClick={async () => {
+              const result = await NiceModal.show(DeleteConfirmNiceDialog, {
+                title: "Delete Course",
+                message: `Are you sure you want to delete "${product.title}"? This action cannot be undone. This will permanently delete the course and remove all associated data from our servers.`,
+              });
+
+              if (result.reason === "confirm") {
+                await deleteCourseMutation.mutateAsync({
+                  id: product._id,
+                });
+              }
+            }}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Course
+          </Button>
         </div>
-      </div>
     </DashboardContent>
   );
 }

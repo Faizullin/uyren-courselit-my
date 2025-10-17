@@ -114,20 +114,12 @@ export default function GeneralSettings() {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Logo</h3>
         <MediaSelector
-          functions={{
-            uploadFile: async (files: File[]) => {
-              const formData = new FormData();
-              files.forEach(file => formData.append("file", file));
-              
-              const result = await uploadLogo(formData);
-              if (!result.success) throw new Error(result.error);
-              return result.media || [];
-            },
-          }}
-          title=""
-          src={logo?.thumbnail || ""}
-          srcTitle={logo?.originalFileName || ""}
+          media={logo}
           onSelection={async (media) => {
+            await loadSettingsQuery.refetch();
+          }}
+          onRemove={async () => {
+            setLogo(null);
             await loadSettingsQuery.refetch();
           }}
           mimeTypesToShow={[
@@ -137,17 +129,25 @@ export default function GeneralSettings() {
             "image/webp",
             "image/gif",
           ]}
-          access="public"
+          type="domain"
+          disabled={isDisabled}
           strings={{
             buttonCaption: "Upload",
             removeButtonCaption: "Remove",
           }}
-          mediaId={logo?.id || ""}
-          onRemove={async () => {
-            await loadSettingsQuery.refetch();
+          functions={{
+            uploadFile: async (files: File[]) => {
+              const formData = new FormData();
+              files.forEach(file => formData.append("file", file));
+              
+              const result = await uploadLogo(formData);
+              if (!result.success) throw new Error(result.error);
+              return result.media || [];
+            },
+            removeFile: async (mediaId: string) => {
+              await loadSettingsQuery.refetch();
+            }
           }}
-          type="domain"
-          disabled={isDisabled}
         />
       </div>
     </div>

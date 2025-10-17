@@ -11,7 +11,7 @@ import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.types";
-import { DeleteConfirmNiceDialog, NiceModal, useDialogControl, useToast } from "@workspace/components-library";
+import { DeleteConfirmNiceDialog, NiceModal, useToast } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -24,7 +24,7 @@ import { Archive, Edit, Eye, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CohortCreateDialog } from "./_components/cohort-create-dialog";
+import { CohortCreateNiceDialog } from "@/components/course/cohort-create-nice-dialog";
 
 type ItemType = GeneralRouterOutputs["lmsModule"]["cohortModule"]["cohort"]["list"]["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.cohortModule.cohort.list.useQuery>[0];
@@ -32,7 +32,6 @@ type QueryParams = Parameters<typeof trpc.lmsModule.cohortModule.cohort.list.use
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
     const { toast } = useToast();
-    const createCohortDialogControl = useDialogControl();
     const trpcUtils = trpc.useUtils();
     const [parsedData, setParsedData] = useState<ItemType[]>([]);
     const [parsedPagination, setParsedPagination] = useState({ pageCount: 0 });
@@ -221,9 +220,13 @@ export default function Page() {
         });
     }, [loadListQuery.data]);
 
-    const handleCreateSuccess = useCallback(() => {
-        loadListQuery.refetch();
-        statsQuery.refetch();
+    const handleCreateCohort = useCallback(async () => {
+        const result = await NiceModal.show(CohortCreateNiceDialog, {});
+        
+        if (result.reason === "submit") {
+            loadListQuery.refetch();
+            statsQuery.refetch();
+        }
     }, [loadListQuery.refetch, statsQuery.refetch]);
 
     const searchCourses = useCallback(async (search: string, offset: number, size: number) => {
@@ -263,7 +266,7 @@ export default function Page() {
                     subtitle: t("lms.modules.cohorts.description"),
                 }}
                 rightAction={
-                    <CreateButton onClick={() => createCohortDialogControl.show()} text="Add Cohort" />
+                    <CreateButton onClick={handleCreateCohort} text="Add Cohort" />
                 }
             />
 
@@ -337,10 +340,6 @@ export default function Page() {
                     </div>
                 </CardContent>
             </Card>
-            <CohortCreateDialog
-                control={createCohortDialogControl}
-                onSuccess={handleCreateSuccess}
-            />
         </DashboardContent>
     );
 }

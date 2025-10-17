@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@workspace/ui/components/button";
+import { cn } from "@workspace/ui/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ReactNode, useCallback } from "react";
@@ -10,19 +11,24 @@ type HeaderProps = {
     title: string;
     subtitle?: string;
   };
-  backLink?: boolean;
+  backLink?: boolean | string;
   rightAction?: ReactNode;
+  className?: React.ComponentProps<"div">["className"];
 };
 
 const HeaderTopbar = (props: HeaderProps) => {
   const router = useRouter();
   const handleBack = useCallback(() => {
     if (props.backLink) {
-      router.back();
+      if (typeof props.backLink === "string") {
+        router.push(props.backLink);
+      } else {
+        router.back();
+      }
     }
   }, [props.backLink]);
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4", props.className)}>
       {props.backLink && (
         <Button variant="ghost" size="icon" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4" />

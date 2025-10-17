@@ -44,8 +44,6 @@ import {
 import { CourseLevelEnum, CourseStatusEnum, ICourseChapter } from "@workspace/common-logic/models/lms/course.types";
 
 // TODO: Add chapter reordering (like Frappe LMS update_chapter_index)
-// TODO: Add SCORM package support (like Frappe LMS upsert_chapter with is_scorm_package)
-// TODO: Add course deletion with cascade (like Frappe LMS delete_course)
 // TODO: Add course progress distribution analytics (like Frappe LMS get_course_progress_distribution)
 
 const addChapter = async ({
@@ -238,6 +236,57 @@ export const courseRouter = router({
       return jsonify(course);
     }),
 
+  getStats: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      z.object({
+        id: documentIdValidator(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const course = await CourseModel.findOne({
+        orgId: ctx.domainData.domainObj.orgId,
+        _id: input.id,
+      }).lean();
+
+      if (!course) {
+        throw new NotFoundException("Course", input.id);
+      }
+
+      // Get all lesson IDs from all chapters
+      const allLessonIds = course.chapters.flatMap(ch => ch.lessonOrderIds || []);
+
+      // Fetch all lessons for this course
+      const lessons = await LessonModel.find({
+        _id: { $in: allLessonIds },
+        orgId: ctx.domainData.domainObj.orgId,
+      }).lean();
+
+      // Calculate stats
+      const totalLessons = lessons.length;
+      const publishedLessons = lessons.filter(l => l.published).length;
+      const draftLessons = totalLessons - publishedLessons;
+      
+      // Calculate total duration if lessons have duration field
+      // Assuming duration is in minutes
+      const totalDuration = lessons.reduce((acc, lesson) => {
+        return acc + ((lesson as any).duration || 0);
+      }, 0);
+
+      // Completion rate: percentage of published lessons
+      const completionRate = totalLessons > 0 
+        ? Math.round((publishedLessons / totalLessons) * 100) 
+        : 0;
+
+      return jsonify({
+        totalLessons,
+        publishedLessons,
+        draftLessons,
+        totalDuration, // in minutes
+        completionRate, // percentage
+      });
+    }),
+
   create: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
@@ -342,8 +391,6 @@ export const courseRouter = router({
     }),
 
 
-
-
   addCourseChapter: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
@@ -417,6 +464,41 @@ export const courseRouter = router({
         ctx,
       });
       return jsonify(updatedCourse.toObject());
+    }),
+
+  reorderStructure: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
+    .input(
+      z.object({
+        courseId: documentIdValidator(),
+        chapters: z.array(z.object({
+          chapterId: z.string(),
+          order: z.number(),
+          lessonOrderIds: z.array(documentIdValidator()).optional(),
+        })),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const course = await getCourseOrThrow({ ctx, courseId: input.courseId });
+
+      // Update order and lesson order for each chapter
+      input.chapters.forEach(({ chapterId, order, lessonOrderIds }) => {
+        const chapter = course.chapters.find(ch => ch._id.toString() === chapterId);
+        if (chapter) {
+          chapter.order = order;
+          if (lessonOrderIds) {
+            chapter.lessonOrderIds = lessonOrderIds.map(id => new mongoose.Types.ObjectId(id));
+          }
+        }
+      });
+
+      await course.save();
+      
+      // Sync to ensure all lesson IDs are valid
+      await syncCourseLessons({ course, ctx });
+      
+      return jsonify(course.toObject());
     }),
 
   publicList: publicProcedure

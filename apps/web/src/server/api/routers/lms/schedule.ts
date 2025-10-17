@@ -135,9 +135,9 @@ export const scheduleRouter = router({
           .populate<{
             instructor: Pick<
               IUserHydratedDocument,
-              "username" | "firstName" | "lastName" | "fullName" | "email"
+              "_id" | "username" | "firstName" | "lastName" | "fullName" | "email"
             >;
-          }>("instructor", "username firstName lastName fullName email")
+          }>("instructor", "_id username firstName lastName fullName email")
           .populate<{
             cohort: Pick<ICohortHydratedDocument, "title" | "slug">;
           }>("cohort", "title slug")
@@ -168,9 +168,9 @@ export const scheduleRouter = router({
         .populate<{
           instructor: Pick<
             IUserHydratedDocument,
-            "username" | "firstName" | "lastName" | "fullName" | "email"
+            "_id" | "username" | "firstName" | "lastName" | "fullName" | "email"
           >;
-        }>("instructor", "username firstName lastName fullName email")
+        }>("instructor", "_id username firstName lastName fullName email")
         .populate<{
           cohort: Pick<ICohortHydratedDocument, "title" | "slug">;
         }>("cohort", "title slug")
@@ -399,9 +399,9 @@ export const scheduleRouter = router({
         .populate<{
           instructor: Pick<
             IUserHydratedDocument,
-            "username" | "firstName" | "lastName" | "fullName"
+            "_id" | "username" | "firstName" | "lastName" | "fullName"
           >;
-        }>("instructor", "username firstName lastName fullName")
+        }>("instructor", "_id username firstName lastName fullName")
         .populate<{
           cohort: Pick<ICohortHydratedDocument, "title">;
         }>("cohort", "title")
@@ -443,9 +443,9 @@ export const scheduleRouter = router({
         .populate<{
           instructor: Pick<
             IUserHydratedDocument,
-            "username" | "firstName" | "lastName" | "fullName"
+            "_id" | "username" | "firstName" | "lastName" | "fullName"
           >;
-        }>("instructor", "username firstName lastName fullName")
+        }>("instructor", "_id username firstName lastName fullName")
         .sort({ startDate: 1 })
         .lean();
 

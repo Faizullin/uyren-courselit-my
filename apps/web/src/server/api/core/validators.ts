@@ -34,6 +34,7 @@ export const toSlug = (s: string) =>
 
 export const mediaWrappedFieldValidator = (zod = z) => {
   return zod.object({
+    media: z.string(),
     orgId: documentIdValidator(),
     ownerId: documentIdValidator(),
     mediaId: z.string(),

@@ -1,39 +1,33 @@
-import { Metadata, ResolvingMetadata } from "next";
+"use client";
+
 import { trpc } from "@/utils/trpc";
-import { trpcCaller } from "@/server/api/_app";
+import { useParams } from "next/navigation";
+import { CourseProvider } from "./_components/course-context";
 
-export async function generateMetadata(
-  { params }: { params: Promise<{ id: string }> },
-  parent: ResolvingMetadata,
-): Promise<Metadata> {
-  const { id } = await params;
-
-  // Fetch course details for better metadata
-  try {
-    const course =
-      await trpcCaller.lmsModule.courseModule.course.getByCourseDetailed({
-        courseId: id,
-      });
-
-    if (course?.title) {
-      return {
-        title: `${course.title} | ${(await parent)?.title?.absolute}`,
-      };
-    }
-  } catch (error) {
-    console.error("Error fetching course for metadata:", error);
-  }
-
-  // Fallback to ID if course details unavailable
-  return {
-    title: `Product [#${id}] ${(await parent)?.title?.absolute}`,
-  };
-}
-
-export default function ProductLayout({
+export default function CourseLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  const params = useParams<{ id: string }>();
+  const courseId = params.id;
+
+  const loadCourseQuery = trpc.lmsModule.courseModule.course.getById.useQuery({
+    id: courseId,
+  }, {
+    enabled: !!courseId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  return (
+    <CourseProvider
+      value={{
+        course: loadCourseQuery.data || null,
+        isLoading: loadCourseQuery.isLoading,
+        refetch: () => loadCourseQuery.refetch(),
+      }}
+    >
+      {children}
+    </CourseProvider>
+  );
 }

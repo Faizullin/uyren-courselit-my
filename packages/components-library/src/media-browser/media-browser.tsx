@@ -3,13 +3,6 @@
 import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog";
 import { Progress } from "@workspace/ui/components/progress";
 import {
   Tabs,
@@ -21,6 +14,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, X } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { BaseDialog } from "../dialogs/base-dialog";
 import NiceModal, { NiceModalHocProps } from "../nice-modal";
 import MediaComponents from "./media-components";
 
@@ -474,29 +468,26 @@ const MediaBrowserComponent = (
   }, [config.allowUpload]);
 
   return (
-    <Dialog
+    <BaseDialog
       open={visible}
       onOpenChange={(v) => {
         if (!v) {
           handleClose();
         }
       }}
+      title={config.title}
+      description={config.description}
+      maxWidth="7xl"
+      maxHeight="h-[90vh] max-h-[90vh]"
     >
-      <DialogContent className="!max-w-[1000px] w-[1000px] h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl font-semibold">
-            {config.title}
-            {activeTab === "browse" && total > 0 && (
-              <Badge variant="outline" className="ml-2 align-middle">
-                {total} total
-              </Badge>
-            )}
-          </DialogTitle>
-          {config.description && (
-            <DialogDescription>{config.description}</DialogDescription>
-          )}
-        </DialogHeader>
-
+      <div className="overflow-hidden flex flex-col min-h-0">
+        {activeTab === "browse" && total > 0 && (
+          <div className="px-4 pb-2">
+            <Badge variant="outline">
+              {total} total items
+            </Badge>
+          </div>
+        )}
         <div className="flex-1 flex flex-col min-h-0">
           <Tabs
             value={activeTab}
@@ -555,8 +546,8 @@ const MediaBrowserComponent = (
             )}
           </Tabs>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </BaseDialog>
   );
 };
 

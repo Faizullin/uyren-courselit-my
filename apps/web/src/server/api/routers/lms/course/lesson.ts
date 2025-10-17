@@ -37,7 +37,6 @@ import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 import { getCourseOrThrow } from "./helpers";
 
-// TODO: Add lesson reordering within chapters (like Frappe LMS update_lesson_index)
 // TODO: Add video watch duration tracking (like Frappe LMS track_video_watch_duration)
 // TODO: Add lesson progress tracking with save_progress integration
 

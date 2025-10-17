@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@workspace/ui/components/textarea";
 import { slugify } from "@workspace/utils";
 import { format } from "date-fns";
-import { Save } from "lucide-react";
+import { Calendar, Save } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
@@ -56,6 +56,7 @@ export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
     const { toast } = useToast();
     const params = useParams<{ id: string }>();
+    const cohortId = params.id;
     const trpcUtils = trpc.useUtils();
     const { profile } = useProfile();
 
@@ -163,6 +164,14 @@ export default function Page() {
                     subtitle: "Manage cohort details and settings",
                 }}
                 backLink={true}
+                rightAction={
+                    <Link href={`/dashboard/lms/cohorts/${cohortId}/schedule`}>
+                        <Button variant="outline">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            View Schedule
+                        </Button>
+                    </Link>
+                }
             />
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>

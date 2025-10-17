@@ -2,6 +2,7 @@
 
 import { InsertMediaNiceDialog } from "@/components/media/insert-media-dialog";
 import { Editor } from "@tiptap/react";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 import { NiceModal } from "@workspace/components-library";
 import {
   ContentEditor,
@@ -31,7 +32,6 @@ import { useCallback, useState } from "react";
 import { AssignmentLinkNodeExtension } from "../../extensions/assignment-link/assignment-link-node-extension";
 
 import "./lesson-content-editor.scss";
-import { TextEditorContent } from "@workspace/common-models";
 
 export const LessonContentEditor = (props: ContentEditorProps) => {
   return (
@@ -51,9 +51,9 @@ export const LessonContentEditor = (props: ContentEditorProps) => {
 const EditorToolbar = ({ editor }: { editor: Editor }) => {
   return (
     <div className="sticky top-0 z-20 w-full border-b bg-background hidden sm:block">
-      <ToolbarProvider editor={editor as any}>
+      <ToolbarProvider editor={editor}>
         <TooltipProvider>
-          <ScrollArea className="h-fit py-0.5">
+          <ScrollArea className="h-fit py-0.5 w-full">
             <div>
               <div className="flex items-center gap-1 px-2">
                 {/* History Group */}
@@ -158,7 +158,7 @@ const InsertAssignmentToolbar = () => {
   );
 };
 
-type AssetType = TextEditorContent["assets"][number];
+type AssetType = ITextEditorContent["assets"][number];
 
 const CustomMediaInsertDropdown = () => {
   const { editor } = useToolbar();

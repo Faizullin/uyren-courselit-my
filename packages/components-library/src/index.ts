@@ -1,7 +1,6 @@
 import Checkbox from "./checkbox";
 import CircularProgress from "./circular-progress";
 import ComboBox2 from "./combo-box2";
-import Dialog2 from "./dialog2";
 import DragAndDrop from "./drag-and-drop";
 import IconButton from "./icon-button";
 import { MediaBrowserNiceDialog, MediaComponents } from "./media-browser";
@@ -15,7 +14,7 @@ export * from "./delete-confirm-nice-dialog";
 import getSymbolFromCurrency from "currency-symbol-map";
 
 export {
-  Checkbox, CircularProgress, ComboBox2, Dialog2, DragAndDrop, getSymbolFromCurrency, IconButton, MediaBrowserNiceDialog,
+  Checkbox, CircularProgress, ComboBox2, DragAndDrop, getSymbolFromCurrency, IconButton, MediaBrowserNiceDialog,
   MediaComponents, MediaSelector, Section, Table,
   TableBody,
   TableHead,

@@ -133,7 +133,7 @@ const CourseImportDialog = NiceModal.create<
           valueKey="key"
           value={selectedCourse || undefined}
           searchFn={fetchCourses}
-          renderText={(item) => item.title}
+          renderLabel={(item) => item.title}
           onChange={setSelectedCourse}
           multiple={false}
         />
@@ -238,7 +238,7 @@ const ReviewImportDialog = NiceModal.create<
           valueKey="key"
           value={selectedReview || undefined}
           searchFn={fetchReviews}
-          renderText={(review) => review.title}
+          renderLabel={(item) => item.title}
           onChange={setSelectedReview}
           multiple={false}
         />

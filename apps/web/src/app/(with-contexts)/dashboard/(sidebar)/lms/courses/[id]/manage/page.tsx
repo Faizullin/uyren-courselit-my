@@ -1,25 +1,18 @@
 "use client";
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
-import { trpc } from "@/utils/trpc";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { useParams } from "next/navigation";
 import ProductManageClient from "./_components/product-manage-client";
+import { useCourseContext } from "../_components/course-context";
 
-export default function ProductManagePage() {
-  const params = useParams();
-  const productId = params.id as string;
+export default function Page() {
+  const { course, isLoading } = useCourseContext();
 
-  const { data: product, isLoading: productLoading } =
-    trpc.lmsModule.courseModule.course.getByCourseDetailed.useQuery({
-      courseId: productId,
-    });
-
-  if (productLoading) {
+  if (isLoading) {
     return (
       <DashboardContent
         breadcrumbs={[
-          { label: "Products", href: "/dashboard/products" },
+          { label: "Courses", href: "/dashboard/lms/courses" },
           { label: "...", href: "#" },
           { label: "Manage", href: "#" },
         ]}
@@ -39,21 +32,21 @@ export default function ProductManagePage() {
     );
   }
 
-  if (!product) {
+  if (!course) {
     return (
       <DashboardContent
         breadcrumbs={[
-          { label: "Products", href: "/dashboard/products" },
-          { label: "Product", href: "#" },
+          { label: "Courses", href: "/dashboard/lms/courses" },
+          { label: "Course", href: "#" },
           { label: "Manage", href: "#" },
         ]}
       >
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Product not found</p>
+          <p className="text-muted-foreground">Course not found</p>
         </div>
       </DashboardContent>
     );
   }
 
-  return <ProductManageClient product={product} />;
+  return <ProductManageClient product={course} />;
 }

@@ -1,4 +1,4 @@
-import { IAttachmentMedia } from "@workspace/common-logic";
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 
 const PdfViewer = (props: { media: IAttachmentMedia }) => {
   return <div>PdfViewer</div>;

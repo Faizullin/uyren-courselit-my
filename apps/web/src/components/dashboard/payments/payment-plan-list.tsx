@@ -1,26 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Archive, X, Star } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
-import { Badge } from "@workspace/ui/components/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { IPaymentPlan, PaymentPlanTypeEnum } from "@workspace/common-logic/models/payment/payment-plan.types";
+import { DeleteConfirmNiceDialog, NiceModal } from "@workspace/components-library";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
   Select,
@@ -30,58 +15,26 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@workspace/ui/components/dialog";
-import {
-  PaymentPlanType,
-  Constants,
-  PaymentPlan,
-  PaymentMethod,
-} from "@workspace/common-models";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
 import { capitalize } from "@workspace/utils";
-const { PaymentPlanType: paymentPlanType } = Constants;
-
-// Mock data for demonstration
-// const mockPaymentPlans: PaymentPlan[] = [
-//     { planId: "1", name: "Basic Free", type: "free" },
-//     { planId: "2", name: "Premium", type: "one-time", oneTimeAmount: 99.99 },
-//     {
-//         planId: "3",
-//         name: "Pro Monthly",
-//         type: "subscription",
-//         subscriptionMonthlyAmount: 9.99,
-//     },
-//     {
-//         planId: "4",
-//         name: "Pro Yearly",
-//         type: "subscription",
-//         subscriptionMonthlyAmount: 9.99,
-//         subscriptionYearlyAmount: 99.99,
-//     },
-//     {
-//         planId: "5",
-//         name: "Flexible Pay",
-//         type: "emi",
-//         emiAmount: 20,
-//         emiTotalInstallments: 6,
-//     },
-// ];
+import { Archive, Plus, Star, X } from "lucide-react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import * as z from "zod";
 
 const formSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     type: z.enum([
-      paymentPlanType.FREE,
-      paymentPlanType.ONE_TIME,
-      paymentPlanType.SUBSCRIPTION,
-      paymentPlanType.EMI,
-    ] as const),
+      PaymentPlanTypeEnum.FREE,
+      PaymentPlanTypeEnum.ONE_TIME,
+      PaymentPlanTypeEnum.SUBSCRIPTION,
+      PaymentPlanTypeEnum.EMI,
+    ]),
     oneTimeAmount: z.number().min(0, "Amount cannot be negative").optional(),
     emiAmount: z.number().min(0, "Amount cannot be negative").optional(),
     emiTotalInstallments: z
@@ -100,7 +53,7 @@ const formSchema = z
   })
   .refine(
     (data) => {
-      if (data.type === paymentPlanType.SUBSCRIPTION) {
+      if (data.type === PaymentPlanTypeEnum.SUBSCRIPTION) {
         if (data.subscriptionType === "monthly") {
           return (
             data.subscriptionMonthlyAmount !== undefined &&
@@ -114,10 +67,10 @@ const formSchema = z
           );
         }
       }
-      if (data.type === paymentPlanType.ONE_TIME) {
+      if (data.type === PaymentPlanTypeEnum.ONE_TIME) {
         return data.oneTimeAmount !== undefined && data.oneTimeAmount > 0;
       }
-      if (data.type === paymentPlanType.EMI) {
+      if (data.type === PaymentPlanTypeEnum.EMI) {
         return (
           data.emiAmount !== undefined &&
           data.emiAmount > 0 &&
@@ -141,20 +94,20 @@ function formatAmount(
 }
 
 function getPlanAmount(
-  plan: PaymentPlan,
+  plan: IPaymentPlan,
   currencySymbol: string,
 ): string | { amount: string; installments: number } {
   switch (plan.type) {
-    case paymentPlanType.FREE:
-      return capitalize(paymentPlanType.FREE);
-    case paymentPlanType.ONE_TIME:
+    case PaymentPlanTypeEnum.FREE:
+      return capitalize(PaymentPlanTypeEnum.FREE);
+    case PaymentPlanTypeEnum.ONE_TIME:
       return formatAmount(plan.oneTimeAmount, currencySymbol);
-    case paymentPlanType.SUBSCRIPTION:
+    case PaymentPlanTypeEnum.SUBSCRIPTION:
       return formatAmount(
         plan.subscriptionMonthlyAmount || plan.subscriptionYearlyAmount,
         currencySymbol,
       );
-    case paymentPlanType.EMI:
+    case PaymentPlanTypeEnum.EMI:
       return {
         amount: formatAmount(plan.emiAmount, currencySymbol),
         installments: plan.emiTotalInstallments || 0,
@@ -164,32 +117,33 @@ function getPlanAmount(
   }
 }
 
-function getPlanTypeLabel(plan: PaymentPlan): string {
+function getPlanTypeLabel(plan: IPaymentPlan): string {
   const { type } = plan;
 
   switch (type) {
-    case paymentPlanType.ONE_TIME:
+    case PaymentPlanTypeEnum.ONE_TIME:
       return "One time";
-    case paymentPlanType.SUBSCRIPTION:
+    case PaymentPlanTypeEnum.SUBSCRIPTION:
       return plan.subscriptionYearlyAmount ? "Yearly" : "Monthly";
-    case paymentPlanType.EMI:
+    case PaymentPlanTypeEnum.EMI:
       return "EMI";
-    case paymentPlanType.FREE:
+    case PaymentPlanTypeEnum.FREE:
       return "Free";
     default:
       return type;
   }
 }
 
+type IPaymentPlanWithId = IPaymentPlan & { _id: string };
 export default function PaymentPlanList({
   paymentPlans = [],
   onPlanSubmit,
   onPlanArchived,
   allowedPlanTypes = [
-    paymentPlanType.FREE,
-    paymentPlanType.ONE_TIME,
-    paymentPlanType.SUBSCRIPTION,
-    paymentPlanType.EMI,
+    PaymentPlanTypeEnum.FREE,
+    PaymentPlanTypeEnum.ONE_TIME,
+    PaymentPlanTypeEnum.SUBSCRIPTION,
+    PaymentPlanTypeEnum.EMI,
   ],
   currencySymbol = "$",
   currencyISOCode = "USD",
@@ -197,22 +151,20 @@ export default function PaymentPlanList({
   defaultPaymentPlanId,
   paymentMethod,
 }: {
-  paymentPlans: PaymentPlan[];
+    paymentPlans: Array<IPaymentPlanWithId>;
   onPlanSubmit: (values: z.infer<typeof formSchema>) => void;
-  onPlanArchived: (planId: PaymentPlan["planId"]) => void;
-  allowedPlanTypes: PaymentPlanType[];
+  onPlanArchived: (plan: IPaymentPlanWithId) => void;
+  allowedPlanTypes: PaymentPlanTypeEnum[];
   currencySymbol?: string;
   currencyISOCode?: string;
-  onDefaultPlanChanged?: (planId: string) => void;
+  onDefaultPlanChanged?: (plan: IPaymentPlanWithId) => void;
   defaultPaymentPlanId?: string;
-  paymentMethod?: PaymentMethod;
+  paymentMethod?: PaymentMethodData;
 }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [planType, setPlanType] = useState<PaymentPlanType>(
-    paymentPlanType.FREE,
+  const [planType, setPlanType] = useState<PaymentPlanTypeEnum>(
+    PaymentPlanTypeEnum.FREE,
   );
-  const [planToArchive, setPlanToArchive] = useState<PaymentPlan | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [subscriptionType, setSubscriptionType] = useState<
     "monthly" | "yearly"
   >("monthly");
@@ -221,7 +173,7 @@ export default function PaymentPlanList({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      type: paymentPlanType.FREE,
+      type: PaymentPlanTypeEnum.FREE,
       oneTimeAmount: 0,
       emiAmount: 0,
       emiTotalInstallments: 0,
@@ -236,16 +188,21 @@ export default function PaymentPlanList({
     handleFormVisibility(false);
   }
 
-  function handleArchive(plan: PaymentPlan) {
-    onPlanArchived(plan.planId);
-    setPlanToArchive(null);
-    setIsDialogOpen(false);
+  async function handleArchive(plan: IPaymentPlanWithId) {
+    const result = await NiceModal.show(DeleteConfirmNiceDialog, {
+      title: "Archive Payment Plan",
+      message: `Are you sure you want to archive "${plan.name}"? This action cannot be undone.`,
+    });
+
+    if (result.reason === "confirm") {
+      onPlanArchived(plan);
+    }
   }
 
   function handleFormVisibility(visible: boolean) {
     setIsFormVisible(visible);
     if (!visible) {
-      setPlanType(paymentPlanType.FREE);
+      setPlanType(PaymentPlanTypeEnum.FREE);
       setSubscriptionType("monthly");
       form.reset();
     }
@@ -254,9 +211,9 @@ export default function PaymentPlanList({
   return (
     <div className="w-full max-w-md mx-auto p-2 space-y-2">
       <div className="space-y-2">
-        {paymentPlans.map((plan) => (
+        {paymentPlans.map((plan, index) => (
           <div
-            key={plan.planId}
+            key={index}
             className="p-2 border rounded-md bg-background hover:border-primary/50 transition-colors"
           >
             <div className="flex justify-between items-center mb-1">
@@ -269,13 +226,13 @@ export default function PaymentPlanList({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => onDefaultPlanChanged?.(plan.planId)}
-                        disabled={defaultPaymentPlanId === plan.planId}
+                        onClick={() => onDefaultPlanChanged?.(plan)}
+                        disabled={defaultPaymentPlanId === plan._id}
                       >
                         <Star
                           className={`h-3 w-3`}
                           color={
-                            defaultPaymentPlanId === plan.planId
+                            defaultPaymentPlanId === plan._id
                               ? "black"
                               : "#d3d3d3"
                           }
@@ -287,62 +244,23 @@ export default function PaymentPlanList({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => {
-                              setPlanToArchive(plan);
-                              setIsDialogOpen(true);
-                            }}
-                          >
-                            <Archive className="h-3 w-3" />
-                          </Button>
-                        </DialogTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Archive plan</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>
-                        Are you sure you want to archive this plan?
-                      </DialogTitle>
-                      <DialogDescription>
-                        This action cannot be undone. This will permanently
-                        archive the payment plan &quot;
-                        {planToArchive?.name}
-                        &quot;.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button
-                        variant="outline"
-                        onClick={() => {
-                          setPlanToArchive(null);
-                          setIsDialogOpen(false);
-                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleArchive(plan)}
                       >
-                        Cancel
+                        <Archive className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() =>
-                          planToArchive && handleArchive(planToArchive)
-                        }
-                      >
-                        Archive
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Archive plan</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -406,71 +324,74 @@ export default function PaymentPlanList({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
+              <FieldGroup>
+                <Controller
                   control={form.control}
                   name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Plan Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter plan name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Plan Name</FieldLabel>
+                      <Input 
+                        placeholder="Enter plan name" 
+                        {...field} 
+                        aria-invalid={fieldState.invalid}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
                 />
-                <FormField
+                <Controller
                   control={form.control}
                   name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Plan Type</FormLabel>
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>Plan Type</FieldLabel>
                       <Select
-                        onValueChange={(value: PaymentPlanType) => {
+                        name={field.name}
+                        value={field.value}
+                        onValueChange={(value: PaymentPlanTypeEnum) => {
                           field.onChange(value);
                           setPlanType(value);
                         }}
-                        defaultValue={field.value}
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a plan type" />
-                          </SelectTrigger>
-                        </FormControl>
+                        <SelectTrigger aria-invalid={fieldState.invalid}>
+                          <SelectValue placeholder="Select a plan type" />
+                        </SelectTrigger>
                         <SelectContent>
-                          {allowedPlanTypes.includes(paymentPlanType.FREE) && (
-                            <SelectItem value={paymentPlanType.FREE}>
+                          {allowedPlanTypes.includes(PaymentPlanTypeEnum.FREE) && (
+                            <SelectItem value={PaymentPlanTypeEnum.FREE}>
                               Free
                             </SelectItem>
                           )}
-                          {allowedPlanTypes.includes(paymentPlanType.EMI) && (
+                          {allowedPlanTypes.includes(PaymentPlanTypeEnum.EMI) && (
                             <SelectItem
-                              value={paymentPlanType.EMI}
+                              value={PaymentPlanTypeEnum.EMI}
                               disabled={!paymentMethod}
                             >
                               EMI
                             </SelectItem>
                           )}
                           {allowedPlanTypes.includes(
-                            paymentPlanType.SUBSCRIPTION,
+                              PaymentPlanTypeEnum.SUBSCRIPTION,
                           ) && (
                             <SelectItem
-                              value={paymentPlanType.SUBSCRIPTION}
+                              value={PaymentPlanTypeEnum.SUBSCRIPTION}
                               disabled={!paymentMethod}
                             >
                               Subscription
                             </SelectItem>
                           )}
                           {allowedPlanTypes.includes(
-                            paymentPlanType.ONE_TIME,
+                            PaymentPlanTypeEnum.ONE_TIME,
                           ) && (
                             <SelectItem
-                              value={paymentPlanType.ONE_TIME}
+                              value={PaymentPlanTypeEnum.ONE_TIME}
                               disabled={!paymentMethod}
                             >
                               One-time
@@ -478,226 +399,233 @@ export default function PaymentPlanList({
                           )}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
                   )}
                 />
-                {planType === paymentPlanType.ONE_TIME && (
-                  <FormField
+                {planType === PaymentPlanTypeEnum.ONE_TIME && (
+                  <Controller
                     control={form.control}
                     name="oneTimeAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>One-time Amount (Required)</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center border rounded-md">
-                            <span className="text-muted-foreground text-sm pl-2">
-                              {currencySymbol}
-                            </span>
-                            <Input
-                              type="number"
-                              className="border-0 focus-visible:ring-0 focus:outline-none"
-                              placeholder="Enter amount"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(parseFloat(e.target.value))
-                              }
-                            />
-                            <span className="text-muted-foreground text-sm pr-2">
-                              {currencyISOCode}
-                            </span>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                {planType === paymentPlanType.EMI && (
-                  <FormField
-                    control={form.control}
-                    name={"emiDetails" as any}
-                    render={() => (
-                      <FormItem>
-                        <FormLabel>
-                          Monthly payments (All fields required)
-                        </FormLabel>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <FormField
-                              control={form.control}
-                              name="emiTotalInstallments"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <div className="flex items-center border rounded-md">
-                                      <Input
-                                        type="number"
-                                        className="border-0 focus-visible:ring-0 focus:outline-none"
-                                        {...field}
-                                        onChange={(e) =>
-                                          field.onChange(
-                                            parseInt(e.target.value),
-                                          )
-                                        }
-                                        placeholder="Enter number"
-                                      />
-                                      <span className="text-muted-foreground text-sm pr-2">
-                                        payments
-                                      </span>
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <span className="text-muted-foreground">×</span>
-                          <div className="flex-1">
-                            <FormField
-                              control={form.control}
-                              name="emiAmount"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <div className="flex items-center border rounded-md">
-                                      <span className="text-muted-foreground text-sm pl-2">
-                                        {currencySymbol}
-                                      </span>
-                                      <Input
-                                        type="number"
-                                        className="border-0 focus-visible:ring-0 focus:outline-none"
-                                        {...field}
-                                        onChange={(e) =>
-                                          field.onChange(
-                                            parseFloat(e.target.value),
-                                          )
-                                        }
-                                        placeholder="Enter amount"
-                                      />
-                                      <span className="text-muted-foreground text-sm pr-2">
-                                        {currencyISOCode}
-                                      </span>
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-center mt-2">
-                          <span className="text-muted-foreground text-sm mr-1">
-                            Total:
-                          </span>
-                          <span className="font-medium">
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>One-time Amount (Required)</FieldLabel>
+                        <div className="flex items-center border rounded-md">
+                          <span className="text-muted-foreground text-sm pl-2">
                             {currencySymbol}
-                            {(form.watch("emiAmount") || 0) *
-                              (form.watch("emiTotalInstallments") || 0)}
+                          </span>
+                          <Input
+                            type="number"
+                            className="border-0 focus-visible:ring-0 focus:outline-none"
+                            placeholder="Enter amount"
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value))
+                            }
+                            aria-invalid={fieldState.invalid}
+                          />
+                          <span className="text-muted-foreground text-sm pr-2">
+                            {currencyISOCode}
                           </span>
                         </div>
-                      </FormItem>
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
                     )}
                   />
                 )}
-                {planType === paymentPlanType.SUBSCRIPTION && (
+                {planType === PaymentPlanTypeEnum.EMI && (
+                  <Field>
+                    <FieldLabel>
+                      Monthly payments (All fields required)
+                    </FieldLabel>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <Controller
+                          control={form.control}
+                          name="emiTotalInstallments"
+                          render={({ field, fieldState }) => (
+                            <div>
+                              <div className="flex items-center border rounded-md">
+                                <Input
+                                  type="number"
+                                  className="border-0 focus-visible:ring-0 focus:outline-none"
+                                  {...field}
+                                  value={field.value || ""}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      parseInt(e.target.value),
+                                    )
+                                  }
+                                  placeholder="Enter number"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                <span className="text-muted-foreground text-sm pr-2">
+                                  payments
+                                </span>
+                              </div>
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </div>
+                          )}
+                        />
+                      </div>
+                      <span className="text-muted-foreground">×</span>
+                      <div className="flex-1">
+                        <Controller
+                          control={form.control}
+                          name="emiAmount"
+                          render={({ field, fieldState }) => (
+                            <div>
+                              <div className="flex items-center border rounded-md">
+                                <span className="text-muted-foreground text-sm pl-2">
+                                  {currencySymbol}
+                                </span>
+                                <Input
+                                  type="number"
+                                  className="border-0 focus-visible:ring-0 focus:outline-none"
+                                  {...field}
+                                  value={field.value || ""}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      parseFloat(e.target.value),
+                                    )
+                                  }
+                                  placeholder="Enter amount"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                <span className="text-muted-foreground text-sm pr-2">
+                                  {currencyISOCode}
+                                </span>
+                              </div>
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </div>
+                          )}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center mt-2">
+                      <span className="text-muted-foreground text-sm mr-1">
+                        Total:
+                      </span>
+                      <span className="font-medium">
+                        {currencySymbol}
+                        {(form.watch("emiAmount") || 0) *
+                          (form.watch("emiTotalInstallments") || 0)}
+                      </span>
+                    </div>
+                  </Field>
+                )}
+                  {planType === PaymentPlanTypeEnum.SUBSCRIPTION && (
                   <>
-                    <FormField
+                    <Controller
                       control={form.control}
                       name="subscriptionType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subscription Type</FormLabel>
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel>Subscription Type</FieldLabel>
                           <Select
+                            name={field.name}
+                            value={field.value}
                             onValueChange={(value: "monthly" | "yearly") => {
                               field.onChange(value);
                               setSubscriptionType(value);
                             }}
-                            defaultValue={field.value}
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select subscription type" />
-                              </SelectTrigger>
-                            </FormControl>
+                            <SelectTrigger aria-invalid={fieldState.invalid}>
+                              <SelectValue placeholder="Select subscription type" />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="monthly">Monthly</SelectItem>
                               <SelectItem value="yearly">Yearly</SelectItem>
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </FormItem>
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
                       )}
                     />
                     {subscriptionType && (
                       <>
                         {subscriptionType === "monthly" && (
-                          <FormField
+                          <Controller
                             control={form.control}
                             name="subscriptionMonthlyAmount"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel>
                                   Monthly Subscription Amount
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="flex items-center border rounded-md">
-                                    <span className="text-muted-foreground text-sm pl-2">
-                                      {currencySymbol}
-                                    </span>
-                                    <Input
-                                      type="number"
-                                      className="border-0 focus-visible:ring-0 focus:outline-none"
-                                      placeholder="Enter monthly amount"
-                                      {...field}
-                                      onChange={(e) =>
-                                        field.onChange(
-                                          parseFloat(e.target.value),
-                                        )
-                                      }
-                                    />
-                                    <span className="text-muted-foreground text-sm pr-2">
-                                      {currencyISOCode}
-                                    </span>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                                </FieldLabel>
+                                <div className="flex items-center border rounded-md">
+                                  <span className="text-muted-foreground text-sm pl-2">
+                                    {currencySymbol}
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    className="border-0 focus-visible:ring-0 focus:outline-none"
+                                    placeholder="Enter monthly amount"
+                                    {...field}
+                                    value={field.value || ""}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        parseFloat(e.target.value),
+                                      )
+                                    }
+                                    aria-invalid={fieldState.invalid}
+                                  />
+                                  <span className="text-muted-foreground text-sm pr-2">
+                                    {currencyISOCode}
+                                  </span>
+                                </div>
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
                             )}
                           />
                         )}
                         {subscriptionType === "yearly" && (
-                          <FormField
+                          <Controller
                             control={form.control}
                             name="subscriptionYearlyAmount"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel>
                                   Yearly Subscription Amount
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="flex items-center border rounded-md">
-                                    <span className="text-muted-foreground text-sm pl-2">
-                                      {currencySymbol}
-                                    </span>
-                                    <Input
-                                      type="number"
-                                      className="border-0 focus-visible:ring-0 focus:outline-none"
-                                      placeholder="Enter yearly amount"
-                                      {...field}
-                                      onChange={(e) =>
-                                        field.onChange(
-                                          parseFloat(e.target.value),
-                                        )
-                                      }
-                                    />
-                                    <span className="text-muted-foreground text-sm pr-2">
-                                      {currencyISOCode}
-                                    </span>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                                </FieldLabel>
+                                <div className="flex items-center border rounded-md">
+                                  <span className="text-muted-foreground text-sm pl-2">
+                                    {currencySymbol}
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    className="border-0 focus-visible:ring-0 focus:outline-none"
+                                    placeholder="Enter yearly amount"
+                                    {...field}
+                                    value={field.value || ""}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        parseFloat(e.target.value),
+                                      )
+                                    }
+                                    aria-invalid={fieldState.invalid}
+                                  />
+                                  <span className="text-muted-foreground text-sm pr-2">
+                                    {currencyISOCode}
+                                  </span>
+                                </div>
+                                {fieldState.invalid && (
+                                  <FieldError errors={[fieldState.error]} />
+                                )}
+                              </Field>
                             )}
                           />
                         )}
@@ -705,9 +633,9 @@ export default function PaymentPlanList({
                     )}
                   </>
                 )}
-                <Button type="submit">Create Payment Plan</Button>
-              </form>
-            </Form>
+              </FieldGroup>
+              <Button type="submit">Create Payment Plan</Button>
+            </form>
           </div>
         )}
       </div>

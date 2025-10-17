@@ -7,6 +7,7 @@ import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import { DomainModel } from "@workspace/common-logic/models/organization.model";
 import { UserModel } from "@workspace/common-logic/models/user.model";
+import { generateUniqueId } from "@workspace/utils";
 import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
 
@@ -118,11 +119,11 @@ export async function removeAvatar(): Promise<UploadAvatarResult> {
         }
 
         // Optional: Delete old avatar from Cloudinary if it exists
-        if (user.avatar?.metadata?.public_id) {
+        if (user.avatar) {
             try {
-                await CloudinaryService.deleteFile(user.avatar.metadata.public_id);
+                await CloudinaryService.deleteFile(user.avatar);
             } catch (error) {
-                console.error("Failed to delete old avatar from Cloudinary:", error);
+                throw new Error("Failed to delete old avatar from Cloudinary: " + (error as Error).message);
             }
         }
 
@@ -173,6 +174,7 @@ export async function setGoogleAvatar(photoURL: string): Promise<UploadAvatarRes
         }
 
         const googleAvatar: IAttachmentMedia = {
+            mediaId: generateUniqueId(),
             orgId: domainData.orgId,
             ownerId: userId,
             storageProvider: "custom",

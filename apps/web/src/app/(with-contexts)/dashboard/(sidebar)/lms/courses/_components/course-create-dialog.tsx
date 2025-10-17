@@ -110,7 +110,6 @@ export function CourseCreateDialog(props: {
                 }
             }}
             title={t("products.create_new_course")}
-            description={t("products.create_new_course_description")}
             onSubmit={form.handleSubmit(handleSubmit)}
             onCancel={props.control.hide}
             isLoading={isSaving || isSubmitting}

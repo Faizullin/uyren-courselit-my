@@ -31,7 +31,6 @@ export const tagRouter = router({
       }
 
       const paginationMeta = paginate(input.pagination);
-      console.log(paginationMeta);
       const orderBy = input.orderBy || {
         field: "createdAt",
         direction: "desc",

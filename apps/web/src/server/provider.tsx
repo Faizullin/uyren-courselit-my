@@ -7,7 +7,14 @@ import { useState } from "react";
 import superjson from "superjson";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 5 * 1000 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 1000 * 60, // 5 minutes
+      refetchOnWindowFocus: false,
+      // refetchOnMount: false,
+      // refetchOnReconnect: false,
+    },
+  },
 });
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {

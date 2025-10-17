@@ -21,6 +21,8 @@ import {
 import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.types";
 import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
 import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
+import { ScheduleEventModel } from "@workspace/common-logic/models/lms/schedule.model";
+import { ScheduleStatusEnum } from "@workspace/common-logic/models/lms/schedule.types";
 import { IUserHydratedDocument, UserModel } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
@@ -203,6 +205,21 @@ export const cohortRouter = router({
 
             if (input.data.instructorId && !isAdmin) {
                 throw new AuthorizationException("You are not authorized to create a cohort with a custom instructor");
+            }
+
+            // Check cohort limits for non-admin users
+            if (!isAdmin) {
+                const userCohortCount = await CohortModel.countDocuments({
+                    ownerId: ctx.user._id,
+                    orgId: ctx.domainData.domainObj.orgId,
+                });
+
+                const maxCohortsPerUser = 10; // Configurable limit for non-admin users
+                if (userCohortCount >= maxCohortsPerUser) {
+                    throw new AuthorizationException(
+                        `You have reached the maximum limit of ${maxCohortsPerUser} cohorts. Contact an administrator to create more cohorts.`
+                    );
+                }
             }
 
             const cohort = await CohortModel.create({
@@ -553,6 +570,57 @@ export const cohortRouter = router({
                 totalStudents: enrollmentStats[0]?.totalStudents || 0,
                 totalCapacity: totalCapacityResult[0]?.totalCapacity || 0,
             });
+        }),
+
+    getSchedule: protectedProcedure
+        .use(createDomainRequiredMiddleware())
+        .input(
+            z.object({
+                cohortId: documentIdValidator(),
+                startDate: z.string().datetime(),
+                endDate: z.string().datetime(),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const cohort = await CohortModel.findOne({
+                _id: input.cohortId,
+                orgId: ctx.domainData.domainObj.orgId,
+            });
+
+            if (!cohort) {
+                throw new NotFoundException("Cohort", input.cohortId);
+            }
+
+            // Fetch schedule events for the cohort within the date range
+            const events = await ScheduleEventModel.find({
+                cohortId: input.cohortId,
+                $or: [
+                    {
+                        startDate: {
+                            $gte: new Date(input.startDate),
+                            $lte: new Date(input.endDate),
+                        },
+                    },
+                    {
+                        endDate: {
+                            $gte: new Date(input.startDate),
+                            $lte: new Date(input.endDate),
+                        },
+                    },
+                ],
+                status: ScheduleStatusEnum.ACTIVE,
+                orgId: ctx.domainData.domainObj.orgId,
+            })
+                .populate<{
+                    instructor: Pick<
+                        IUserHydratedDocument,
+                        "_id" | "username" | "firstName" | "lastName" | "fullName"
+                    >;
+                }>("instructor", "username firstName lastName fullName")
+                .sort({ startDate: 1 })
+                .lean();
+
+            return jsonify(events);
         }),
 });
 

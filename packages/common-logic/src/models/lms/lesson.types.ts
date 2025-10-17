@@ -2,10 +2,6 @@ import mongoose from "mongoose";
 import { ITextEditorContent } from "../../lib/text-editor-content";
 import { IAttachmentMedia } from "../media.types";
 
-export interface IEmbedUrlContent {
-    type: "embed";
-    value: string;
-}
 
 export enum LessonTypeEnum {
     TEXT = "text",
@@ -22,7 +18,7 @@ export interface ILesson {
     title: string;
     slug: string;
     type: LessonTypeEnum;
-    content: ITextEditorContent | IEmbedUrlContent;
+    content: ITextEditorContent;
     media?: IAttachmentMedia;
     downloadable: boolean;
     ownerId: mongoose.Types.ObjectId;

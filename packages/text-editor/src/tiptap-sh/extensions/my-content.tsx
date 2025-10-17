@@ -1,7 +1,7 @@
 "use client";
 
-import { Extension } from "@tiptap/core";
-import { ITextEditorContent } from "@workspace/common-logic";
+import { Editor, Extension } from "@tiptap/core";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -24,7 +24,7 @@ declare module "@tiptap/core" {
 
 const extensionName = "myContent";
 
-export const MyContentExtension = Extension.create<{}, any>({
+export const MyContentExtension = Extension.create<{}, {}>({
   name: extensionName,
 
   addStorage() {
@@ -38,10 +38,10 @@ export const MyContentExtension = Extension.create<{}, any>({
   },
 
   addCommands() {
-    const getAllAssetsFromEditor = (editor: any): ITextEditorContent["assets"] => {
+    const getAllAssetsFromEditor = (editor: Editor): ITextEditorContent["assets"] => {
       const assets: ITextEditorContent["assets"] = [];
       
-      editor.state.doc.descendants((node: any) => {
+      editor.state.doc.descendants((node) => {
         if (node.type.name === "media-view" && node.attrs.asset) {
           assets.push(node.attrs.asset);
         }
@@ -69,7 +69,7 @@ export const MyContentExtension = Extension.create<{}, any>({
 
       getMyContent:
         () =>
-          ({ editor }: { editor: any }) => {
+          ({ editor }: { editor: Editor }) => {
             const storage = editor.storage.myContent || {};
             const assets = getAllAssetsFromEditor(editor);
             

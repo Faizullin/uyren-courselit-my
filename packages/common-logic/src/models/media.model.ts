@@ -3,6 +3,7 @@ import { orgaizationIdField } from "../lib/organization";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "./media.types";
 
 export const AttachmentMediaSchema = new mongoose.Schema<IAttachmentMedia>({
+  mediaId: { type: String, required: true },
   orgId: orgaizationIdField(),
   originalFileName: { type: String, required: true },
   mimeType: { type: String, required: true },
@@ -22,6 +23,7 @@ export const AttachmentMediaSchema = new mongoose.Schema<IAttachmentMedia>({
     ref: "User",
     required: true
   },
+  metadata: { type: Object, required: false },
 }, {
   _id: false,
   timestamps: true,

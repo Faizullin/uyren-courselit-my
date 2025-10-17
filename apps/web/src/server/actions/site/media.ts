@@ -96,19 +96,15 @@ export async function uploadLogo(
 /**
  * Remove media file
  */
-export async function removeMedia(mediaId: string): Promise<RemoveMediaResult> {
+export async function removeMedia(media: IAttachmentMedia): Promise<RemoveMediaResult> {
   try {
     await getActionContext(); // Validate auth & domain
 
     // Delete from Cloudinary
     try {
-      await CloudinaryService.deleteFile(mediaId);
+      await CloudinaryService.deleteFile(media);
     } catch (error) {
-      console.error("Failed to delete from Cloudinary:", error);
-      return {
-        success: false,
-        error: "Failed to delete media file",
-      };
+      throw new Error("Failed to delete from Cloudinary: " + (error as Error).message);
     }
 
     return {

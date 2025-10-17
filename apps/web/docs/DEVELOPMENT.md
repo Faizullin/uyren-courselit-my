@@ -338,3 +338,43 @@ export const modelRouter = router({
 9. **Response Format** - Always use `jsonify()`
 10. **Field Naming** - Use `...Id`/`...Ids` convention consistently
 
+## 📱 **Frontend tRPC Usage Patterns**
+
+### **Query Naming Convention**
+```typescript
+// ✅ Use load...Query naming pattern
+const loadCourseQuery = trpc.lmsModule.courseModule.course.getById.useQuery({
+  id: courseId,
+});
+
+// Access data and state
+if (loadCourseQuery.isLoading) { /* ... */ }
+if (!loadCourseQuery.data) { /* ... */ }
+const course = loadCourseQuery.data;
+
+// ❌ Don't destructure immediately
+const { data: course, isLoading } = trpc...useQuery(); // Avoid this
+```
+
+### **Mutation Naming Convention**
+```typescript
+// ✅ Use ...Mutation naming pattern with full path
+const updateCourseMutation = trpc.lmsModule.courseModule.course.update.useMutation({
+  onSuccess: () => {
+    toast({ title: "Success" });
+  },
+  onError: (error) => {
+    toast({ title: "Error", description: error.message });
+  },
+});
+
+// ❌ Don't unwrap/alias tRPC paths for queries and mutations
+const courseApi = trpc.lmsModule.courseModule.course;  // Avoid this
+```
+
+### **Why Keep Full Paths?**
+1. **Type Safety** - Full autocomplete and type inference
+2. **Clarity** - Easy to see where the API comes from
+3. **Maintainability** - Easier to search and refactor
+4. **Consistency** - Same pattern across all files
+

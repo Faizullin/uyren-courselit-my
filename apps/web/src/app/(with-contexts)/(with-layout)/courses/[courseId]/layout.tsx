@@ -1,6 +1,5 @@
 import Footer from "@/components/layout/footer";
 import Header from "@/components/layout/header";
-import { ThemeAsset } from "@/models/lms/Theme";
 import { trpcCaller } from "@/server/api/_app";
 import { NotFoundException } from "@/server/api/core/exceptions";
 import { Metadata } from "next";
@@ -11,7 +10,7 @@ import CourseLayoutContent from "./_components/course-layout-content";
 import { CourseProvider } from "./_components/course-provider";
 
 const getCachedCourseData = cache(async (courseId: string) => {
-  return await trpcCaller.lmsModule.courseModule.course.publicGetByCourseId({
+  return await trpcCaller.lmsModule.courseModule.course.publicGetById({
     courseId,
   });
 });

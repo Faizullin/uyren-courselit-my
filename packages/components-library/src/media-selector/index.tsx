@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
@@ -18,9 +19,8 @@ import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast as sonnerToast } from "sonner";
 import { z } from "zod";
-import Dialog2 from "../dialog2";
 import { useToast } from "../hooks/use-toast";
-import Access from "./access";
+import { BaseDialog } from "../dialogs/base-dialog";
 
 interface Strings {
   buttonCaption?: string;
@@ -53,21 +53,19 @@ interface Strings {
 
 interface MediaSelectorFunctions {
   uploadFile: (files: File[], type: string) => Promise<any[]>;
+  removeFile?: (mediaId: string) => Promise<void>;
 }
 
 interface MediaSelectorProps {
-  title: string;
-  src: string;
-  srcTitle: string;
+  title?: string;
+  media?: IAttachmentMedia | null;
   onSelection: (media: any) => void;
   onRemove?: () => void;
   functions: MediaSelectorFunctions;
   strings: Strings;
-  mediaId?: string;
   type: "course" | "lesson" | "page" | "user" | "domain" | "community";
   hidePreview?: boolean;
   disabled?: boolean;
-  access?: Access;
   mimeTypesToShow?: string[];
 }
 
@@ -77,20 +75,24 @@ const mediaSelectorSchema = z.object({
 });
 type MediaSelectorFormData = z.infer<typeof mediaSelectorSchema>;
 
+
+const defaultSrc = "/courselit_backdrop.webp";
+const defaultSrcTitle = "Courselit Backdrop";
 const MediaSelector = (props: MediaSelectorProps) => {
   const [dialogOpened, setDialogOpened] = useState(false);
   const fileInput = React.createRef<HTMLInputElement>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const {
     strings,
-    src,
-    srcTitle,
+    media,
     functions,
     disabled = false,
-    access = "public",
   } = props;
+
+  const src = media?.thumbnail;
+  const srcTitle = media?.originalFileName;
+  const mediaId = media?.mediaId;
   const form = useForm<MediaSelectorFormData>({
     resolver: zodResolver(mediaSelectorSchema),
     defaultValues: {
@@ -138,23 +140,10 @@ const MediaSelector = (props: MediaSelectorProps) => {
 
   const removeMutation = useMutation({
     mutationFn: async (mediaId: string) => {
-      const response = await fetch(
-        `/api/services/media/${mediaId}?storageType=cloudinary`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Delete failed");
+      if (functions.removeFile) {
+        return await functions.removeFile(mediaId);
       }
-
-      return result;
+      throw new Error("Remove function not provided");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["media"] });
@@ -170,8 +159,8 @@ const MediaSelector = (props: MediaSelectorProps) => {
   });
 
   const removeFile = () => {
-    if (props.mediaId) {
-      removeMutation.mutate(props.mediaId);
+    if (mediaId) {
+      removeMutation.mutate(mediaId);
     }
   };
 
@@ -181,10 +170,10 @@ const MediaSelector = (props: MediaSelectorProps) => {
         {!props.hidePreview && (
           <div className="flex flex-col gap-2 items-center">
             <Image
-              src={src}
+              src={src || defaultSrc}
               width={80}
               height={80}
-              alt={srcTitle}
+              alt={srcTitle || defaultSrcTitle}
               className="rounded-md"
             />
             <Tooltip>
@@ -197,7 +186,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
             </Tooltip>
           </div>
         )}
-        {props.mediaId && (
+        {mediaId && (
           <Button
             onClick={removeFile}
             disabled={removeMutation.isPending || disabled}
@@ -210,27 +199,40 @@ const MediaSelector = (props: MediaSelectorProps) => {
               : strings.removeButtonCaption || "Remove"}
           </Button>
         )}
-        {!props.mediaId && (
+        {!mediaId && (
           <div>
-            <Dialog2
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              disabled={disabled}
+              onClick={() => setDialogOpened(true)}
+            >
+              {strings.buttonCaption || "Select media"}
+            </Button>
+            <BaseDialog
               title={strings.dialogTitle || "Select media"}
-              trigger={
-                <Button size="sm" variant="secondary" disabled={disabled}>
-                  {strings.buttonCaption || "Select media"}
-                </Button>
-              }
               open={dialogOpened}
               onOpenChange={setDialogOpened}
-              okButton={
-                <Button
-                  type="submit"
-                  form="media-upload-form"
-                  disabled={uploadMutation.isPending || !selectedFile}
-                >
-                  {uploadMutation.isPending
-                    ? strings.uploading || "Uploading..."
-                    : strings.uploadButtonText || "Upload"}
-                </Button>
+              maxWidth="2xl"
+              footer={
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpened(false)}
+                  >
+                    {strings.cancelCaption || "Cancel"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="media-upload-form"
+                    disabled={uploadMutation.isPending || !selectedFile}
+                  >
+                    {uploadMutation.isPending
+                      ? strings.uploading || "Uploading..."
+                      : strings.uploadButtonText || "Upload"}
+                  </Button>
+                </>
               }
             >
               <form
@@ -315,7 +317,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
                   />
                 </FieldGroup>
               </form>
-            </Dialog2>
+            </BaseDialog>
           </div>
         )}
       </div>

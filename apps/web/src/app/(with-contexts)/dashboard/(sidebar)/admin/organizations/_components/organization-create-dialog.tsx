@@ -94,7 +94,6 @@ export function OrganizationCreateDialog({
         }
       }}
       title="Create New Organization"
-      description="Add a new organization to the system"
       onSubmit={form.handleSubmit(handleSubmit)}
       onCancel={control.hide}
       isLoading={

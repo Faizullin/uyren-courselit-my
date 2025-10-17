@@ -43,7 +43,6 @@ export function TagCreateEditDialog({ control, onSuccess }: TagCreateEditDialogP
         { id: control.data! },
         {
             enabled: mode === "edit" && !!control.data && control.isVisible,
-            refetchOnWindowFocus: false,
         }
     );
 

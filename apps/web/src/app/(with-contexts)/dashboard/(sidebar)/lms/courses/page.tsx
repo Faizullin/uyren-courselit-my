@@ -43,7 +43,6 @@ export default function Page() {
   const [parsedData, setParsedData] = useState<CourseItemType[]>([]);
   const [parsedPagination, setParsedPagination] = useState({ pageCount: 1 });
 
-  // Dummy columns for pagination setup
   const columns = useMemo<ColumnDef<CourseItemType>[]>(() => [
     { accessorKey: "_id", header: "ID" },
   ], []);
@@ -69,15 +68,15 @@ export default function Page() {
     },
   }), [tableState.pagination, levelFilter, courseStatusFilter]);
 
-  const listQuery = trpc.lmsModule.courseModule.course.list.useQuery(queryParams);
+  const loadListQuery = trpc.lmsModule.courseModule.course.list.useQuery(queryParams);
 
   useEffect(() => {
-    if (!listQuery.data) return;
-    setParsedData(listQuery.data.items || []);
+    if (!loadListQuery.data) return;
+    setParsedData(loadListQuery.data.items || []);
     setParsedPagination({
-      pageCount: Math.ceil((listQuery.data.total || 0) / listQuery.data.meta.take),
+      pageCount: Math.ceil((loadListQuery.data.total || 0) / loadListQuery.data.meta.take),
     });
-  }, [listQuery.data]);
+  }, [loadListQuery.data]);
 
   const courses = parsedData;
 
@@ -167,20 +166,20 @@ export default function Page() {
         ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         : "flex flex-col gap-4"
       }>
-        {listQuery.isLoading ? (
+        {loadListQuery.isLoading ? (
           <>
             {[...Array(6)].map((_, index) => (
               <CourseSkeletonCard key={index} />
             ))}
           </>
-        ) : courses.length === 0 ? (
+        ) : loadListQuery.data?.items?.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
             <p className="text-muted-foreground text-lg">No courses found</p>
             <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or create a new course</p>
           </div>
         ) : (
           <>
-            {courses.map((course, index) => (
+            {loadListQuery.data?.items?.map((course, index) => (
               <Link key={index} href={`/dashboard/lms/courses/${course._id}`}>
                 <CourseCard course={course} viewMode={viewMode as "grid" | "list"} />
               </Link>
@@ -189,7 +188,7 @@ export default function Page() {
         )}
       </div>
 
-      {!listQuery.isLoading && (
+      {!loadListQuery.isLoading && (
         <DataTablePagination table={table} pageSizeOptions={[9, 18, 27, 36]} />
       )}
     </DashboardContent>

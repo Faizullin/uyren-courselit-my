@@ -9,6 +9,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import z from "zod";
 import { Log } from "../logger";
 import { getFirebaseAuth } from "./firebase";
+import { generateUniqueId } from "@workspace/utils";
 
 const AuthorizeFirebaseSchema = z.object({
   idToken: z.string().min(1, "ID Token is required"),
@@ -84,6 +85,7 @@ export const authOptions: NextAuthOptions = {
             created = true;
             user.avatar = decoded.picture
               ? {
+                mediaId: generateUniqueId(),
                 orgId: domain.orgId,
                 storageProvider: "custom",
                 url: decoded.picture,
@@ -109,6 +111,7 @@ export const authOptions: NextAuthOptions = {
           }
           const media: IAttachmentMedia | undefined = user.avatar
             ? {
+              mediaId: generateUniqueId(),
               orgId: domain.orgId,
               storageProvider: "custom",
               url: user.avatar.url,

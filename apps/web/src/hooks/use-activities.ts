@@ -57,7 +57,6 @@ export function useActivities(
     },
     {
       enabled: !!type && !!duration,
-      refetchOnWindowFocus: false,
     },
   );
 
@@ -116,7 +115,6 @@ export function useMyActivities(
       },
       {
         enabled: true,
-        refetchOnWindowFocus: false,
       },
     );
 
@@ -137,7 +135,6 @@ export function useActivityStats(
       { duration },
       {
         enabled: true,
-        refetchOnWindowFocus: false,
       },
     );
 

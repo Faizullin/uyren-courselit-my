@@ -6,6 +6,7 @@ export enum MediaAccessTypeEnum {
 }
 
 export interface IAttachmentMedia {
+  mediaId: string;
   orgId: mongoose.Types.ObjectId;
   storageProvider: "cloudinary" | "local" | "custom";
   url: string;
