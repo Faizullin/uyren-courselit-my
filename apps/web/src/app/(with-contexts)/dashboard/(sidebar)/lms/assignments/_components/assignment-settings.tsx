@@ -35,33 +35,27 @@ import { useForm } from "react-hook-form";
 import z from "zod";
 import { useAssignmentContext } from "./assignment-context";
 
+// Import the actual enum from your shared types
+import { AssignmentTypeEnum } from "@workspace/common-logic/models/lms/assignment.types";
+
 const AssignmentSettingsSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().optional(),
-  course: z.object(
-    {
-      key: z.string(),
-      title: z.string(),
-    },
-    { required_error: "Please select a course" },
-  ),
+  course: z.object({
+    _id: z.string(), // Use _id instead of key for MongoDB
+    title: z.string(),
+  }),
   instructions: z.string().optional(),
   totalPoints: z.number().min(1),
   dueDate: z.date().optional(),
-  assignmentType: z.enum([
-    "essay",
-    "project",
-    "presentation",
-    "file_upload",
-    "peer_review",
-  ]),
-  availableFrom: z.date().optional(),
+  type: z.nativeEnum(AssignmentTypeEnum), // Use the imported enum
+  beginDate: z.date().optional(), // Changed from availableFrom to beginDate
   allowLateSubmission: z.boolean(),
 });
 
 type AssignmentSettingsFormDataType = z.infer<typeof AssignmentSettingsSchema>;
 type CourseSelectItemType = {
-  key: string;
+  _id: string; // Use _id instead of key
   title: string;
 };
 
@@ -70,6 +64,7 @@ export default function AssignmentSettings() {
   const router = useRouter();
   const { toast } = useToast();
   const trpcUtils = trpc.useUtils();
+
   const form = useForm<AssignmentSettingsFormDataType>({
     resolver: zodResolver(AssignmentSettingsSchema),
     defaultValues: {
@@ -78,9 +73,9 @@ export default function AssignmentSettings() {
       course: undefined as any,
       instructions: "",
       totalPoints: 100,
-      availableFrom: undefined,
+      beginDate: undefined,
       dueDate: undefined,
-      assignmentType: "project",
+      type: AssignmentTypeEnum.PROJECT, // Use the actual enum value
       allowLateSubmission: false,
     },
   });
@@ -102,6 +97,7 @@ export default function AssignmentSettings() {
         });
       },
     });
+
   const updateMutation =
     trpc.lmsModule.assignmentModule.assignment.update.useMutation({
       onSuccess: () => {
@@ -121,66 +117,99 @@ export default function AssignmentSettings() {
 
   const handleSubmit = useCallback(
     async (data: AssignmentSettingsFormDataType) => {
-      const transformedData = {
-        ...data,
-        courseId: data.course?.key || "", // Extract just the key for API
-        course: undefined,
+      console.log("Form data:", data);
+      
+      // Validate required fields
+      if (!data.course?._id) {
+        toast({
+          title: "Error",
+          description: "Please select a course",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Transform data to match API schema
+      const apiData = {
+        title: data.title,
+        description: data.description,
+        courseId: data.course._id, // Map to courseId
+        type: data.type,
+        instructions: data.instructions,
+        totalPoints: data.totalPoints,
+        beginDate: data.beginDate,
+        dueDate: data.dueDate,
+        allowLateSubmission: data.allowLateSubmission,
       };
 
-      if (mode === "create") {
-        await createMutation.mutateAsync({
-          data: transformedData,
-        });
-      } else if (mode === "edit" && assignment) {
-        await updateMutation.mutateAsync({
-          id: `${assignment._id}`,
-          data: transformedData,
-        });
+      console.log("API data:", apiData);
+
+      try {
+        if (mode === "create") {
+          await createMutation.mutateAsync({
+            data: apiData,
+          });
+        } else if (mode === "edit" && assignment) {
+          await updateMutation.mutateAsync({
+            id: `${assignment._id}`,
+            data: apiData,
+          });
+        }
+      } catch (error) {
+        console.error("Submission error:", error);
       }
     },
-    [mode, assignment, createMutation, updateMutation],
+    [mode, assignment, createMutation, updateMutation, toast],
   );
   
   const fetchCourses = useCallback(
     async (search: string) => {
-      const response = await trpcUtils.lmsModule.courseModule.course.list.fetch(
-        {
-          pagination: {
-            take: 15,
-            skip: 0,
+      try {
+        const response = await trpcUtils.lmsModule.courseModule.course.list.fetch(
+          {
+            pagination: {
+              take: 15,
+              skip: 0,
+            },
+            search: {
+              q: search,
+            },
           },
-          search: {
-            q: search,
-          },
-        },
-      );
-      return response.items.map((course) => ({
-        key: course.courseId,
-        title: course.title,
-      }));
+        );
+        // Check the actual structure of the course objects from your API
+        return response.items.map((course) => ({
+          _id: course._id, 
+          title: course.title,
+        }));
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        return [];
+      }
     },
     [trpcUtils],
   );
 
   useEffect(() => {
     if (assignment && mode === "edit") {
+      // Check the actual structure of assignment.course
+      const courseData = assignment.course ? {
+        _id: (assignment.course as any)._id || assignment.courseId, // Fallback to courseId if _id doesn't exist
+        title: assignment.course.title || "Unknown Course"
+      } : undefined;
+
       form.reset({
         title: assignment.title || "",
         description: assignment.description || "",
-        course: assignment.course
-          ? { key: assignment.course.courseId, title: assignment.course.title }
-          : undefined,
+        course: courseData,
         instructions: assignment.instructions || "",
         totalPoints: assignment.totalPoints || 100,
-        availableFrom: assignment.availableFrom
-          ? new Date(assignment.availableFrom)
-          : undefined,
+        beginDate: assignment.beginDate ? new Date(assignment.beginDate) : undefined,
         dueDate: assignment.dueDate ? new Date(assignment.dueDate) : undefined,
-        assignmentType: assignment.assignmentType || "project",
+        type: assignment.type || AssignmentTypeEnum.PROJECT,
         allowLateSubmission: assignment.allowLateSubmission || false,
       });
     }
-  }, [assignment, form.reset, mode]);
+  }, [assignment, form, mode]);
 
   const handleCheckProject = useCallback(() => {
     const url = `${process.env.NEXT_PUBLIC_TUTOR_IDE_URL}/projects/init?externalAssignmentId=${assignment?._id}`;
@@ -188,14 +217,22 @@ export default function AssignmentSettings() {
   }, [assignment?._id]);
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
-  const isSubmitting = form.formState.isSubmitting;
+
+  // Helper function to get enum values for the select
+  const getAssignmentTypeOptions = () => {
+    return Object.values(AssignmentTypeEnum).map(value => ({
+      value,
+      label: value.charAt(0).toUpperCase() + value.slice(1).toLowerCase().replace('_', ' ')
+    }));
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="flex justify-end">
-          <Button type="submit" disabled={isSaving || isSubmitting}>
+          <Button type="submit" disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
-            {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
+            {isSaving ? "Saving..." : "Save Settings"}
           </Button>
         </div>
 
@@ -244,10 +281,10 @@ export default function AssignmentSettings() {
                     <FormControl>
                       <ComboBox2<CourseSelectItemType>
                         title="Select a course"
-                        valueKey="key"
-                        value={field.value || undefined}
+                        valueKey="_id" // Use _id as the value key
+                        value={field.value}
                         searchFn={fetchCourses}
-                        renderText={(item) => item.title}
+                        renderLabel={(item: CourseSelectItemType) => item.title}
                         onChange={field.onChange}
                         multiple={false}
                         showCreateButton={true}
@@ -255,9 +292,9 @@ export default function AssignmentSettings() {
                         onCreateClick={() => {
                           window.open(`/dashboard/products/new`, "_blank");
                         }}
-                        onEditClick={(item) => {
+                        onEditClick={(item: CourseSelectItemType) => {
                           window.open(
-                            `/dashboard/products/${item.key}`,
+                            `/dashboard/products/${item._id}`,
                             "_blank",
                           );
                         }}
@@ -295,7 +332,7 @@ export default function AssignmentSettings() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="availableFrom"
+                  name="beginDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Available From</FormLabel>
@@ -353,7 +390,7 @@ export default function AssignmentSettings() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="assignmentType"
+                  name="type"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Assignment Type</FormLabel>
@@ -368,11 +405,11 @@ export default function AssignmentSettings() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="essay">Essay</SelectItem>
-                            <SelectItem value="project">Project</SelectItem>
-                            <SelectItem value="presentation">Presentation</SelectItem>
-                            <SelectItem value="file_upload">File Upload</SelectItem>
-                            <SelectItem value="peer_review">Peer Review</SelectItem>
+                            {getAssignmentTypeOptions().map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </FormControl>
@@ -382,7 +419,7 @@ export default function AssignmentSettings() {
                 />
                 <div className="flex flex-col">
                   {
-                    form.watch("assignmentType") === "project" && (
+                    form.watch("type") === AssignmentTypeEnum.PROJECT && (
                       <Button variant="outline" className="w-full" size="sm" onClick={handleCheckProject}>
                         Check Project
                       </Button>

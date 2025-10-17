@@ -1,4 +1,3 @@
-// app/dashboard/student/assignments/[id]/page.tsx
 "use client";
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
@@ -22,70 +21,143 @@ import {
   MessageSquare,
   Eye,
   Star,
-  Users
+  Users,
+  X,
+  File,
+  Plus,
+  Send
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+
+interface UploadedFile {
+  id: string;
+  file: File;
+  uploadProgress: number;
+  status: 'uploading' | 'completed' | 'error';
+  error?: string;
+}
+
+interface SubmissionFile {
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  uploadedAt: string;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  createdAt: string;
+  status: 'pending' | 'answered';
+  answer?: string;
+  answeredAt?: string;
+}
+
+// Store uploaded files separately in memory (not in localStorage)
+let uploadedFilesMemory: { [key: string]: File } = {};
 
 export default function Page() {
   const { t } = useTranslation(["dashboard", "common"]);
   const params = useParams();
   const assignmentId = params.id as string;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Dummy assignment data
-  const assignment = {
-    id: assignmentId,
-    title: "Python Data Structures Implementation",
-    description: "Implement custom data structures including linked lists, stacks, queues, and hash tables from scratch. This assignment will test your understanding of fundamental data structures and their practical implementations in Python.",
-    course: "Python Programming Fundamentals",
-    courseId: "1",
-    dueDate: "2024-01-15T23:59:00",
-    status: "submitted", // pending, submitted, graded, overdue
-    score: 45,
-    maxScore: 50,
-    submittedDate: "2024-01-14T14:30:00",
-    gradedDate: "2024-01-15T10:00:00",
-    type: "coding",
-    language: "Python",
-    estimatedTime: "4 hours",
-    difficulty: "Intermediate",
-    resources: [
-      { id: 1, name: "Assignment Instructions.pdf", type: "pdf", size: "2.4 MB" },
-      { id: 2, name: "Starter Code.py", type: "code", size: "1.2 KB" },
-      { id: 3, name: "Test Cases.py", type: "code", size: "3.1 KB" },
-      { id: 4, name: "Data Structures Guide.md", type: "document", size: "0.8 MB" }
-    ],
-    requirements: [
-      "Implement LinkedList class with append, prepend, delete, and search methods",
-      "Create Stack and Queue classes using both list and node-based implementations",
-      "Build HashTable class with collision handling using chaining",
-      "Write comprehensive unit tests for all data structures",
-      "Include time complexity analysis in comments",
-      "Follow PEP 8 style guide"
-    ],
-    gradingCriteria: [
-      { criterion: "Code Correctness", weight: 40, score: 18, maxScore: 20 },
-      { criterion: "Code Quality & Style", weight: 20, score: 9, maxScore: 10 },
-      { criterion: "Test Coverage", weight: 20, score: 10, maxScore: 10 },
-      { criterion: "Documentation", weight: 10, score: 5, maxScore: 5 },
-      { criterion: "Time Complexity", weight: 10, score: 3, maxScore: 5 }
-    ],
-    instructor: "Dr. Sarah Chen",
-    instructorNotes: "Excellent implementation! Your linked list and hash table implementations are particularly well-done. Consider optimizing the queue implementation for better time complexity.",
-    submission: {
-      files: [
-        { id: 1, name: "data_structures.py", type: "code", size: "8.7 KB", uploadedAt: "2024-01-14T14:30:00" },
-        { id: 2, name: "test_data_structures.py", type: "code", size: "4.2 KB", uploadedAt: "2024-01-14T14:30:00" },
-        { id: 3, name: "README.md", type: "document", size: "1.1 KB", uploadedAt: "2024-01-14T14:30:00" }
+  // Load from localStorage on component mount - do this BEFORE useState
+  const loadInitialData = () => {
+    const savedAssignment = localStorage.getItem(`assignment-${assignmentId}`);
+    const savedQuestions = localStorage.getItem(`questions-${assignmentId}`);
+    
+    let assignmentData = {
+      id: assignmentId,
+      title: "Python Data Structures Implementation",
+      description: "Implement custom data structures including linked lists, stacks, queues, and hash tables from scratch. This assignment will test your understanding of fundamental data structures and their practical implementations in Python.",
+      course: "Python Programming Fundamentals",
+      courseId: "1",
+      dueDate: "2024-01-15T23:59:00",
+      status: "pending" as "pending" | "submitted" | "graded",
+      score: 0,
+      maxScore: 50,
+      submittedDate: "",
+      gradedDate: "",
+      type: "coding",
+      language: "Python",
+      estimatedTime: "4 hours",
+      difficulty: "Intermediate",
+      resources: [
+        { id: 1, name: "Assignment Instructions.pdf", type: "pdf", size: "2.4 MB" },
+        { id: 2, name: "Starter Code.py", type: "code", size: "1.2 KB" },
+        { id: 3, name: "Test Cases.py", type: "code", size: "3.1 KB" },
+        { id: 4, name: "Data Structures Guide.md", type: "document", size: "0.8 MB" }
       ],
-      notes: "Implemented all required data structures with comprehensive testing. Used docstrings for documentation and followed PEP 8 guidelines."
+      requirements: [
+        "Implement LinkedList class with append, prepend, delete, and search methods",
+        "Create Stack and Queue classes using both list and node-based implementations",
+        "Build HashTable class with collision handling using chaining",
+        "Write comprehensive unit tests for all data structures",
+        "Include time complexity analysis in comments",
+        "Follow PEP 8 style guide"
+      ],
+      instructor: "Dr. Sarah Chen",
+      submission: {
+        files: [] as SubmissionFile[],
+        notes: ""
+      }
+    };
+
+    let questionsData: Question[] = [];
+
+    if (savedAssignment) {
+      try {
+        const parsed = JSON.parse(savedAssignment);
+        assignmentData = {
+          ...assignmentData,
+          status: parsed.status,
+          submittedDate: parsed.submittedDate,
+          submission: {
+            files: parsed.submission?.files || [],
+            notes: parsed.submission?.notes || ""
+          }
+        };
+      } catch (error) {
+        console.error('Error parsing saved assignment:', error);
+      }
     }
+
+    if (savedQuestions) {
+      try {
+        questionsData = JSON.parse(savedQuestions);
+      } catch (error) {
+        console.error('Error parsing saved questions:', error);
+      }
+    }
+
+    return { assignmentData, questionsData };
   };
 
+  const { assignmentData, questionsData } = loadInitialData();
+
+  // State for assignment data that can be updated
+  const [assignment, setAssignment] = useState(assignmentData);
   const [submissionText, setSubmissionText] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [questions, setQuestions] = useState<Question[]>(questionsData);
+  const [isAskingQuestion, setIsAskingQuestion] = useState(false);
+
+  // Save to localStorage whenever assignment changes
+  useEffect(() => {
+    localStorage.setItem(`assignment-${assignmentId}`, JSON.stringify(assignment));
+  }, [assignment, assignmentId]);
+
+  // Save to localStorage whenever questions change
+  useEffect(() => {
+    localStorage.setItem(`questions-${assignmentId}`, JSON.stringify(questions));
+  }, [questions, assignmentId]);
 
   const breadcrumbs = [
     { label: t("common:dashboard.student.assignments.title"), href: "/dashboard/student/assignments" },
@@ -96,8 +168,7 @@ export default function Page() {
     const configs = {
       pending: { variant: "outline" as const, icon: Clock, text: "Pending", color: "text-orange-600", bgColor: "bg-orange-50" },
       submitted: { variant: "secondary" as const, icon: CheckCircle, text: "Submitted", color: "text-blue-600", bgColor: "bg-blue-50" },
-      graded: { variant: "default" as const, icon: CheckCircle, text: "Graded", color: "text-green-600", bgColor: "bg-green-50" },
-      overdue: { variant: "destructive" as const, icon: AlertCircle, text: "Overdue", color: "text-red-600", bgColor: "bg-red-50" }
+      graded: { variant: "default" as const, icon: CheckCircle, text: "Graded", color: "text-green-600", bgColor: "bg-green-50" }
     };
     return configs[status as keyof typeof configs] || configs.pending;
   };
@@ -121,6 +192,7 @@ export default function Page() {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -129,6 +201,7 @@ export default function Page() {
   };
 
   const formatDateTime = (dateString: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -141,15 +214,254 @@ export default function Page() {
   const timeRemaining = new Date(assignment.dueDate).getTime() - new Date().getTime();
   const daysRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60 * 24));
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // File upload handlers
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setFiles(Array.from(event.target.files));
+      const newFiles = Array.from(event.target.files).map(file => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        uploadProgress: 0,
+        status: 'uploading' as const
+      }));
+      
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+      
+      // Store files in memory for download
+      newFiles.forEach(uploadedFile => {
+        uploadedFilesMemory[uploadedFile.id] = uploadedFile.file;
+      });
+      
+      // Simulate file upload progress
+      newFiles.forEach(file => {
+        simulateFileUpload(file.id);
+      });
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
-  const handleSubmit = () => {
-    // In real app, this would submit to an API
-    alert('Assignment submitted successfully!');
+  const simulateFileUpload = (fileId: string) => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 20;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        
+        setUploadedFiles(prev => 
+          prev.map(f => 
+            f.id === fileId 
+              ? { ...f, uploadProgress: 100, status: 'completed' }
+              : f
+          )
+        );
+      } else {
+        setUploadedFiles(prev => 
+          prev.map(f => 
+            f.id === fileId 
+              ? { ...f, uploadProgress: Math.min(progress, 100) }
+              : f
+          )
+        );
+      }
+    }, 200);
+  };
+
+  const removeFile = (fileId: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    // Also remove from memory
+    delete uploadedFilesMemory[fileId];
+  };
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length > 0) {
+      const newFiles = files.map(file => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        uploadProgress: 0,
+        status: 'uploading' as const
+      }));
+      
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+      
+      // Store files in memory for download
+      newFiles.forEach(uploadedFile => {
+        uploadedFilesMemory[uploadedFile.id] = uploadedFile.file;
+      });
+      
+      // Simulate file upload progress
+      newFiles.forEach(file => {
+        simulateFileUpload(file.id);
+      });
+    }
+  }, []);
+
+  const handleSubmit = async () => {
+    if (uploadedFiles.length === 0) {
+      alert('Please upload at least one file before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Convert uploaded files to submission format
+      const submissionFiles: SubmissionFile[] = uploadedFiles.map(uploadedFile => ({
+        id: uploadedFile.id,
+        name: uploadedFile.file.name,
+        type: getFileType(uploadedFile.file.name),
+        size: formatFileSize(uploadedFile.file.size),
+        uploadedAt: new Date().toISOString(),
+      }));
+
+      // Update assignment state with submission data
+      setAssignment(prev => ({
+        ...prev,
+        status: 'submitted',
+        submittedDate: new Date().toISOString(),
+        submission: {
+          files: [...prev.submission.files, ...submissionFiles], // Append new files
+          notes: submissionText || prev.submission.notes
+        }
+      }));
+      
+      alert('Assignment submitted successfully!');
+      
+      // Reset form but keep the submission text
+      setUploadedFiles([]);
+      
+    } catch (error) {
+      alert('Failed to submit assignment. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Delete a submitted file
+  const deleteSubmittedFile = (fileId: string) => {
+    setAssignment(prev => ({
+      ...prev,
+      submission: {
+        ...prev.submission,
+        files: prev.submission.files.filter(f => f.id !== fileId)
+      }
+    }));
+    // Also remove from memory
+    delete uploadedFilesMemory[fileId];
+  };
+
+  // Download a submitted file
+  const downloadFile = (file: SubmissionFile) => {
+    const fileObject = uploadedFilesMemory[file.id];
+    if (fileObject) {
+      // Create a download link for the actual file
+      const url = URL.createObjectURL(fileObject);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      // For files that don't exist in memory (page reloaded)
+      alert('File download not available. The file content is only available during the current browser session. Please re-upload the file to enable download.');
+    }
+  };
+
+  // Ask a question
+  const handleAskQuestion = async () => {
+    if (!newQuestion.trim()) {
+      alert('Please enter a question.');
+      return;
+    }
+
+    setIsAskingQuestion(true);
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const question: Question = {
+        id: Math.random().toString(36).substr(2, 9),
+        text: newQuestion,
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      };
+
+      setQuestions(prev => [question, ...prev]);
+      setNewQuestion('');
+      
+      alert('Question submitted successfully!');
+      
+    } catch (error) {
+      alert('Failed to submit question. Please try again.');
+    } finally {
+      setIsAskingQuestion(false);
+    }
+  };
+
+  // Delete a question
+  const deleteQuestion = (questionId: string) => {
+    setQuestions(prev => prev.filter(q => q.id !== questionId));
+  };
+
+  const getFileType = (fileName: string): string => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf': return 'pdf';
+      case 'py': case 'js': case 'ts': case 'java': case 'cpp': case 'c': return 'code';
+      case 'md': case 'txt': return 'document';
+      case 'zip': case 'rar': case '7z': return 'archive';
+      default: return 'file';
+    }
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return <FileText className="h-4 w-4 text-red-500" />;
+      case 'py':
+      case 'js':
+      case 'ts':
+      case 'java':
+      case 'cpp':
+      case 'c':
+        return <Code className="h-4 w-4 text-blue-500" />;
+      case 'md':
+      case 'txt':
+        return <FileText className="h-4 w-4 text-gray-500" />;
+      case 'zip':
+      case 'rar':
+      case '7z':
+        return <File className="h-4 w-4 text-purple-500" />;
+      default:
+        return <File className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const statusConfig = getStatusConfig(assignment.status);
@@ -193,7 +505,8 @@ export default function Page() {
                       <span>{assignment.type}</span>
                     </div>
                   </div>
-                  {assignment.status === 'graded' && (
+                  {/* Only show score if graded */}
+                  {assignment.status === 'graded' && assignment.score > 0 && (
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-600">
                         {assignment.score}/{assignment.maxScore}
@@ -276,11 +589,18 @@ export default function Page() {
               </CardContent>
             </Card>
 
-            {/* Submission Area - Only show if not submitted/graded */}
-            {(assignment.status === 'pending' || assignment.status === 'overdue') && (
+            {/* Submission Area - Show if submitted but allow adding more files */}
+            {(assignment.status === 'submitted' || assignment.status === 'pending' || isOverdue) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Submit Your Work</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    {assignment.status === 'submitted' ? 'Add More Files' : 'Submit Your Work'}
+                    {assignment.status === 'submitted' && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        Already Submitted
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -289,37 +609,69 @@ export default function Page() {
                       placeholder="Describe your submission, any challenges you faced, or additional notes for the instructor..."
                       value={submissionText}
                       onChange={(e) => setSubmissionText(e.target.value)}
-                      rows={4}
+                      rows={3}
                     />
                   </div>
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Upload Files</label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground mb-2">
                         Drag and drop your files here, or click to browse
                       </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Supports: .py, .js, .ts, .java, .cpp, .pdf, .zip, .md, .txt (Max: 50MB per file)
+                      </p>
                       <input
+                        ref={fileInputRef}
                         type="file"
                         multiple
-                        onChange={handleFileUpload}
+                        onChange={handleFileSelect}
                         className="hidden"
-                        id="file-upload"
+                        accept=".py,.js,.ts,.java,.cpp,.c,.pdf,.zip,.rar,.7z,.md,.txt,.doc,.docx"
                       />
-                      <Button variant="outline" asChild>
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                          Choose Files
-                        </label>
+                      <Button variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Choose Files
                       </Button>
                     </div>
-                    {files.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm">{file.name}</span>
-                            <Button variant="ghost" size="sm" onClick={() => setFiles(files.filter((_, i) => i !== index))}>
-                              Remove
+
+                    {/* Uploaded Files List */}
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <h4 className="text-sm font-medium">New Files to Add ({uploadedFiles.length})</h4>
+                        {uploadedFiles.map((uploadedFile) => (
+                          <div key={uploadedFile.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center gap-3 flex-1">
+                              {getFileIcon(uploadedFile.file.name)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{uploadedFile.file.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(uploadedFile.file.size)}
+                                  {uploadedFile.status === 'uploading' && ` • Uploading... ${Math.round(uploadedFile.uploadProgress)}%`}
+                                  {uploadedFile.status === 'completed' && ' • Ready to submit'}
+                                </p>
+                                {uploadedFile.status === 'uploading' && (
+                                  <Progress 
+                                    value={uploadedFile.uploadProgress} 
+                                    className="h-1 mt-1"
+                                  />
+                                )}
+                              </div>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => removeFile(uploadedFile.id)}
+                              disabled={uploadedFile.status === 'uploading'}
+                            >
+                              <X className="h-4 w-4" />
                             </Button>
                           </div>
                         ))}
@@ -327,25 +679,42 @@ export default function Page() {
                     )}
                   </div>
 
-                  <Button onClick={handleSubmit} className="w-full" size="lg">
-                    Submit Assignment
+                  <Button 
+                    onClick={handleSubmit} 
+                    className="w-full" 
+                    size="lg"
+                    disabled={isSubmitting || uploadedFiles.length === 0 || uploadedFiles.some(f => f.status === 'uploading')}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {assignment.status === 'submitted' ? 'Adding Files...' : 'Submitting...'}
+                      </>
+                    ) : (
+                      assignment.status === 'submitted' ? 'Add More Files' : 'Submit Assignment'
+                    )}
                   </Button>
                 </CardContent>
               </Card>
             )}
 
-            {/* Submission Details - Show if submitted/graded */}
-            {(assignment.status === 'submitted' || assignment.status === 'graded') && (
+            {/* Submission Details - Show if submitted */}
+            {assignment.status === 'submitted' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Your Submission</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Your Submission</span>
+                    <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                      {assignment.submission.files.length} file(s) submitted
+                    </Badge>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">Submission Notes</label>
                       <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm">{assignment.submission.notes}</p>
+                        <p className="text-sm">{assignment.submission.notes || "No submission notes provided."}</p>
                       </div>
                     </div>
 
@@ -354,95 +723,146 @@ export default function Page() {
                       <div className="space-y-2">
                         {assignment.submission.files.map((file) => (
                           <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-1">
                               <div className="p-2 bg-green-100 rounded-lg text-green-600">
-                                <FileText className="h-4 w-4" />
+                                {getFileIcon(file.name)}
                               </div>
-                              <div>
+                              <div className="flex-1">
                                 <p className="font-medium text-sm">{file.name}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {file.size} • Submitted {formatDateTime(file.uploadedAt)}
                                 </p>
                               </div>
                             </div>
-                            <Button variant="outline" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => downloadFile(file)}
+                                title="Download file"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => deleteSubmittedFile(file.id)}
+                                title="Delete file"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
+                        {assignment.submission.files.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No files submitted yet.
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <div className="text-sm text-muted-foreground">
-                      Submitted on {formatDateTime(assignment.submittedDate)}
-                    </div>
+                    {assignment.submittedDate && (
+                      <div className="text-sm text-muted-foreground">
+                        Submitted on {formatDateTime(assignment.submittedDate)}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Grading Results - Show if graded */}
-            {assignment.status === 'graded' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Grading Results</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Overall Score */}
-                    <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
-                      <div className="text-3xl font-bold text-green-600 mb-2">
-                        {assignment.score}/{assignment.maxScore}
-                      </div>
-                      <div className="text-lg font-semibold">
-                        {Math.round((assignment.score / assignment.maxScore) * 100)}%
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Graded on {formatDateTime(assignment.gradedDate)}
-                      </div>
-                    </div>
+            {/* Questions Section */}
+            <Card id="questions-section">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Ask a Question</span>
+                  {questions.length > 0 && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                      {questions.length} question(s)
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <Textarea
+                    placeholder="Type your question here... (e.g., 'I need help with the linked list implementation', 'Can you clarify the requirements for the hash table?')"
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                    rows={3}
+                  />
+                  <Button 
+                    onClick={handleAskQuestion}
+                    disabled={isAskingQuestion || !newQuestion.trim()}
+                    className="w-full"
+                  >
+                    {isAskingQuestion ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Posting Question...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Post Question
+                      </>
+                    )}
+                  </Button>
+                </div>
 
-                    {/* Grading Breakdown */}
-                    <div>
-                      <h4 className="font-medium mb-3">Grading Breakdown</h4>
-                      <div className="space-y-3">
-                        {assignment.gradingCriteria.map((criterion, index) => (
-                          <div key={index} className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>{criterion.criterion}</span>
-                              <span>{criterion.score}/{criterion.maxScore}</span>
+                {/* Questions List */}
+                {questions.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Your Questions</h4>
+                    {questions.map((question) => (
+                      <div key={question.id} className="p-4 border rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium mb-2">{question.text}</p>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Asked {formatDateTime(question.createdAt)}</span>
+                              <Badge 
+                                variant={question.status === 'answered' ? 'default' : 'outline'}
+                                className={question.status === 'answered' ? 'bg-green-100 text-green-800' : ''}
+                              >
+                                {question.status === 'answered' ? 'Answered' : 'Pending'}
+                              </Badge>
                             </div>
-                            <Progress 
-                              value={(criterion.score / criterion.maxScore) * 100} 
-                              className="h-2"
-                            />
-                            <div className="text-xs text-muted-foreground">
-                              Weight: {criterion.weight}%
-                            </div>
+                            {question.answer && (
+                              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                <div className="flex items-start gap-2">
+                                  <Users className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <p className="text-sm font-medium text-blue-900 mb-1">Instructor Response</p>
+                                    <p className="text-sm text-blue-800">{question.answer}</p>
+                                    {question.answeredAt && (
+                                      <p className="text-xs text-blue-600 mt-1">
+                                        Answered {formatDateTime(question.answeredAt)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Instructor Feedback */}
-                    <div>
-                      <h4 className="font-medium mb-3">Instructor Feedback</h4>
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Users className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-sm mb-1">{assignment.instructor}</div>
-                            <p className="text-sm text-muted-foreground">{assignment.instructorNotes}</p>
-                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => deleteQuestion(question.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete question"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
@@ -459,7 +879,16 @@ export default function Page() {
                     View Course
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    document.getElementById('questions-section')?.scrollIntoView({ behavior: 'smooth' });
+                    setTimeout(() => {
+                      document.querySelector('textarea')?.focus();
+                    }, 500);
+                  }}
+                >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Ask Question
                 </Button>
@@ -524,7 +953,7 @@ export default function Page() {
                       </div>
                     </div>
                   )}
-                  {assignment.gradedDate && (
+                  {assignment.status === 'graded' && assignment.gradedDate && (
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                       <div className="flex-1">

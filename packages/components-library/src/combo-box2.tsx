@@ -176,7 +176,7 @@ const ComboBox2 = <T extends object>({
                               }
                             }}
                           >
-                            ×
+                            
                           </span>
                         </Badge>
                       ))}
