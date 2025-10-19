@@ -19,23 +19,20 @@ export default function AssignmentGrading() {
   const { assignment } = useAssignmentContext();
   const [showRubricBuilder, setShowRubricBuilder] = useState(false);
 
-  const submissionsQuery =
-    trpc.lmsModule.assignmentModule.assignmentSubmission.list.useQuery(
+  const loadSubmissionsQuery =
+    trpc.lmsModule.assignmentModule.assignmentSubmission.listForAssignment.useQuery(
       {
-        filter: {
-          assignmentId: assignment?._id,
-        },
-        pagination: {
-          take: 50,
-          skip: 0,
-        },
+        assignmentId: assignment?._id || "",
       },
+      {
+        enabled: !!assignment?._id,
+      }
     );
 
-  const submissions = submissionsQuery.data?.items || [];
+  const submissions = loadSubmissionsQuery.data || [];
   const gradedCount = submissions.filter((s) => s.status === AssignmentSubmissionStatusEnum.GRADED).length;
   const pendingCount = submissions.filter(
-    (s) => s.status === AssignmentSubmissionStatusEnum.SUBMITTED,
+    (s) => s.status === AssignmentSubmissionStatusEnum.SUBMITTED
   ).length;
 
   return (

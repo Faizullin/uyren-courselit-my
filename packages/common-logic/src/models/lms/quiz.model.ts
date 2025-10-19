@@ -100,11 +100,6 @@ export const QuizQuestionSchema = new mongoose.Schema<IQuizQuestion>(
         },
         points: { type: Number, required: true, min: 1, max: 100, default: 1 },
         explanation: { type: String, trim: true, maxlength: 2000 },
-        gradedById: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            required: true, index: true,
-        },
         settings: { type: mongoose.Schema.Types.Mixed },
         options: { type: [OptionSchema], default: [] },
         correctAnswers: [{ type: String, trim: true }],

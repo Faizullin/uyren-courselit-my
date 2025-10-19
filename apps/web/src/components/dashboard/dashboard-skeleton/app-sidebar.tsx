@@ -26,6 +26,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   LibraryBig,
+  type LucideIcon,
   Palette,
   Settings,
   Star,
@@ -52,8 +53,8 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
 
   const { navMainItems, navProjectItems, navSecondaryItems } = getSidebarItems(
     profile,
-    path!,
-    tab!,
+    path || "",
+    tab,
     t,
   );
 
@@ -96,21 +97,49 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   );
 }
 
+interface NavMainItem {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+  isActive?: boolean;
+  beta?: boolean;
+  items?: {
+    title: string;
+    url: string;
+    icon?: LucideIcon;
+    isActive?: boolean;
+  }[];
+}
+
+interface NavProjectItem {
+  name: string;
+  url: string;
+  icon: LucideIcon;
+  isActive?: boolean;
+}
+
+interface NavSecondaryItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  isActive?: boolean;
+}
+
 function getSidebarItems(
   profile: ReturnType<typeof useProfile>["profile"],
   path: string,
   tab: string | null,
   t: (key: string) => string,
 ) {
-  const navMainItems: any[] = [];
-  const navProjectItems: any[] = [];
-  const navSecondaryItems: any[] = [];
+  const navMainItems: NavMainItem[] = [];
+  const navProjectItems: NavProjectItem[] = [];
+  const navSecondaryItems: NavSecondaryItem[] = [];
 
   if (!profile) {
     return { navMainItems, navProjectItems, navSecondaryItems };
   }
 
-  const isInstructor = checkPermission(profile.permissions!, [
+  const isInstructor = checkPermission(profile.permissions || [], [
     UIConstants.permissions.manageCourse,
     UIConstants.permissions.manageAnyCourse,
   ]);
@@ -162,12 +191,12 @@ function getSidebarItems(
           icon: Video,
           isActive: path === "/dashboard/lms/live-classes",
         },
-        {
-          title: t("lms.modules.schedule.title"),
-          url: "/dashboard/lms/schedule",
-          icon: Calendar,
-          isActive: path === "/dashboard/lms/schedule",
-        },
+        // {
+        //   title: t("lms.modules.schedule.title"),
+        //   url: "/dashboard/lms/schedule",
+        //   icon: Calendar,
+        //   isActive: path === "/dashboard/lms/schedule",
+        // },
         {
           title: t("lms.modules.reviews.title"),
           url: "/dashboard/lms/reviews",
@@ -210,25 +239,12 @@ function getSidebarItems(
           icon: Settings,
           isActive: path.startsWith("/dashboard/admin/settings"),
         },
-      ],
-    });
-
-    navMainItems.push({
-      title: t("sidebar.studio"),
-      url: "/dashboard/admin/studio",
-      icon: Database,
-      isActive: path.startsWith("/dashboard/admin/studio"),
-      items: [
         {
-          title: t("sidebar.database"),
-          url: "/dashboard/admin/studio/db",
-          isActive: path === "/dashboard/admin/studio/db",
-        },
-        {
-          title: t("sidebar.redis"),
-          url: "/dashboard/admin/studio/redis",
-          isActive: path === "/dashboard/admin/studio/redis",
-        },
+          title: t("sidebar.studio"),
+          url: "/dashboard/admin/studio",
+          icon: Database,
+          isActive: path.startsWith("/dashboard/admin/studio"),
+        }
       ],
     });
   }

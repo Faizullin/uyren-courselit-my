@@ -7,8 +7,8 @@ import WebsiteSettings from "./_components/website-settings";
 export default function WebsiteSettingsPage() {
   const { t } = useTranslation(["dashboard", "common"]);
   const breadcrumbs = [
-    { label: t("sidebar.settings"), href: "/dashboard/settings" },
-    { label: t("sidebar.website_settings"), href: "/dashboard/settings/website-settings" },
+    { label: t("sidebar.settings"), href: "/dashboard/admin/settings" },
+    { label: "Website Settings", href: "#" },
   ];
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>

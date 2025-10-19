@@ -2,8 +2,8 @@
 
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { ITextEditorContent } from "@workspace/common-logic";
 import { MediaViewComponent } from "../components/media-view-component";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 
 export interface MediaViewOptions {
   HTMLAttributes: Record<string, any>;
@@ -17,11 +17,25 @@ declare module "@tiptap/core" {
       setMediaView: (asset: AssetType) => ReturnType;
       updateMediaView: (assetId: string, updates: Partial<AssetType>) => ReturnType;
       removeMediaView: (assetId: string) => ReturnType;
+      openMediaSelectDialog: (props: { fileType: string }) => ReturnType;
     };
   }
 }
 
-const extensionName = "media-view";
+
+declare module "@tiptap/core" {
+  interface Storage {
+    mediaView: {
+      lesson: {
+        _id: string;
+        courseId: string;
+      }
+    };
+  }
+}
+
+
+const extensionName = "mediaView";
 
 export const MediaViewExtension = Node.create<MediaViewOptions>({
   name: extensionName,
@@ -101,7 +115,7 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
 
             return { assetId, asset, display };
           } catch (err) {
-            console.error("Failed to parse media-view attributes:", err);
+            console.error("Failed to parse mediaView attributes:", err);
             return {};
           }
         },
@@ -134,6 +148,7 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
   },
 
   addNodeView() {
+    console.log("[addNodeView]");
     return ReactNodeViewRenderer(MediaViewComponent);
   },
 
@@ -143,7 +158,6 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
         (asset: AssetType) =>
           ({ commands }) => {
             const assetId = asset.media?._id?.toString() || `asset_${Date.now()}`;
-            
             return commands.insertContent({
               type: extensionName,
               attrs: {
@@ -171,6 +185,12 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
         (assetId: string) =>
           ({ commands }) => {
             return commands.deleteNode(extensionName);
+          },
+
+      openMediaSelectDialog:
+        (props: { fileType: string }) =>
+          ({ editor }) => {
+            throw new Error("openMediaSelectDialog not implemented. Override this extension to provide custom implementation.");
           },
     };
   },

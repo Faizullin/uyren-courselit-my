@@ -3,6 +3,7 @@
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import { trpc } from "@/utils/trpc";
+import { IScheduleEvent, ScheduleTypeEnum } from "@workspace/common-logic/models/lms/schedule.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -313,42 +314,11 @@ export default function InstructorPage() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {upcomingEvents.map((event) => (
-                                            <div
-                                                key={event._id.toString()}
-                                                className="p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`p-2 rounded-lg ${event.status === 'live'
-                                                            ? 'bg-green-100 text-green-600'
-                                                            : 'bg-blue-100 text-blue-600'
-                                                        }`}>
-                                                        <Video className="h-4 w-4" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="font-medium text-sm mb-1 truncate">
-                                                            {event.title}
-                                                        </h4>
-                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                            <Clock className="h-3 w-3" />
-                                                            <span>
-                                                                {new Date(event.scheduledStartTime).toLocaleDateString('en-US', {
-                                                                    month: 'short',
-                                                                    day: 'numeric',
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit'
-                                                                })}
-                                                            </span>
-                                                        </div>
-                                                        {event.status === 'live' && (
-                                                            <Badge variant="default" className="mt-2 text-xs">
-                                                                Live Now
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {upcomingEvents.map((event) => {                                            
+                                            return (
+                                                <UpcomingEventsCard key={event._id} item={event} />
+                                            );
+                                        })}
 
                                         {upcomingEvents.length >= 10 && (
                                             <Button variant="outline" className="w-full" asChild>
@@ -365,5 +335,65 @@ export default function InstructorPage() {
                 </div>
             </div>
         </DashboardContent>
+    );
+}
+
+const UpcomingEventsCard = ({item}: {
+    item: IScheduleEvent
+}) => {
+    const eventTypeIcons: Record<string, any> = {
+        live_session: Video,
+        assignment: BookOpen,
+        quiz: TrendingUp,
+        deadline: Clock,
+    };
+    const EventIcon = eventTypeIcons[item.type] || CalendarIcon;
+    const Wrapper = ({children}: {children: React.ReactNode}) => {
+        if (item.type === ScheduleTypeEnum.LIVE_SESSION) {
+            if(item.entity.entityType === "cohort") {
+                return (
+                    <Link href={`/dashboard/lms/cohorts/${item.entity.entityId}`}>
+                        {children}
+                    </Link>
+                );
+            }
+        }
+        return (
+            <div>
+                {children}
+            </div>
+        );
+    }
+    return (
+        <Wrapper>
+        <div
+            className="p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+        >
+            <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                    <EventIcon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm mb-1 truncate">
+                        {item.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                            {new Date(item.startDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </span>
+                    </div>
+                    <Badge variant="outline" className="mt-2 text-xs">
+                        {item.type.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                </div>
+            </div>
+        </div>
+        </Wrapper>
     );
 }

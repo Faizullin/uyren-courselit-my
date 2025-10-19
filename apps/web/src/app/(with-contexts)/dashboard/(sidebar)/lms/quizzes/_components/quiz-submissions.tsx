@@ -6,6 +6,7 @@ import { useDataTable } from "@/components/data-table/use-data-table";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";
+import { QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt.types";
 import {
   DeleteConfirmNiceDialog,
   NiceModal,
@@ -167,30 +168,30 @@ export default function QuizSubmissions() {
         header: "Status",
         cell: ({ row }) => {
           const status = row.original.status;
-          const getStatusVariant = (status: string) => {
+          const getStatusVariant = (status: QuizAttemptStatusEnum) => {
             switch (status) {
-              case "completed":
+              case QuizAttemptStatusEnum.COMPLETED:
                 return "default";
-              case "graded":
+              case QuizAttemptStatusEnum.GRADED:
                 return "default";
-              case "in_progress":
+              case QuizAttemptStatusEnum.IN_PROGRESS:
                 return "secondary";
-              case "abandoned":
+              case QuizAttemptStatusEnum.ABANDONED:
                 return "destructive";
               default:
                 return "secondary";
             }
           };
 
-          const getStatusLabel = (status: string) => {
+          const getStatusLabel = (status: QuizAttemptStatusEnum) => {
             switch (status) {
-              case "completed":
+              case QuizAttemptStatusEnum.COMPLETED:
                 return "Completed";
-              case "graded":
+              case QuizAttemptStatusEnum.GRADED:
                 return "Graded";
-              case "in_progress":
+              case QuizAttemptStatusEnum.IN_PROGRESS:
                 return "In Progress";
-              case "abandoned":
+              case QuizAttemptStatusEnum.ABANDONED:
                 return "Abandoned";
               default:
                 return "Unknown";
@@ -208,10 +209,10 @@ export default function QuizSubmissions() {
           variant: "select",
           options: [
             { label: "All", value: "" },
-            { label: "Completed", value: "completed" },
-            { label: "Graded", value: "graded" },
-            { label: "In Progress", value: "in_progress" },
-            { label: "Abandoned", value: "abandoned" },
+            { label: "Completed", value: QuizAttemptStatusEnum.COMPLETED },
+            { label: "Graded", value: QuizAttemptStatusEnum.GRADED },
+            { label: "In Progress", value: QuizAttemptStatusEnum.IN_PROGRESS },
+            { label: "Abandoned", value: QuizAttemptStatusEnum.ABANDONED },
           ],
         },
       },
@@ -314,8 +315,8 @@ export default function QuizSubmissions() {
         )
           ? ((
             tableState.columnFilters.find((filter) => filter.id === "status")
-              ?.value as string[]
-          )[0] as "completed" | "graded" | "in_progress" | "abandoned")
+              ?.value as QuizAttemptStatusEnum[]
+          )[0] as QuizAttemptStatusEnum)
           : undefined,
       },
     };

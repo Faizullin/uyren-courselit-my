@@ -42,7 +42,7 @@ export const MyContentExtension = Extension.create<{}, {}>({
       const assets: ITextEditorContent["assets"] = [];
       
       editor.state.doc.descendants((node) => {
-        if (node.type.name === "media-view" && node.attrs.asset) {
+        if (node.type.name === "mediaView" && node.attrs.asset) {
           assets.push(node.attrs.asset);
         }
       });

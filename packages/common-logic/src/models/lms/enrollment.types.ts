@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ApprovalStatusEnum } from "../../lib/approval_status";
 
 export enum CourseEnrollmentMemberTypeEnum {
   STUDENT = "student",
@@ -25,5 +26,6 @@ export interface ICourseEnrollment {
   memberType: CourseEnrollmentMemberTypeEnum;
   role: CourseEnrollmentRoleEnum;
   status: EnrollmentStatusEnum;
+  approvalStatus: ApprovalStatusEnum;
 }
 

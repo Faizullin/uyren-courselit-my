@@ -21,6 +21,7 @@ export {
   TableRow
 };
 
+  export * from "./dialogs/base-dialog";
   export * from "./dialogs/form-dialog";
   export * from "./hooks/use-dialog-control";
   export * from "./hooks/use-toast";

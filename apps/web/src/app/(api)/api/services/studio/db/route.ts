@@ -1,31 +1,30 @@
 import { authOptions } from "@/lib/auth/options";
-import ActivityModel from "@/models/Activity";
-import ApiKeyModel from "@/models/ApiKey";
-import CommunityModel from "@/models/community/Community";
-import CourseModel from "@/models/Course";
-import DomainModel from "@/models/Domain";
-import LessonModel from "@/models/Lesson";
-import AssignmentModel from "@/models/lms/Assignment";
-import QuizModel from "@/models/lms/Quiz";
-import MediaModel from "@/models/Media";
-import MembershipModel from "@/models/Membership";
-import UserModel from "@/models/User";
 import { ListInputSchema } from "@/server/api/core/schema";
+import { ActivityModel } from "@workspace/common-logic/models/activity.model";
+import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
+import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
+import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
+import { QuizModel } from "@workspace/common-logic/models/lms/quiz.model";
+import { AttachmentModel } from "@workspace/common-logic/models/media.model";
+import { DomainModel, OrganizationModel } from "@workspace/common-logic/models/organization.model";
+import { UserModel } from "@workspace/common-logic/models/user.model";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getActionContext as getDefaultActionContext } from "@/server/api/core/actions";
+import { AuthorizationException } from "@/server/api/core/exceptions";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 
 const MODEL_REGISTRY = {
     users: UserModel,
     courses: CourseModel,
     quizzes: QuizModel,
-    media: MediaModel,
-    assignments: AssignmentModel,
+    attachments: AttachmentModel,
     lessons: LessonModel,
+    organizations: OrganizationModel,
     domains: DomainModel,
     activities: ActivityModel,
-    apikeys: ApiKeyModel,
-    memberships: MembershipModel,
+    enrollments: EnrollmentModel,
 } as const;
 
 type ModelKey = keyof typeof MODEL_REGISTRY;
@@ -38,37 +37,11 @@ const GetParamsSchema = z.object({
 });
 
 async function getActionContext(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-        return { error: "Unauthorized", status: 401 };
+    const ctx = await getDefaultActionContext();
+    if(!ctx.user.roles.includes(UIConstants.roles.admin)) {
+        throw new AuthorizationException();
     }
-
-    await connectToDatabase();
-
-    const user = await UserModel.findOne({ email: session.user.email }).lean();
-    if (!user) {
-        return { error: "User not found", status: 404 };
-    }
-
-    const isAdmin = user.roles?.includes("admin");
-    if (!isAdmin) {
-        return { error: "Admin access required", status: 403 };
-    }
-
-    return {
-        user: {
-            _id: user._id,
-            userId: user.userId,
-            email: user.email,
-            name: user.name,
-            roles: user.roles || [],
-            permissions: user.permissions || [],
-            domain: user.domain
-        },
-        domain: user.domain,
-        isValid: true
-    };
+    return ctx;
 }
 
 function buildQuery(model: string, context: any, listInput: z.infer<typeof ListInputSchema>) {
@@ -113,9 +86,6 @@ function getSearchFields(model: string): string[] {
 
 export async function GET(req: NextRequest) {
     const context = await getActionContext(req);
-    if (!context.isValid) {
-        return NextResponse.json({ error: context.error }, { status: context.status });
-    }
 
     try {
         const { searchParams } = new URL(req.url);
@@ -161,32 +131,10 @@ const PostBodySchema = z.object({
 
 export async function POST(req: NextRequest) {
     const context = await getActionContext(req);
-    if (!context.isValid) {
-        return NextResponse.json({ error: context.error }, { status: context.status });
-    }
-
     try {
         const body = PostBodySchema.parse(await req.json());
         const Model = MODEL_REGISTRY[body.model] as any;
         const recordData: any = { ...body.data, };
-
-        if (body.model === "users") {
-            recordData.userId = `user_${Date.now()}`;
-            recordData.unsubscribeToken = `unsub_${Date.now()}`;
-        }
-        if (body.model === "courses") {
-            recordData.courseId = `course_${Date.now()}`;
-            recordData.instructor = context.user.userId;
-        }
-        if (body.model === "quizzes") {
-            recordData.ownerId = context.user.userId;
-        }
-        if (body.model === "assignments") {
-            recordData.ownerId = context.user.userId;
-        }
-        if (body.model === "apikeys") {
-            recordData.createdBy = context.user.userId;
-        }
 
         const newRecord = new Model(recordData);
         const savedRecord = await newRecord.save();
@@ -209,9 +157,6 @@ const PutBodySchema = z.object({
 
 export async function PUT(req: NextRequest) {
     const context = await getActionContext(req);
-    if (!context.isValid) {
-        return NextResponse.json({ error: context.error }, { status: context.status });
-    }
 
     try {
         const body = PutBodySchema.parse(await req.json());
@@ -244,10 +189,7 @@ const DeleteParamsSchema = z.object({
 
 export async function DELETE(req: NextRequest) {
     const context = await getActionContext(req);
-    if (!context.isValid) {
-        return NextResponse.json({ error: context.error }, { status: context.status });
-    }
-
+    
     try {
         const { searchParams } = new URL(req.url);
         const params = DeleteParamsSchema.parse({

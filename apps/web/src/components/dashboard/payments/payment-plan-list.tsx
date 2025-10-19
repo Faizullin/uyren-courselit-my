@@ -149,7 +149,6 @@ export default function PaymentPlanList({
   currencyISOCode = "USD",
   onDefaultPlanChanged,
   defaultPaymentPlanId,
-  paymentMethod,
 }: {
     paymentPlans: Array<IPaymentPlanWithId>;
   onPlanSubmit: (values: z.infer<typeof formSchema>) => void;
@@ -159,7 +158,6 @@ export default function PaymentPlanList({
   currencyISOCode?: string;
   onDefaultPlanChanged?: (plan: IPaymentPlanWithId) => void;
   defaultPaymentPlanId?: string;
-  paymentMethod?: PaymentMethodData;
 }) {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [planType, setPlanType] = useState<PaymentPlanTypeEnum>(
@@ -363,7 +361,7 @@ export default function PaymentPlanList({
                         <SelectTrigger aria-invalid={fieldState.invalid}>
                           <SelectValue placeholder="Select a plan type" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="item-aligned">
                           {allowedPlanTypes.includes(PaymentPlanTypeEnum.FREE) && (
                             <SelectItem value={PaymentPlanTypeEnum.FREE}>
                               Free
@@ -372,7 +370,6 @@ export default function PaymentPlanList({
                           {allowedPlanTypes.includes(PaymentPlanTypeEnum.EMI) && (
                             <SelectItem
                               value={PaymentPlanTypeEnum.EMI}
-                              disabled={!paymentMethod}
                             >
                               EMI
                             </SelectItem>
@@ -382,7 +379,6 @@ export default function PaymentPlanList({
                           ) && (
                             <SelectItem
                               value={PaymentPlanTypeEnum.SUBSCRIPTION}
-                              disabled={!paymentMethod}
                             >
                               Subscription
                             </SelectItem>
@@ -392,7 +388,6 @@ export default function PaymentPlanList({
                           ) && (
                             <SelectItem
                               value={PaymentPlanTypeEnum.ONE_TIME}
-                              disabled={!paymentMethod}
                             >
                               One-time
                             </SelectItem>

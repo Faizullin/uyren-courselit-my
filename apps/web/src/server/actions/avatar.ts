@@ -1,15 +1,13 @@
 "use server";
 
-import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/server/lib/domain";
+import { getActionContext } from "@/server/api/core/actions";
+import { ValidationException } from "@/server/api/core/exceptions";
 import { CloudinaryService } from "@/server/services/cloudinary";
-import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
-import { DomainModel } from "@workspace/common-logic/models/organization.model";
+import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { UserModel } from "@workspace/common-logic/models/user.model";
 import { generateUniqueId } from "@workspace/utils";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth";
 
 interface UploadAvatarResult {
     success: boolean;
@@ -17,166 +15,71 @@ interface UploadAvatarResult {
     error?: string;
 }
 
-/**
- * Upload and set user avatar using Cloudinary
- */
 export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResult> {
     try {
-        // Check authentication
-        const session = await getServerSession(authOptions);
-        if (!session?.user) {
-            return { success: false, error: "Unauthorized" };
-        }
-        const { domainObj } = await getDomainData();
-        if (!domainObj) {
-            return { success: false, error: "Domain not found" };
-        }
+        const ctx = await getActionContext();
         const file = formData.get("file") as File;
-        if (!file) {
-            return { success: false, error: "No file provided" };
-        }
-        if (!file.type.startsWith("image/")) {
-            return { success: false, error: "Only image files are allowed" };
-        }
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            return { success: false, error: "File size exceeds 5MB limit" };
-        }
-        await connectToDatabase();
-        const domainDoc = await DomainModel.findOne({ name: domainObj.name });
-        if (!domainDoc) {
-            return { success: false, error: "Domain document not found" };
-        }
+        if (!file) throw new ValidationException("No file provided");
+        if (!file.type.startsWith("image/")) throw new ValidationException("Only image files are allowed");
+        if (file.size > 5 * 1024 * 1024) throw new ValidationException("File size exceeds 5MB limit");
 
-        const userObjectId = new mongoose.Types.ObjectId(session.user.id);
+        const user = await UserModel.findOne({ _id: ctx.user._id, orgId: ctx.domainData.domainObj.orgId });
+        if (!user) throw new ValidationException("User not found");
 
-        // Upload to Cloudinary
-        const media = await CloudinaryService.uploadFile(
+        const attachment = await CloudinaryService.uploadFile(
             {
                 file,
-                userId: userObjectId,
+                userId: ctx.user._id as mongoose.Types.ObjectId,
                 type: "avatars",
                 caption: "Profile picture",
                 access: MediaAccessTypeEnum.PUBLIC,
+                entityType: "user",
+                entityId: ctx.user._id,
             },
-            domainDoc
+            ctx.domainData.domainObj as IDomainHydratedDocument,
         );
 
-        // Update user avatar in database
-        const user = await UserModel.findOne({
-            _id: userObjectId,
-            orgId: domainObj.orgId,
-        });
-
-        if (!user) {
-            return { success: false, error: "User not found" };
-        }
-
-        user.avatar = media;
+        user.avatar = attachment.toObject();
         await user.save();
 
-        return {
-            success: true,
-            avatar: media,
-        };
-    } catch (error: any) {
-        console.error("Avatar upload error:", error);
-        return {
-            success: false,
-            error: error.message || "Upload failed",
-        };
+        return { success: true, avatar: attachment.toObject() };
+    } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error("Avatar upload error:", err);
+        return { success: false, error: err.message || "Upload failed" };
     }
 }
 
-/**
- * Remove user avatar
- */
 export async function removeAvatar(): Promise<UploadAvatarResult> {
     try {
-        // Check authentication
-        const session = await getServerSession(authOptions);
-        if (!session?.user) {
-            return { success: false, error: "Unauthorized" };
-        }
+        const ctx = await getActionContext();
+        const user = await UserModel.findOne({ _id: ctx.user._id, orgId: ctx.domainData.domainObj.orgId });
+        if (!user) throw new ValidationException("User not found");
+        if (!user.avatar) throw new ValidationException("Avatar not found");
 
-        // Get domain data
-        const { domainObj: domainData } = await getDomainData();
-        if (!domainData) {
-            return { success: false, error: "Domain not found" };
-        }
-
-        // Update user avatar in database
-        await connectToDatabase();
-
-        const userObjectId = new mongoose.Types.ObjectId(session.user.id);
-        const user = await UserModel.findOne({
-            _id: userObjectId,
-            orgId: domainData.orgId,
-        });
-
-        if (!user) {
-            return { success: false, error: "User not found" };
-        }
-
-        // Optional: Delete old avatar from Cloudinary if it exists
-        if (user.avatar) {
-            try {
-                await CloudinaryService.deleteFile(user.avatar);
-            } catch (error) {
-                throw new Error("Failed to delete old avatar from Cloudinary: " + (error as Error).message);
-            }
-        }
+        await CloudinaryService.deleteFile(user.avatar);
 
         user.avatar = undefined;
         await user.save();
 
-        return {
-            success: true,
-        };
-    } catch (error: any) {
-        console.error("Avatar removal error:", error);
-        return {
-            success: false,
-            error: error.message || "Removal failed",
-        };
+        return { success: true };
+    } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error("Avatar removal error:", err);
+        return { success: false, error: err.message || "Removal failed" };
     }
 }
 
-/**
- * Set avatar from Google profile picture
- */
 export async function setGoogleAvatar(photoURL: string): Promise<UploadAvatarResult> {
     try {
-        // Check authentication
-        const session = await getServerSession(authOptions);
-        if (!session?.user) {
-            return { success: false, error: "Unauthorized" };
-        }
-
-        // Get domain data
-        const { domainObj: domainData } = await getDomainData();
-        if (!domainData) {
-            return { success: false, error: "Domain not found" };
-        }
-
-        // Update user avatar in database
-        await connectToDatabase();
-
-        const userId = new mongoose.Types.ObjectId(session.user.id);
-
-        const user = await UserModel.findOne({
-            _id: userId,
-            orgId: domainData.orgId,
-        });
-
-        if (!user) {
-            return { success: false, error: "User not found" };
-        }
+        const ctx = await getActionContext();
+        const user = await UserModel.findOne({ _id: ctx.user._id, orgId: ctx.domainData.domainObj.orgId });
+        if (!user) throw new ValidationException("User not found");
 
         const googleAvatar: IAttachmentMedia = {
             mediaId: generateUniqueId(),
-            orgId: domainData.orgId,
-            ownerId: userId,
+            orgId: ctx.domainData.domainObj.orgId,
+            ownerId: ctx.user._id as mongoose.Types.ObjectId,
             storageProvider: "custom",
             url: photoURL,
             originalFileName: "google_profile_picture",
@@ -190,16 +93,11 @@ export async function setGoogleAvatar(photoURL: string): Promise<UploadAvatarRes
         user.avatar = googleAvatar;
         await user.save();
 
-        return {
-            success: true,
-            avatar: googleAvatar,
-        };
-    } catch (error: any) {
-        console.error("Google avatar set error:", error);
-        return {
-            success: false,
-            error: error.message || "Failed to set Google avatar",
-        };
+        return { success: true, avatar: googleAvatar };
+    } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error("Google avatar set error:", err);
+        return { success: false, error: err.message || "Failed to set Google avatar" };
     }
 }
 

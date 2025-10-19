@@ -8,10 +8,11 @@ import { cache } from "react";
 import CourseBreadcrumbs from "./_components/course-breadcrumbs";
 import CourseLayoutContent from "./_components/course-layout-content";
 import { CourseProvider } from "./_components/course-provider";
+import { IThemeAsset } from "@workspace/common-logic/models/theme.types";
 
 const getCachedCourseData = cache(async (courseId: string) => {
   return await trpcCaller.lmsModule.courseModule.course.publicGetById({
-    courseId,
+    id: courseId,
   });
 });
 
@@ -64,15 +65,25 @@ export default async function CourseLayout({
 
   try {
     const courseData = await getCachedCourseData(courseId);
+    
+    const serializedCourseData = {
+      _id: courseData._id.toString(),
+      title: courseData.title,
+      shortDescription: courseData.shortDescription,
+      statsAverageRating: courseData.statsAverageRating,
+      statsEnrollmentCount: courseData.statsEnrollmentCount,
+      statsLessonCount: courseData.statsLessonCount,
+      statsCompletionRate: courseData.statsCompletionRate,
+    }
     const theme = courseData.themeId
-      ? await trpcCaller.lmsModule.themeModule.theme.publicGetThemeAndAssets({
-        id: courseData.themeId.toString(),
+      ? await trpcCaller.lmsModule.themeModule.theme.publicGetById({
+        id: courseData.themeId,
       })
       : null;
     const assets = theme?.assets || [];
 
     return (
-      <CourseProvider courseData={courseData}>
+      <CourseProvider courseData={serializedCourseData}>
         <ThemeAssets assets={assets} />
 
         <div className="min-h-screen bg-background m--course-page">
@@ -82,12 +93,15 @@ export default async function CourseLayout({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 m--course-layout">
               {/* Main Content Area */}
               <div className="lg:col-span-2 space-y-6 m--course-content">
-                <CourseBreadcrumbs courseId={courseId} />
+                <CourseBreadcrumbs courseId={serializedCourseData._id} />
                 {children}
               </div>
 
               {/* Persistent Sidebar */}
-              <CourseLayoutContent courseData={courseData} />
+              <CourseLayoutContent 
+                courseData={serializedCourseData}
+                showEnrollmentCard={true}
+              />
             </div>
           </main>
 
@@ -104,11 +118,10 @@ export default async function CourseLayout({
   }
 }
 
-interface ThemeAssetsProps {
-  assets: ThemeAsset[];
-}
 
-function ThemeAssets({ assets }: ThemeAssetsProps) {
+function ThemeAssets({ assets }: {
+  assets: Array<Omit<IThemeAsset, "_id"> & { _id: string }>;
+}) {
   if (!assets?.length) return null;
 
   const nodes = assets.flatMap((a, i) => {

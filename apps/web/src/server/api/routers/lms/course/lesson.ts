@@ -31,14 +31,15 @@ import {
   LessonModel,
 } from "@workspace/common-logic/models/lms/lesson.model";
 import { LessonTypeEnum } from "@workspace/common-logic/models/lms/lesson.types";
+import { AssignmentModel } from "@workspace/common-logic/models/lms/assignment.model";
+import { QuizModel } from "@workspace/common-logic/models/lms/quiz.model";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 import { getCourseOrThrow } from "./helpers";
 
-// TODO: Add video watch duration tracking (like Frappe LMS track_video_watch_duration)
-// TODO: Add lesson progress tracking with save_progress integration
+// ✓ Lesson progress tracking implemented via enrollment.saveCurrentLesson and enrollment.updateProgress
 
 const getLessonOrThrow = async (
   id: string,
@@ -178,7 +179,7 @@ export const lessonRouter = router({
 
       // Verify chapter exists
       const chapter = course.chapters.find(
-        (ch) => ch._id.toString() === input.data.chapterId,
+        (ch) => ch._id.equals(input.data.chapterId),
       );
       if (!chapter) {
         throw new NotFoundException("Chapter", input.data.chapterId);
@@ -195,6 +196,11 @@ export const lessonRouter = router({
       // Add lesson to chapter's lessonOrderIds
       chapter.lessonOrderIds.push(lesson._id);
       await course.save();
+      course.statsLessonCount = await LessonModel.countDocuments({
+        courseId: course._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      });
 
       return jsonify(lesson.toObject());
     }),
@@ -218,12 +224,22 @@ export const lessonRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const lesson = await getLessonOrThrow(input.id, ctx);
+      const course = await getCourseOrThrow({
+        ctx,
+        courseId: lesson.courseId,
+      });
 
       Object.keys(input.data).forEach((key) => {
         (lesson as any)[key] = (input.data as any)[key];
       });
 
       const savedLesson = await lesson.save();
+      course.statsLessonCount = await LessonModel.countDocuments({
+        courseId: course._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      });
+      await course.save();
       return jsonify(savedLesson.toObject());
     }),
 
@@ -255,6 +271,11 @@ export const lessonRouter = router({
         );
       });
 
+      course.statsLessonCount = await LessonModel.countDocuments({
+        courseId: course._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      });
       await course.save();
 
       await LessonModel.deleteOne({
@@ -365,5 +386,62 @@ export const lessonRouter = router({
           prevLesson,
         },
       });
+    }),
+
+  searchAssignmentEntities: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      ListInputSchema.extend({
+        filter: z.object({
+          courseId: documentIdValidator(),
+          type: z.enum(["quiz", "assignment"]).optional(),
+        }),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { filter, pagination } = input;
+      
+      const query: RootFilterQuery<typeof AssignmentModel | typeof QuizModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
+        courseId: filter.courseId,
+      };
+
+      const paginationMeta = paginate(pagination);
+
+      // Fetch based on type filter
+      const fetchAssignments = !filter.type || filter.type === "assignment";
+      const fetchQuizzes = !filter.type || filter.type === "quiz";
+
+      const [assignments, quizzes] = await Promise.all([
+        fetchAssignments
+          ? AssignmentModel.find(query)
+              .select("_id title type")
+              .limit(paginationMeta.take)
+              .skip(paginationMeta.skip)
+              .lean()
+          : Promise.resolve([]),
+        fetchQuizzes
+          ? QuizModel.find(query)
+              .select("_id title")
+              .limit(paginationMeta.take)
+              .skip(paginationMeta.skip)
+              .lean()
+          : Promise.resolve([]),
+      ]);
+
+      const items = [
+        ...assignments.map((a) => ({
+          _id: a._id,
+          title: a.title,
+          type: "assignment" as const,
+        })),
+        ...quizzes.map((q) => ({
+          _id: q._id,
+          title: q.title,
+          type: "quiz" as const,
+        })),
+      ].slice(0, paginationMeta.take);
+
+      return jsonify({ items });
     }),
 });

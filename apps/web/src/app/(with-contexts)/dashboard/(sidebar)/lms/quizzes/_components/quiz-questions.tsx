@@ -3,26 +3,25 @@
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { QuestionTypeEnum } from "@workspace/common-logic/models/lms/quiz.types";
 import { useToast } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
@@ -32,68 +31,107 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
+  CheckSquare,
   Edit,
   FileQuestion,
+  LayoutDashboard,
+  List,
   MoreHorizontal,
   Plus,
   Trash2,
+  Type,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { UseFormReturn, useFieldArray, useForm } from "react-hook-form";
 import z from "zod";
 import { useQuizContext } from "./quiz-context";
 
 // Base schema for common fields
 const BaseQuestionSchema = z.object({
-  text: z
-    .string()
-    .min(1, "Question text is required")
-    .max(2000, "Question text must be less than 2000 characters"),
-  type: z.enum(["multiple_choice", "short_answer"]),
-  points: z
-    .number()
-    .min(1, "Points must be at least 1")
-    .max(100, "Points cannot exceed 100"),
+  text: z.string().min(1, "Question text is required").max(2000),
+  type: z.nativeEnum(QuestionTypeEnum),
+  points: z.number().min(1).max(100),
   explanation: z.string().optional(),
 });
 
-// Schema for create mode (no type-specific validation)
-const CreateQuestionSchema = BaseQuestionSchema;
-
-// Schema for edit mode (with type-specific validation)
-const EditQuestionSchema = BaseQuestionSchema.extend({
+// Individual schemas for each question type
+const MultipleChoiceSchema = BaseQuestionSchema.extend({
+  type: z.literal(QuestionTypeEnum.MULTIPLE_CHOICE),
   options: z
     .array(
       z.object({
         uid: z.string(),
         text: z.string().min(1, "Option text is required"),
         isCorrect: z.boolean(),
-      }),
+      })
     )
-    .optional(),
+    .min(2, "At least 2 options are required"),
   correctAnswers: z.array(z.string()).optional(),
 });
 
-// Union type for both schemas
-const QuestionSchema = z.union([CreateQuestionSchema, EditQuestionSchema]);
+const ShortAnswerSchema = BaseQuestionSchema.extend({
+  type: z.literal(QuestionTypeEnum.SHORT_ANSWER),
+  correctAnswers: z
+    .array(z.string().min(1, "Answer cannot be empty"))
+    .min(1, "At least one correct answer is required"),
+  options: z.array(z.any()).optional(),
+});
+
+// Union schema for all question types
+const QuestionSchema = z.discriminatedUnion("type", [
+  MultipleChoiceSchema,
+  ShortAnswerSchema,
+]);
+
 type QuestionType =
   GeneralRouterOutputs["lmsModule"]["quizModule"]["quizQuestions"]["list"]["items"][number];
 type QuestionFormDataType = z.infer<typeof QuestionSchema>;
 
+type OptionType = { uid: string; text: string; isCorrect: boolean };
+
+const generateUid = (index: number) => `uid-${Date.now()}-${index}`;
+
+const getDefaultValues = (
+  type: QuestionTypeEnum
+): QuestionFormDataType => {
+  const baseValues = {
+    text: "",
+    type: type,
+    points: 5,
+    explanation: "",
+  };
+
+  switch (type) {
+    case QuestionTypeEnum.MULTIPLE_CHOICE:
+      return {
+        ...baseValues,
+        type: QuestionTypeEnum.MULTIPLE_CHOICE,
+        options: [
+          { uid: generateUid(0), text: "", isCorrect: false },
+          { uid: generateUid(1), text: "", isCorrect: false },
+        ],
+        correctAnswers: [],
+      };
+    case QuestionTypeEnum.SHORT_ANSWER:
+      return {
+        ...baseValues,
+        type: QuestionTypeEnum.SHORT_ANSWER,
+        correctAnswers: [""],
+      };
+  }
+};
+
 export default function QuizQuestions() {
   const { toast } = useToast();
   const { quiz, mode } = useQuizContext();
+  const trpcUtils = trpc.useUtils();
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionType | null>(
+    null
+  );
+  const [isEditing, setIsEditing] = useState(false);
 
   const loadQuestionsQuery =
     trpc.lmsModule.quizModule.quizQuestions.list.useQuery(
@@ -105,54 +143,20 @@ export default function QuizQuestions() {
       },
       {
         enabled: !!quiz?._id && mode === "edit",
-      },
+      }
     );
+
   const questions = loadQuestionsQuery.data?.items || [];
-
-  const createQuestionMutation =
-    trpc.lmsModule.quizModule.quizQuestions.create.useMutation({
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Question created successfully",
-        });
-        loadQuestionsQuery.refetch();
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
-
-  const updateQuestionMutation =
-    trpc.lmsModule.quizModule.quizQuestions.update.useMutation({
-      onSuccess: (response) => {
-        toast({
-          title: "Success",
-          description: "Question updated successfully",
-        });
-        loadQuestionsQuery.refetch();
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
 
   const deleteQuestionMutation =
     trpc.lmsModule.quizModule.quizQuestions.delete.useMutation({
-      onSuccess: () => {
+      onSuccess: async () => {
         toast({
           title: "Success",
           description: "Question deleted successfully",
         });
-        loadQuestionsQuery.refetch();
+        await trpcUtils.lmsModule.quizModule.quizQuestions.list.invalidate();
+        setSelectedQuestion(null);
       },
       onError: (error) => {
         toast({
@@ -163,186 +167,390 @@ export default function QuizQuestions() {
       },
     });
 
-  const [editingQuestion, setEditingQuestion] = useState<QuestionType | null>(
-    null,
-  );
-  const [editingDialogOpen, setEditingDialogOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
-  const handleEditQuestion = useCallback((obj: QuestionType) => {
-    setEditingQuestion(obj);
-    setEditingDialogOpen(true);
+  const handleCreateQuestion = useCallback(() => {
+    setSelectedQuestion(null);
+    setIsEditing(true);
   }, []);
 
-  const handleCreateQuestion = useCallback(() => {
-    setEditingQuestion(null);
-    setCreateDialogOpen(true);
+  const handleEditQuestion = useCallback((question: QuestionType) => {
+    setSelectedQuestion(question);
+    setIsEditing(true);
   }, []);
 
   const handleDeleteQuestion = useCallback(
-    async (obj: QuestionType) => {
+    async (question: QuestionType) => {
       if (!confirm("Are you sure you want to delete this question?")) return;
-      try {
-        await deleteQuestionMutation.mutateAsync({
-          id: obj._id,
-          quizId: quiz!._id!,
-        });
-      } catch (error) {}
+      await deleteQuestionMutation.mutateAsync({
+        id: question._id,
+        quizId: quiz!._id!,
+      });
+      if (selectedQuestion?._id === question._id) {
+        setSelectedQuestion(null);
+      }
     },
-    [deleteQuestionMutation.mutateAsync],
+    [deleteQuestionMutation, quiz, selectedQuestion]
   );
 
-  const isLoading =
-    createQuestionMutation.isPending ||
-    updateQuestionMutation.isPending ||
-    deleteQuestionMutation.isPending;
+  const handleQuestionSelect = useCallback((question: QuestionType) => {
+    setSelectedQuestion(question);
+    setIsEditing(false);
+  }, []);
+
+  const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
+
+  const getQuestionTypeIcon = (type: QuestionTypeEnum) => {
+    switch (type) {
+      case QuestionTypeEnum.MULTIPLE_CHOICE:
+        return <CheckSquare className="h-4 w-4" />;
+      case QuestionTypeEnum.SHORT_ANSWER:
+        return <Type className="h-4 w-4" />;
+    }
+  };
+
+  const getQuestionTypeLabel = (type: QuestionTypeEnum) => {
+    switch (type) {
+      case QuestionTypeEnum.MULTIPLE_CHOICE:
+        return "Multiple Choice";
+      case QuestionTypeEnum.SHORT_ANSWER:
+        return "Short Answer";
+    }
+  };
 
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <FileQuestion className="h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">{questions.length} Questions</span>
-          </div>
-          <Badge variant="outline">
-            Total Points: {questions.reduce((sum, q) => sum + (q.points || 0), 0)}
-          </Badge>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <FileQuestion className="h-5 w-5 text-muted-foreground" />
+          <span className="font-medium">{questions.length} Questions</span>
         </div>
-        <Button onClick={handleCreateQuestion}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Question
-        </Button>
+        <Badge variant="outline">Total Points: {totalPoints}</Badge>
       </div>
+
+      {/* Single Card Wrapper */}
       <Card className="p-0">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Question</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loadQuestionsQuery.isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    Loading questions...
-                  </TableCell>
-                </TableRow>
-              ) : questions.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No questions yet. Add your first question using the form on
-                    the left.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                questions.map((question, index) => (
-                  <TableRow key={question._id || question._id}>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-medium">
-                          {question.text?.substring(0, 50)}...
+          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[600px]">
+            {/* Questions Sidebar */}
+            <div className="lg:col-span-1 border-r">
+              <div className="p-4 border-b bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <List className="h-4 w-4" />
+                    <span className="font-medium">Questions</span>
+                  </div>
+                  <Button onClick={handleCreateQuestion} size="sm" variant="outline">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+              <ScrollArea className="h-[calc(600px-57px)]">
+                {questions.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <FileQuestion className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No questions yet</p>
+                    <p className="text-sm">Add your first question to get started</p>
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    {questions.map((question, index) => (
+                      <div
+                        key={question._id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors mb-2 ${
+                          selectedQuestion?._id === question._id
+                            ? "bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent"
+                        }`}
+                        onClick={() => handleQuestionSelect(question)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                Q{index + 1}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {question.points} pts
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {getQuestionTypeLabel(question.type as QuestionTypeEnum)}
+                              </Badge>
+                            </div>
+                            <p className="text-sm line-clamp-2">
+                              {question.text}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleEditQuestion(question)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeleteQuestion(question)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {question.type === "multiple_choice"
-                          ? "Multiple Choice"
-                          : question.type === "short_answer"
-                            ? "Short Answer"
-                            : "Unknown"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{question.points || 0}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleEditQuestion(question)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Question
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeleteQuestion(question)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Question
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+
+            {/* Question Editor/Viewer */}
+            <div className="lg:col-span-2 bg-muted/10">
+              {isEditing ? (
+                <QuestionEditor
+                  question={selectedQuestion}
+                  isEdit={!!selectedQuestion}
+                  onCancel={() => {
+                    setIsEditing(false);
+                    if (!selectedQuestion) {
+                      setSelectedQuestion(null);
+                    }
+                  }}
+                  onSuccess={() => {
+                    setIsEditing(false);
+                    if (!selectedQuestion && questions.length > 0) {
+                      const lastQuestion = questions[questions.length - 1];
+                      if (lastQuestion) {
+                        setSelectedQuestion(lastQuestion);
+                      }
+                    }
+                  }}
+                  getQuestionTypeIcon={getQuestionTypeIcon}
+                  getQuestionTypeLabel={getQuestionTypeLabel}
+                />
+              ) : selectedQuestion ? (
+                <QuestionViewer
+                  question={selectedQuestion}
+                  questionNumber={
+                    questions.findIndex((q) => q._id === selectedQuestion._id) +
+                    1
+                  }
+                  onEdit={() => handleEditQuestion(selectedQuestion)}
+                  getQuestionTypeLabel={getQuestionTypeLabel}
+                  getQuestionTypeIcon={getQuestionTypeIcon}
+                />
+              ) : (
+                <div className="p-8 text-center h-full flex flex-col items-center justify-center">
+                  <LayoutDashboard className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No Question Selected</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Select a question from the sidebar or create a new one
+                  </p>
+                  <Button onClick={handleCreateQuestion}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Question
+                  </Button>
+                </div>
               )}
-            </TableBody>
-          </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Create Question Dialog */}
-      <EditQuestionDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onSuccess={() => {
-          setCreateDialogOpen(false);
-          loadQuestionsQuery.refetch();
-        }}
-      />
-
-      {/* Edit Question Dialog */}
-      <EditQuestionDialog
-        question={editingQuestion}
-        isEdit={true}
-        open={editingDialogOpen}
-        onOpenChange={setEditingDialogOpen}
-        onSuccess={() => {
-          setEditingDialogOpen(false);
-          setEditingQuestion(null);
-          loadQuestionsQuery.refetch();
-        }}
-      />
-    </>
+    </div>
   );
 }
 
-function EditQuestionDialog({
+// Type guards
+const isMultipleChoice = (
+  question: QuestionType
+): question is QuestionType & { options: OptionType[] } =>
+  question.type === QuestionTypeEnum.MULTIPLE_CHOICE &&
+  Array.isArray(question.options);
+
+const isShortAnswer = (
+  question: QuestionType
+): question is QuestionType & { correctAnswers: string[] } =>
+  question.type === QuestionTypeEnum.SHORT_ANSWER &&
+  Array.isArray(question.correctAnswers);
+
+function QuestionViewer({
   question,
-  isEdit = false,
-  open,
-  onOpenChange,
-  onSuccess,
+  questionNumber,
+  onEdit,
+  getQuestionTypeLabel,
+  getQuestionTypeIcon,
 }: {
-  question?: any;
-  isEdit?: boolean;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  question: QuestionType;
+  questionNumber: number;
+  onEdit: () => void;
+  getQuestionTypeLabel: (type: QuestionTypeEnum) => string;
+  getQuestionTypeIcon: (type: QuestionTypeEnum) => React.ReactNode;
 }) {
+  const renderQuestionContent = () => {
+    if (isMultipleChoice(question)) {
+      return (
+        <div>
+          <h4 className="font-medium mb-3">Answer Options</h4>
+          <div className="space-y-2">
+            {question.options?.map((option, index) => (
+              <div
+                key={option.uid || index}
+                className={`p-3 rounded-lg border ${
+                  option.isCorrect
+                    ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs ${
+                      option.isCorrect
+                        ? "border-green-500 bg-green-500 text-white"
+                        : "border-gray-400 dark:border-gray-600"
+                    }`}
+                  >
+                    {String.fromCharCode(65 + index)}
+                  </div>
+                  <span
+                    className={
+                      option.isCorrect
+                        ? "font-medium text-green-700 dark:text-green-300"
+                        : ""
+                    }
+                  >
+                    {option.text}
+                  </span>
+                  {option.isCorrect && (
+                    <Badge variant="default" className="ml-auto">
+                      Correct
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (isShortAnswer(question)) {
+      return (
+        <div>
+          <h4 className="font-medium mb-3">Correct Answers</h4>
+          <div className="space-y-2">
+            {question.correctAnswers?.map((answer, index) => (
+              <div
+                key={index}
+                className="p-3 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full border border-green-500 bg-green-500 flex items-center justify-center text-xs text-white">
+                    {index + 1}
+                  </div>
+                  <span className="font-medium text-green-700 dark:text-green-300">
+                    {answer}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded flex items-center justify-center">
+            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              {questionNumber}
+            </span>
+          </div>
+          <div>
+            <h3 className="font-semibold">Question {questionNumber}</h3>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline">{question.points} points</Badge>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                {getQuestionTypeIcon(question.type as QuestionTypeEnum)}
+                {getQuestionTypeLabel(question.type as QuestionTypeEnum)}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <Button onClick={onEdit} variant="outline">
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </Button>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <h4 className="font-medium mb-2">Question Text</h4>
+          <p className="text-gray-700 dark:text-gray-300">{question.text}</p>
+        </div>
+
+        {question.explanation && (
+          <div>
+            <h4 className="font-medium mb-2">Explanation</h4>
+            <p className="text-gray-600 dark:text-gray-400">
+              {question.explanation}
+            </p>
+          </div>
+        )}
+
+        {renderQuestionContent()}
+      </div>
+    </div>
+  );
+}
+
+interface QuestionEditorProps {
+  question?: QuestionType | null;
+  isEdit?: boolean;
+  onCancel: () => void;
+  onSuccess: () => void;
+  getQuestionTypeIcon: (type: QuestionTypeEnum) => React.ReactNode;
+  getQuestionTypeLabel: (type: QuestionTypeEnum) => string;
+}
+
+function QuestionEditor({
+  question,
+  isEdit,
+  onCancel,
+  onSuccess,
+  getQuestionTypeIcon,
+  getQuestionTypeLabel,
+}: QuestionEditorProps) {
   const { toast } = useToast();
   const { quiz } = useQuizContext();
+  const trpcUtils = trpc.useUtils();
+  const [currentType, setCurrentType] = useState<QuestionTypeEnum>(
+    (question?.type as QuestionTypeEnum) || QuestionTypeEnum.MULTIPLE_CHOICE
+  );
 
   const createQuestionMutation =
     trpc.lmsModule.quizModule.quizQuestions.create.useMutation({
-      onSuccess: () => {
+      onSuccess: async () => {
         toast({
           title: "Success",
           description: "Question created successfully",
         });
+        await trpcUtils.lmsModule.quizModule.quizQuestions.list.invalidate();
         onSuccess();
       },
       onError: (error) => {
@@ -356,11 +564,12 @@ function EditQuestionDialog({
 
   const updateQuestionMutation =
     trpc.lmsModule.quizModule.quizQuestions.update.useMutation({
-      onSuccess: () => {
+      onSuccess: async () => {
         toast({
           title: "Success",
           description: "Question updated successfully",
         });
+        await trpcUtils.lmsModule.quizModule.quizQuestions.list.invalidate();
         onSuccess();
       },
       onError: (error) => {
@@ -373,316 +582,294 @@ function EditQuestionDialog({
     });
 
   const form = useForm<QuestionFormDataType>({
-    resolver: zodResolver(isEdit ? EditQuestionSchema : CreateQuestionSchema),
-    defaultValues: {
-      text: "",
-      type: "multiple_choice",
-      points: 5,
-      explanation: "",
-    },
+    resolver: zodResolver(QuestionSchema),
+    defaultValues: getDefaultValues(currentType),
   });
 
-  const {
-    fields: options,
-    append,
-    remove,
-  } = useFieldArray({
+  const { fields: options, append: addOption, remove: removeOption } = useFieldArray({
     control: form.control,
     name: "options",
   });
 
   const {
-    fields: correctAnswers,
+    fields: correctAnswersFields,
     append: appendCorrectAnswer,
     remove: removeCorrectAnswer,
   } = useFieldArray({
     control: form.control,
-    // name: "correctAnswers"
-    name: "correctAnswers" as any,
+    name: "correctAnswers" as never,
   });
 
   useEffect(() => {
-    if (isEdit && question) {
-      form.reset({
-        text: question.text || "",
-        type: question.type || "multiple_choice",
-        points: question.points || 5,
-        explanation: question.explanation || "",
-        options:
-          question.options && question.options.length > 0
-            ? question.options.map((opt: any, index: number) => ({
-                uid: opt?.uid || generateUid(index),
-                text: opt?.text || "",
-                isCorrect:
-                  question.correctAnswers &&
-                  question.correctAnswers.includes(opt?.uid),
-              }))
-            : [],
-        correctAnswers: question.correctAnswers,
-      });
-    }
-  }, [isEdit, question, form]);
+    if (question && isEdit) {
+      const formData: QuestionFormDataType =
+        question.type === QuestionTypeEnum.MULTIPLE_CHOICE
+          ? {
+              text: question.text,
+              type: QuestionTypeEnum.MULTIPLE_CHOICE,
+              points: question.points,
+              explanation: question.explanation || "",
+              options: question.options || [],
+              correctAnswers: question.correctAnswers || [],
+            }
+          : {
+              text: question.text,
+              type: QuestionTypeEnum.SHORT_ANSWER,
+              points: question.points,
+              explanation: question.explanation || "",
+              correctAnswers: question.correctAnswers || [""],
+            };
 
-  const addOption = () => {
-    append({ uid: generateUid(options.length), text: "", isCorrect: false });
+      form.reset(formData);
+      setCurrentType(question.type as QuestionTypeEnum);
+    }
+  }, [question, isEdit, form]);
+
+  const handleTypeChange = (newType: QuestionTypeEnum) => {
+    setCurrentType(newType);
+    form.reset(getDefaultValues(newType));
   };
 
-  const removeOption = (index: number) => {
-    if (options.length > 2) {
-      remove(index);
-    }
-  };
-  const handleSubmit = async (data: QuestionFormDataType) => {
-    let questionData: any = {
-      text: data.text,
-      type: data.type,
-      points: data.points,
-      explanation: data.explanation,
-      courseId: quiz!.courseId,
-      options: [],
-      correctAnswers: [],
-    };
+  const handleSubmit = useCallback(
+    async (data: QuestionFormDataType) => {
+      const transformedData = {
+        text: data.text,
+        type: data.type,
+        points: data.points,
+        explanation: data.explanation,
+        ...(data.type === QuestionTypeEnum.MULTIPLE_CHOICE
+          ? {
+              options: data.options,
+              correctAnswers: data.options
+                ?.filter((opt) => opt.isCorrect)
+                .map((opt) => opt.uid),
+            }
+          : {
+              correctAnswers: data.correctAnswers,
+            }),
+      };
 
-    // Only process type-specific fields in edit mode
-    if (isEdit) {
-      const typedData = data as z.infer<typeof EditQuestionSchema>;
-      if (typedData.type === "multiple_choice" && typedData.options) {
-        questionData.options = typedData.options
-          .filter((opt) => opt.text.trim() !== "")
-          .map((opt) => ({
-            uid: opt.uid,
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-          }));
-        questionData.correctAnswers = typedData.options
-          .filter((opt) => opt.isCorrect)
-          .map((opt) => opt.uid);
-      } else if (
-        typedData.type === "short_answer" &&
-        typedData.correctAnswers
-      ) {
-        questionData.options = [];
-        questionData.correctAnswers = typedData.correctAnswers.filter(
-          (answer) => answer.trim() !== "",
-        );
-      }
-    }
-
-    try {
       if (isEdit && question) {
         await updateQuestionMutation.mutateAsync({
           id: question._id,
-          quizId: `${quiz!._id!}`,
-          data: questionData,
+          quizId: quiz!._id!,
+          data: transformedData as never,
         });
       } else {
         await createQuestionMutation.mutateAsync({
-          quizId: `${quiz!._id!}`,
-          data: questionData,
+          quizId: quiz!._id!,
+          data: transformedData as never,
         });
       }
-    } catch (error) {
-      // Error handling is done in mutation callbacks
-    }
-  };
-  const currentType = form.watch("type");
+    },
+    [
+      isEdit,
+      question,
+      quiz,
+      createQuestionMutation,
+      updateQuestionMutation,
+    ]
+  );
+
+  const isSaving =
+    createQuestionMutation.isPending || updateQuestionMutation.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl h-[85vh] max-h-[600px] flex flex-col">
-        <ScrollArea className="w-full h-full px-3">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>
-              {isEdit ? "Edit Question" : "Add New Question"}
-            </DialogTitle>
-            <DialogDescription>
-              {isEdit
-                ? "Update the question details below."
-                : "Create a new question for this quiz. Type-specific options can be configured after creation."}
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="flex flex-col flex-1"
-          >
-            <div className="flex-1 px-6 py-4 space-y-6 border-t border-b border-border/50">
-              <FieldGroup>
-                <Controller
-                  control={form.control}
-                  name="text"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Question Text</FieldLabel>
-                      <Textarea
-                        {...field}
-                        placeholder="Enter your question"
-                        rows={3}
-                        aria-invalid={fieldState.invalid}
-                      />
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold">
+          {isEdit ? "Edit Question" : "Create Question"}
+        </h3>
+        <Button variant="ghost" size="icon" onClick={onCancel}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Controller
-                    control={form.control}
-                    name="type"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel htmlFor="question-type">Question Type</FieldLabel>
-                        <div>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={isEdit} // Readonly on edit
-                          >
-                            <SelectTrigger id="question-type" aria-invalid={fieldState.invalid}>
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="multiple_choice">
-                                Multiple Choice
-                              </SelectItem>
-                              <SelectItem value="short_answer">
-                                Short Answer
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Question Type *</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => handleTypeChange(value as QuestionTypeEnum)}
+                    disabled={isEdit}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="item-aligned">
+                      <SelectItem value={QuestionTypeEnum.MULTIPLE_CHOICE}>
+                        <div className="flex items-center gap-2">
+                          {getQuestionTypeIcon(QuestionTypeEnum.MULTIPLE_CHOICE)}
+                          {getQuestionTypeLabel(QuestionTypeEnum.MULTIPLE_CHOICE)}
                         </div>
-                        {fieldState.invalid && (
-                          <FieldError errors={[fieldState.error]} />
-                        )}
-                      </Field>
-                    )}
+                      </SelectItem>
+                      <SelectItem value={QuestionTypeEnum.SHORT_ANSWER}>
+                        <div className="flex items-center gap-2">
+                          {getQuestionTypeIcon(QuestionTypeEnum.SHORT_ANSWER)}
+                          {getQuestionTypeLabel(QuestionTypeEnum.SHORT_ANSWER)}
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="points"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Points *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="number"
+                      placeholder="5"
+                      min="1"
+                      max="100"
+                      onChange={(e) =>
+                        field.onChange(parseInt(e.target.value) || 0)
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="text"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Question Text *</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="Enter your question..."
+                    rows={3}
                   />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                  <Controller
-                    control={form.control}
-                    name="points"
-                    render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel>Points</FieldLabel>
-                        <Input
-                          {...field}
-                          type="number"
-                          placeholder="5"
-                          min="1"
-                          onChange={(e) =>
-                            field.onChange(parseInt(e.target.value) || 0)
-                          }
-                          aria-invalid={fieldState.invalid}
-                        />
-                        {fieldState.invalid && (
-                          <FieldError errors={[fieldState.error]} />
-                        )}
-                      </Field>
-                    )}
+          <FormField
+            control={form.control}
+            name="explanation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Explanation (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="Explain the correct answer..."
+                    rows={2}
                   />
-                </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                <Controller
-                  control={form.control}
-                  name="explanation"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Explanation (Optional)</FieldLabel>
-                      <Textarea
-                        {...field}
-                        placeholder="Explain the correct answer..."
-                        rows={2}
-                        aria-invalid={fieldState.invalid}
-                      />
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
+          {/* Type-specific fields */}
+          {currentType === QuestionTypeEnum.MULTIPLE_CHOICE && (
+            <MultipleChoiceFields
+              options={options}
+              addOption={() => addOption({ uid: generateUid(options.length), text: "", isCorrect: false })}
+              removeOption={removeOption}
+              form={form}
+            />
+          )}
 
-                {isEdit && (
-                  <>
-                    {currentType === "multiple_choice" && (
-                      <MultipleChoiceFields
-                        options={options}
-                        addOption={addOption}
-                        removeOption={removeOption}
-                        form={form}
-                      />
-                    )}
-                    {currentType === "short_answer" && (
-                      <ShortAnswerFields
-                        correctAnswers={correctAnswers}
-                        appendCorrectAnswer={appendCorrectAnswer}
-                        removeCorrectAnswer={removeCorrectAnswer}
-                        form={form}
-                      />
-                    )}
-                  </>
-                )}
-              </FieldGroup>
-            </div>
+          {currentType === QuestionTypeEnum.SHORT_ANSWER && (
+            <ShortAnswerFields
+              form={form}
+              appendCorrectAnswer={() => appendCorrectAnswer("")}
+              removeCorrectAnswer={removeCorrectAnswer}
+            />
+          )}
 
-            <DialogFooter className="pt-4">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit" disabled={createQuestionMutation.isPending ||updateQuestionMutation.isPending }>
-                {isEdit ? "Update Question" : "Add Question"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : isEdit ? "Update" : "Create"} Question
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 }
 
-// Separate component for Multiple Choice fields
 function MultipleChoiceFields({
   options,
   addOption,
   removeOption,
   form,
 }: {
-  options: any[];
+  options: OptionType[];
   addOption: () => void;
   removeOption: (index: number) => void;
-  form: any;
+  form: UseFormReturn<QuestionFormDataType>;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <FieldLabel>Answer Options</FieldLabel>
+        <FormLabel className="text-base">Answer Options *</FormLabel>
         <Button type="button" variant="outline" size="sm" onClick={addOption}>
           <Plus className="h-3 w-3 mr-1" />
           Add Option
         </Button>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {options.map((option, index) => (
-          <div key={option.uid} className="flex items-center gap-2">
-            <Controller
+          <div
+            key={option.uid}
+            className="flex items-center gap-3 p-3 border rounded-lg"
+          >
+            <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-medium">
+              {String.fromCharCode(65 + index)}
+            </div>
+            <FormField
               control={form.control}
               name={`options.${index}.text`}
               render={({ field }) => (
-                <div className="flex-1">
-                  <Input {...field} placeholder={`Option ${index + 1}`} />
-                </div>
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input {...field} placeholder={`Option ${index + 1}`} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
-            <Controller
+            <FormField
               control={form.control}
               name={`options.${index}.isCorrect`}
               render={({ field }) => (
-                <input
-                  type="checkbox"
-                  checked={field.value}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                />
+                <FormItem className="flex items-center gap-2">
+                  <FormLabel className="text-sm font-normal">Correct</FormLabel>
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </FormControl>
+                </FormItem>
               )}
             />
             <Button
@@ -691,60 +878,70 @@ function MultipleChoiceFields({
               size="icon"
               disabled={options.length <= 2}
               onClick={() => removeOption(index)}
+              className="h-8 w-8"
             >
               <X className="h-3 w-3" />
             </Button>
           </div>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">
-        Select the checkbox next to the correct answer
+      <p className="text-sm text-muted-foreground">
+        Select the checkbox next to the correct answer(s). Multiple correct
+        answers are allowed.
       </p>
     </div>
   );
 }
 
-// Separate component for Short Answer fields
 function ShortAnswerFields({
-  correctAnswers,
+  form,
   appendCorrectAnswer,
   removeCorrectAnswer,
-  form,
 }: {
-  correctAnswers: any[];
-  appendCorrectAnswer: (value: string) => void;
+  form: UseFormReturn<QuestionFormDataType>;
+  appendCorrectAnswer: () => void;
   removeCorrectAnswer: (index: number) => void;
-  form: any;
 }) {
+  const correctAnswers = form.watch("correctAnswers") || [];
+
   return (
-    <div className="grid gap-2">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <FieldLabel>Correct Answers</FieldLabel>
+        <FormLabel className="text-base">Correct Answers *</FormLabel>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => appendCorrectAnswer("")}
+          onClick={appendCorrectAnswer}
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Answer
         </Button>
       </div>
-      <div className="space-y-2">
-        {correctAnswers.map((field, index) => (
-          <div key={field.id} className="flex items-center gap-2">
-            <Controller
+      <div className="space-y-3">
+        {correctAnswers.map((_answer, index) => (
+          <div
+            key={index}
+            className="flex items-center gap-3 p-3 border rounded-lg"
+          >
+            <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-medium">
+              {index + 1}
+            </div>
+            <FormField
               control={form.control}
               name={`correctAnswers.${index}`}
               render={({ field }) => (
-                <div className="flex-1">
-                  <Input
-                    {...field}
-                    placeholder={`Correct answer ${index + 1}`}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                </div>
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder={`Correct answer ${index + 1}`}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
             <Button
@@ -753,19 +950,17 @@ function ShortAnswerFields({
               size="icon"
               disabled={correctAnswers.length <= 1}
               onClick={() => removeCorrectAnswer(index)}
+              className="h-8 w-8"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Add multiple correct answers if the question accepts variations
+        (case-insensitive matching).
       </p>
     </div>
   );
 }
-
-const generateUid = (index: number) => {
-  return `uid-${Date.now()}-${index}`;
-};

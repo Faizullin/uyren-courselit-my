@@ -15,15 +15,19 @@ import StarterKit from "@tiptap/starter-kit";
 import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMemo } from "react";
-import { TipTapFloatingMenu } from "../extensions/floating-menu";
-import { FloatingToolbar } from "../extensions/floating-toolbar";
 import { MediaViewExtension } from "../extensions/media-view";
 import { MyContentExtension } from "../extensions/my-content";
 import SearchAndReplace from "../extensions/search-and-replace";
 import { EditorToolbar } from "../toolbars/editor-toolbar";
 
-import "../styles/tiptap.css";
 import { memo } from "react";
+import Youtube from "@tiptap/extension-youtube";
+import { SlashCommand } from "../extensions/slash-command/slash-command";
+import { getSuggestion } from "../extensions/slash-command/suggestion";
+import { DefaultBubbleMenu } from "../components/menus/bubble-menu";
+
+
+import "../styles/tiptap.css";
 
 export type ContentEditorProps = {
   initialContent?: string;
@@ -38,12 +42,19 @@ export type ContentEditorProps = {
   placeholder?: string;
   editable?: boolean;
   className?: ReturnType<typeof cn>;
-  extraExtensions?: AnyExtension[];
+  extraExtensions?: Record<string, AnyExtension | false>;
   toolbar?: boolean | ((props: { editor: Editor }) => React.ReactNode);
   children?: React.ReactNode;
 };
 
 export type ContentEditorRef = Editor;
+
+const TiptapYoutube = Youtube.configure({
+  HTMLAttributes: {
+    class: cn("border border-muted"),
+  },
+  nocookie: true,
+});
 
 export function ContentEditor({
   initialContent,
@@ -53,13 +64,13 @@ export function ContentEditor({
   placeholder,
   editable = true,
   className,
-  extraExtensions = [],
+  extraExtensions = {},
   toolbar = true,
   children,
 }: ContentEditorProps) {
   const allExtensions = useMemo(() => {
-    const defaultExtensions = [
-      StarterKit.configure({
+    const defaultExtensionsDict: Record<string, AnyExtension | false> = {
+      starterKit: StarterKit.configure({
         orderedList: {
           HTMLAttributes: {
             class: "list-decimal",
@@ -76,7 +87,7 @@ export function ContentEditor({
         link: false,
         underline: false,
       }),
-      Placeholder.configure({
+      placeholder: Placeholder.configure({
         emptyNodeClass: "is-editor-empty",
         placeholder: ({ node }) => {
           switch (node.type.name) {
@@ -92,24 +103,35 @@ export function ContentEditor({
         },
         includeChildren: false,
       }),
-      TextAlign.configure({
+      textAlign: TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
-      TextStyleKit,
-      Subscript,
-      Superscript,
-      Underline,
-      Link,
-      Color,
-      Highlight.configure({
+      textStyleKit: TextStyleKit,
+      subscript: Subscript,
+      superscript: Superscript,
+      underline: Underline,
+      link: Link,
+      color: Color,
+      highlight: Highlight.configure({
         multicolor: true,
       }),
-      MediaViewExtension,
-      MyContentExtension,
-      SearchAndReplace,
-      Typography,
-    ];
-    return [...defaultExtensions, ...extraExtensions];
+      mediaView: MediaViewExtension,
+      myContent: MyContentExtension,
+      searchAndReplace: SearchAndReplace,
+      typography: Typography,
+      youtube: TiptapYoutube,
+      slashCommand: SlashCommand.configure({
+        suggestion: getSuggestion({ ai: true }),
+      }),
+    };
+
+    // Merge with extraExtensions (allowing overrides)
+    const extensionsDict = { ...defaultExtensionsDict, ...extraExtensions };
+    
+    // Filter out false values and return only valid extensions
+    return Object.values(extensionsDict).filter(
+      (ext): ext is AnyExtension => ext !== false
+    );
   }, [extraExtensions, placeholder]);
 
   const editor = useEditor({
@@ -162,8 +184,9 @@ export function ContentEditor({
       )}
       {editable && (
         <>
-          <FloatingToolbar editor={editor} />
-          <TipTapFloatingMenu editor={editor} />
+            {/* <FloatingToolbar editor={editor} />
+            <TipTapFloatingMenu editor={editor} /> */}
+          <DefaultBubbleMenu editor={editor} showAiTools={true} />
         </>
       )}
       {children}

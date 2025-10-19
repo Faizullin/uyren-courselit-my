@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.types";
 import { ComboBox2, useToast } from "@workspace/components-library";
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -18,13 +19,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@workspace/ui/components/textarea";
 import { slugify } from "@workspace/utils";
 import { format } from "date-fns";
-import { Calendar, Save } from "lucide-react";
+import { Calendar, Save, Plus } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+import { CohortScheduleEditDialog } from "./_components/cohort-schedule-edit-dialog";
+import { useDialogControl } from "@workspace/components-library";
 
 const CohortSchema = z.object({
     title: z.string().min(1).max(255),
@@ -50,6 +53,8 @@ type CourseItem = {
 type InstructorItem = {
     _id: string;
     fullName: string;
+    email: string;
+    avatarUrl?: string;
 };
 
 export default function Page() {
@@ -60,7 +65,9 @@ export default function Page() {
     const trpcUtils = trpc.useUtils();
     const { profile } = useProfile();
 
-    const cohortQuery = trpc.lmsModule.cohortModule.cohort.getById.useQuery({ id: params.id });
+    const cohortQuery = trpc.lmsModule.cohortModule.cohort.getById.useQuery({ id: params.id }, {
+        enabled: !!params.id,
+    });
     const cohort = cohortQuery.data;
 
     const isAdmin = useMemo(() =>
@@ -125,7 +132,12 @@ export default function Page() {
             pagination: { skip: offset, take: size },
             search: search ? { q: search } : undefined,
         });
-        return result.items.map(user => ({ _id: user._id, fullName: user.fullName || user.email }));
+        return result.items.map(user => ({ 
+            _id: user._id, 
+            fullName: user.fullName || user.email,
+            email: user.email,
+            avatarUrl: user.avatar?.url 
+        }));
     }, [trpcUtils]);
 
     const breadcrumbs = useMemo(() => [
@@ -143,9 +155,17 @@ export default function Page() {
         return <Badge variant={variants[status]}>{status}</Badge>;
     }, []);
 
+    const scheduleDialogControl = useDialogControl<{ cohort: CohortType }>();
+
+    const handleSchedule = useCallback(() => {
+        if (cohort) {
+            scheduleDialogControl.show({ cohort });
+        }
+    }, [scheduleDialogControl, cohort]);
+
     if (!cohort) {
         return (
-            <DashboardContent breadcrumbs={breadcrumbs} permissions={[UIConstants.permissions.manageAnyCourse]}>
+            <DashboardContent breadcrumbs={breadcrumbs} permissions={[UIConstants.permissions.manageCourse]}>
                 <div className="flex flex-col items-center justify-center h-64">
                     <p className="text-lg">Cohort not found</p>
                     <Link href="/dashboard/lms/cohorts">
@@ -157,7 +177,7 @@ export default function Page() {
     }
 
     return (
-        <DashboardContent breadcrumbs={breadcrumbs} permissions={[UIConstants.permissions.manageAnyCourse]}>
+        <DashboardContent breadcrumbs={breadcrumbs} permissions={[UIConstants.permissions.manageCourse]}>
             <HeaderTopbar
                 header={{
                     title: cohort.title,
@@ -233,6 +253,12 @@ export default function Page() {
                                         onChange={(item) => field.onChange(item?._id || "")}
                                         multiple={false}
                                         disabled={!isAdmin}
+                                        showEditButton={true}
+                                        onEditClick={(item) => {
+                                          window.open(
+                                            `/dashboard/lms/courses/${item._id}`,
+                                            "_blank");
+                                        }}
                                     />
                                     {fieldState.invalid && (
                                         <FieldError errors={[fieldState.error]} />
@@ -256,9 +282,24 @@ export default function Page() {
                                     <ComboBox2<InstructorItem>
                                         title="Select instructor"
                                         valueKey="_id"
-                                        value={field.value ? { _id: field.value, fullName: cohort.instructor?.fullName || "" } : undefined}
+                                        value={field.value ? { 
+                                            _id: field.value, 
+                                            fullName: cohort.instructor?.fullName || cohort.instructor?.email || "",
+                                            email: cohort.instructor?.email || "",
+                                            avatarUrl: undefined
+                                        } : undefined}
                                         searchFn={searchInstructors}
-                                        renderLabel={(item) => item.fullName}
+                                        renderLabel={(item) => (
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-6 w-6">
+                                                    <AvatarImage src={item.avatarUrl} alt={item.fullName} />
+                                                    <AvatarFallback className="text-xs">
+                                                        {item.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span>{item.fullName}</span>
+                                            </div>
+                                        )}
                                         onChange={(item) => field.onChange(item?._id || "")}
                                         multiple={false}
                                         disabled={!isAdmin}
@@ -444,14 +485,30 @@ export default function Page() {
                                     )}
                                 />
                             </div>
-                            <Button type="submit" disabled={updateMutation.isPending || form.formState.isSubmitting}>
-                                <Save className="h-4 w-4 mr-2" />
-                                {updateMutation.isPending ? "Saving..." : "Save Changes"}
-                            </Button>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Button 
+                                    type="button" 
+                                    variant="outline"
+                                    onClick={handleSchedule}
+                                    className="w-full"
+                                >
+                                    <Calendar className="h-4 w-4 mr-2" />
+                                    Manage Schedule
+                                </Button>
+                            </div>
+                            <div className="flex justify-end">
+                                    
+                                <Button type="submit" disabled={updateMutation.isPending || form.formState.isSubmitting}>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                                </Button>
+                            </div>
                         </FieldGroup>
                     </form>
                 </CardContent>
             </Card>
+
+            <CohortScheduleEditDialog control={scheduleDialogControl} />
         </DashboardContent>
     );
 }

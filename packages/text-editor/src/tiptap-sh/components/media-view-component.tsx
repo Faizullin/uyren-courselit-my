@@ -21,7 +21,7 @@ import {
   MoreVertical,
   Trash,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 
 // Media type components defined within the same file
@@ -38,7 +38,7 @@ function ImageMedia({
     <img
       src={url}
       alt={alt}
-      className="w-full h-auto rounded-lg"
+      className="w-full !max-w-xl h-auto rounded-lg"
       onLoad={(e) => {
         const img = e.currentTarget;
         const aspectRatio = img.naturalWidth / img.naturalHeight;
@@ -66,14 +66,27 @@ function PdfMedia({ url, title }: { url: string; title?: string }) {
   );
 }
 
-function EmbedMedia({ url }: { url: string }) {
-  return (
-    <div
-      className="w-full h-96 rounded-lg border bg-muted flex items-center justify-center"
-      dangerouslySetInnerHTML={{ __html: url }}
-    />
-  );
-}
+const getMediaType = (url: string, mimeType?: string): string => {
+  if (!url) return "unknown";
+
+  if (mimeType) {
+    if (mimeType.startsWith("image/")) return "image";
+    if (mimeType.startsWith("video/")) return "video";
+    if (mimeType.startsWith("audio/")) return "audio";
+    if (mimeType === "application/pdf") return "pdf";
+  }
+
+  // Fallback to URL extension
+  const extension = url.split(".").pop()?.toLowerCase();
+  if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(extension || ""))
+    return "image";
+  if (["mp4", "webm", "ogg", "mov", "avi"].includes(extension || ""))
+    return "video";
+  if (["mp3", "wav", "ogg", "aac"].includes(extension || "")) return "audio";
+  if (extension === "pdf") return "pdf";
+
+  return "unknown";
+};
 
 export function MediaViewComponent(props: NodeViewProps) {
   const { node, editor, selected, deleteNode, updateAttributes } = props;
@@ -82,11 +95,15 @@ export function MediaViewComponent(props: NodeViewProps) {
   const [openedMore, setOpenedMore] = useState(false);
   const mediaRef = useRef<HTMLDivElement>(null);
 
-  const { asset, display } = node.attrs;
-  const { url, media } = asset || {};
-  const { width, height, align } = display || {};
+  const { asset, display } = useMemo(() => ({
+    asset: node.attrs.asset,
+    display: node.attrs.display,
+  }), [node.attrs.asset, node.attrs.display]);
 
-  const handleCaptionUpdate = (newCaption: string) => {
+  const { url, media } = asset || {};
+  const { width, align } = display || {};
+  console.log("[url]", url);
+  const handleCaptionUpdate = useCallback((newCaption: string) => {
     setCaption(newCaption);
     updateAttributes({
       asset: {
@@ -94,47 +111,24 @@ export function MediaViewComponent(props: NodeViewProps) {
         caption: newCaption,
       },
     });
-  };
+  }, [node.attrs.asset, updateAttributes]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     deleteNode();
-  };
+  }, [deleteNode]);
 
-  const handleAspectRatioUpdate = (aspectRatio: number) => {
-    // Store aspect ratio in display settings if needed
+  const handleAspectRatioUpdate = useCallback((aspectRatio: number) => {
     updateAttributes({
       display: {
         ...node.attrs.display,
         aspectRatio,
       },
     });
-  };
+  }, [node.attrs.display, updateAttributes]);
 
-  const getMediaType = (url: string, mimeType?: string): string => {
-    if (!url) return "unknown";
+  const mediaType = useMemo(() => getMediaType(url, media?.mimeType), [url, media?.mimeType, getMediaType]);
 
-    if (mimeType) {
-      if (mimeType.startsWith("image/")) return "image";
-      if (mimeType.startsWith("video/")) return "video";
-      if (mimeType.startsWith("audio/")) return "audio";
-      if (mimeType === "application/pdf") return "pdf";
-    }
-
-    // Fallback to URL extension
-    const extension = url.split(".").pop()?.toLowerCase();
-    if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(extension || ""))
-      return "image";
-    if (["mp4", "webm", "ogg", "mov", "avi"].includes(extension || ""))
-      return "video";
-    if (["mp3", "wav", "ogg", "aac"].includes(extension || "")) return "audio";
-    if (extension === "pdf") return "pdf";
-
-    return "unknown";
-  };
-
-  const renderMediaContent = () => {
-    const mediaType = getMediaType(url, media?.mimeType);
-
+  const renderMediaContent = useMemo(() => {
     switch (mediaType) {
       case "image":
         return (
@@ -157,13 +151,76 @@ export function MediaViewComponent(props: NodeViewProps) {
           </div>
         );
     }
-  };
+  }, [mediaType, url, caption, media?.originalFileName, handleAspectRatioUpdate]);
+
+  const handleAlignLeft = useCallback(() => {
+    updateAttributes({
+      display: {
+        ...node.attrs.display,
+        align: "left",
+      },
+    });
+  }, [node.attrs.display, updateAttributes]);
+
+  const handleAlignCenter = useCallback(() => {
+    updateAttributes({
+      display: {
+        ...node.attrs.display,
+        align: "center",
+      },
+    });
+  }, [node.attrs.display, updateAttributes]);
+
+  const handleAlignRight = useCallback(() => {
+    updateAttributes({
+      display: {
+        ...node.attrs.display,
+        align: "right",
+      },
+    });
+  }, [node.attrs.display, updateAttributes]);
+
+  const handleFullWidth = useCallback(() => {
+    const aspectRatio = node.attrs.display?.aspectRatio;
+    if (aspectRatio) {
+      const parentWidth = mediaRef.current?.parentElement?.offsetWidth ?? 0;
+      updateAttributes({
+        display: {
+          ...node.attrs.display,
+          width: parentWidth,
+          height: parentWidth / aspectRatio,
+        },
+      });
+    }
+  }, [node.attrs.display, updateAttributes]);
+
+  const handleCaptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setCaption(e.target.value);
+  }, []);
+
+  const handleCaptionBlur = useCallback(() => {
+    handleCaptionUpdate(caption);
+    setEditingCaption(false);
+  }, [caption, handleCaptionUpdate]);
+
+  const handleCaptionKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleCaptionUpdate(caption);
+      setEditingCaption(false);
+    }
+  }, [caption, handleCaptionUpdate]);
+
+  const handleStartEditCaption = useCallback(() => {
+    if (editor?.isEditable) {
+      setEditingCaption(true);
+    }
+  }, [editor?.isEditable]);
 
   return (
     <NodeViewWrapper
       ref={mediaRef}
       className={cn(
-        "media-view-component relative flex flex-col rounded-md border-2 border-transparent transition-all duration-200",
+        "mediaView-component relative flex flex-col rounded-md border-2 border-transparent transition-all duration-200",
         selected ? "border-blue-300" : "",
         align === "left" && "left-0 -translate-x-0",
         align === "center" && "left-1/2 -translate-x-1/2",
@@ -172,22 +229,14 @@ export function MediaViewComponent(props: NodeViewProps) {
       style={{ width }}
     >
       <div className="group relative flex flex-col rounded-md">
-        <div className="relative">{renderMediaContent()}</div>
+        <div className="relative">{renderMediaContent}</div>
 
         {editingCaption ? (
           <Input
             value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            onBlur={() => {
-              handleCaptionUpdate(caption);
-              setEditingCaption(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleCaptionUpdate(caption);
-                setEditingCaption(false);
-              }
-            }}
+            onChange={handleCaptionChange}
+            onBlur={handleCaptionBlur}
+            onKeyDown={handleCaptionKeyDown}
             className="mt-2 text-center text-sm text-muted-foreground focus:ring-0"
             placeholder="Add a caption..."
             autoFocus
@@ -195,7 +244,7 @@ export function MediaViewComponent(props: NodeViewProps) {
         ) : (
           <div
             className="mt-2 cursor-text text-center text-sm text-muted-foreground"
-            onClick={() => editor?.isEditable && setEditingCaption(true)}
+            onClick={handleStartEditCaption}
           >
             {caption || "Add a caption..."}
           </div>
@@ -213,14 +262,7 @@ export function MediaViewComponent(props: NodeViewProps) {
               size="icon"
               className={cn("size-7", align === "left" && "bg-accent")}
               variant="ghost"
-              onClick={() =>
-                updateAttributes({
-                  display: {
-                    ...node.attrs.display,
-                    align: "left",
-                  },
-                })
-              }
+              onClick={handleAlignLeft}
             >
               <AlignLeft className="size-4" />
             </Button>
@@ -228,14 +270,7 @@ export function MediaViewComponent(props: NodeViewProps) {
               size="icon"
               className={cn("size-7", align === "center" && "bg-accent")}
               variant="ghost"
-              onClick={() =>
-                updateAttributes({
-                  display: {
-                    ...node.attrs.display,
-                    align: "center",
-                  },
-                })
-              }
+              onClick={handleAlignCenter}
             >
               <AlignCenter className="size-4" />
             </Button>
@@ -243,14 +278,7 @@ export function MediaViewComponent(props: NodeViewProps) {
               size="icon"
               className={cn("size-7", align === "right" && "bg-accent")}
               variant="ghost"
-              onClick={() =>
-                updateAttributes({
-                  display: {
-                    ...node.attrs.display,
-                    align: "right",
-                  },
-                })
-              }
+              onClick={handleAlignRight}
             >
               <AlignRight className="size-4" />
             </Button>
@@ -272,22 +300,7 @@ export function MediaViewComponent(props: NodeViewProps) {
                   <Edit className="mr-2 size-4" /> Edit Caption
                 </DropdownMenuItem>
 
-                <DropdownMenuItem
-                  onClick={() => {
-                    const aspectRatio = node.attrs.display?.aspectRatio;
-                    if (aspectRatio) {
-                      const parentWidth =
-                        mediaRef.current?.parentElement?.offsetWidth ?? 0;
-                      updateAttributes({
-                        display: {
-                          ...node.attrs.display,
-                          width: parentWidth,
-                          height: parentWidth / aspectRatio,
-                        },
-                      });
-                    }
-                  }}
-                >
+                <DropdownMenuItem onClick={handleFullWidth}>
                   <Maximize className="mr-2 size-4" /> Full Width
                 </DropdownMenuItem>
 

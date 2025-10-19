@@ -1,7 +1,7 @@
-import { authOptions } from "@/lib/auth/options";
+import { getActionContext as getDefaultActionContext } from "@/server/api/core/actions";
+import { AuthorizationException } from "@/server/api/core/exceptions";
 import { redis } from "@/server/lib/redis";
-import UserModel from "@/models/User";
-import { getServerSession } from "next-auth";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -28,44 +28,20 @@ const DeleteParamsSchema = z.object({
 });
 
 async function getActionContext(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return { error: "Unauthorized", status: 401 };
+  const ctx = await getDefaultActionContext();
+  if (!ctx.user.roles.includes(UIConstants.roles.admin)) {
+    throw new AuthorizationException();
   }
-
-  const user = await UserModel.findOne({ email: session.user.email }).lean();
-  if (!user) {
-    return { error: "User not found", status: 404 };
-  }
-
-  const isAdmin = user.roles?.includes("admin");
-  if (!isAdmin) {
-    return { error: "Admin access required", status: 403 };
-  }
-
-  return {
-    user: {
-      _id: user._id,
-      userId: user.userId,
-      email: user.email,
-      name: user.name,
-      roles: user.roles || [],
-      permissions: user.permissions || [],
-      domain: user.domain
-    },
-    domain: user.domain,
-    isValid: true
-  };
+  return ctx;
 }
 
 async function getKeyInfo(key: string) {
   const type = await redis.type(key);
   const ttl = await redis.ttl(key);
-  
+
   let value: any;
   let size: number = 0;
-  
+
   switch (type) {
     case "string":
       value = await redis.get(key);
@@ -91,7 +67,7 @@ async function getKeyInfo(key: string) {
       value = null;
       size = 0;
   }
-  
+
   return {
     key,
     type,
@@ -103,9 +79,6 @@ async function getKeyInfo(key: string) {
 
 export async function GET(req: NextRequest) {
   const context = await getActionContext(req);
-  if (!context.isValid) {
-    return NextResponse.json({ error: context.error }, { status: context.status });
-  }
 
   try {
     const { searchParams } = new URL(req.url);
@@ -134,13 +107,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const context = await getActionContext(req);
-  if (!context.isValid) {
-    return NextResponse.json({ error: context.error }, { status: context.status });
-  }
 
   try {
     const body = PostBodySchema.parse(await req.json());
-    
+
     let result;
     if (typeof body.value === "string") {
       result = await redis.set(body.key, body.value);
@@ -167,13 +137,10 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const context = await getActionContext(req);
-  if (!context.isValid) {
-    return NextResponse.json({ error: context.error }, { status: context.status });
-  }
 
   try {
     const body = PutBodySchema.parse(await req.json());
-    
+
     const exists = await redis.exists(body.key);
     if (!exists) {
       return NextResponse.json({ error: "Key not found" }, { status: 404 });
@@ -205,9 +172,6 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const context = await getActionContext(req);
-  if (!context.isValid) {
-    return NextResponse.json({ error: context.error }, { status: context.status });
-  }
 
   try {
     const { searchParams } = new URL(req.url);

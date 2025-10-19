@@ -1,17 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { useEffect, useCallback } from 'react'
-import { FormDialog } from '@workspace/components-library'
-import { useCalendarContext } from '../calendar-context'
-import { format } from 'date-fns'
-import { ScheduleTypeEnum, RecurrenceTypeEnum } from '@workspace/common-logic/models/lms/schedule.types'
-import type { ScheduleCalendarEvent } from '../services/schedule-calendar-service'
-import { Field, FieldGroup, FieldLabel, FieldError } from '@workspace/ui/components/field'
+import { TRPCClientError } from '@trpc/client'
+import { RecurrenceTypeEnum, ScheduleTypeEnum } from '@workspace/common-logic/models/lms/schedule.types'
+import { BaseDialog, DeleteConfirmNiceDialog, NiceModal, useToast } from '@workspace/components-library'
+import { Button } from '@workspace/ui/components/button'
+import { Field, FieldError, FieldLabel } from '@workspace/ui/components/field'
 import { Input } from '@workspace/ui/components/input'
-import { Textarea } from '@workspace/ui/components/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@workspace/ui/components/select'
 import { Switch } from '@workspace/ui/components/switch'
+import { Textarea } from '@workspace/ui/components/textarea'
+import { format } from 'date-fns'
+import { Trash2 } from 'lucide-react'
+import { useCallback, useEffect } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { useCalendarContext } from '../calendar-context'
+import type { ScheduleCalendarEvent } from '../services/schedule-calendar-service'
 
 // Form schema matching backend structure (nested objects match backend model)
 const formSchema = z.object({
@@ -46,6 +49,7 @@ type FormData = z.infer<typeof formSchema>
 export default function CalendarEventDialog() {
   const { dialogControl, date, createEvent, updateEvent, deleteEvent, service } = 
     useCalendarContext<ScheduleCalendarEvent>()
+  const { toast } = useToast()
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -174,22 +178,66 @@ export default function CalendarEventDialog() {
 
       dialogControl.hide()
       form.reset()
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to ${mode} event:`, error)
+      
+      // Parse error message from backend
+      let errorMessage = ``
+      if(error instanceof TRPCClientError){
+        if (error.data?.zodError) {
+          error.data?.zodError.forEach((error: any) => {
+            errorMessage += `${error.message}\n`
+          })
+        }
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (mode === 'edit' && eventId) {
-      try {
-        await deleteEvent(eventId)
-        dialogControl.hide()
-        form.reset()
-      } catch (error) {
-        console.error('Failed to delete event:', error)
+      const result = await NiceModal.show(DeleteConfirmNiceDialog, {
+        title: "Delete Event",
+        message: `Are you sure you want to delete "${form.getValues('title') || 'this event'}"? This action cannot be undone.`,
+      })
+
+      if (result.reason === "confirm") {
+        try {
+          await deleteEvent(eventId)
+          toast({
+            title: "Success",
+            description: "Event deleted successfully",
+          })
+          dialogControl.hide()
+          form.reset()
+        } catch (error: any) {
+          console.error('Failed to delete event:', error)
+          
+          // Parse error message from backend
+          let errorMessage = "Failed to delete event"
+          if (error?.message) {
+            try {
+              const errorData = JSON.parse(error.message)
+              errorMessage = errorData.message || errorData.error || errorMessage
+            } catch {
+              errorMessage = error.message || errorMessage
+            }
+          }
+
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          })
+        }
       }
     }
-  }
+  }, [mode, eventId, form, deleteEvent, toast, dialogControl])
 
   const handleCancel = useCallback(() => {
     dialogControl.hide()
@@ -201,7 +249,7 @@ export default function CalendarEventDialog() {
   }, [form, handleSubmit])
 
   return (
-    <FormDialog
+    <BaseDialog
       open={dialogControl.isVisible}
       onOpenChange={(open) => {
         if (!open) {
@@ -210,239 +258,360 @@ export default function CalendarEventDialog() {
       }}
       title={mode === 'create' ? 'Create Event' : 'Edit Event'}
       maxWidth="4xl"
-      onSubmit={handleFormSubmit}
-      onCancel={handleCancel}
-      submitText={mode === 'create' ? 'Create' : 'Update'}
-      cancelText="Cancel"
+      footer={
+        <div className="flex justify-between items-center w-full">
+          {/* Delete button for edit mode */}
+          {mode === 'edit' && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Event
+            </Button>
+          )}
+          
+          {/* Form action buttons */}
+          <div className="flex gap-2 ml-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              form="calendar-event-form"
+              onClick={handleFormSubmit}
+              disabled={form.formState.isSubmitting}
+            >
+              {mode === 'create' ? 'Create' : 'Update'}
+            </Button>
+          </div>
+        </div>
+      }
     >
       <form id="calendar-event-form" onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <FieldGroup>
-            <FieldLabel htmlFor="title">Title *</FieldLabel>
-            <Field>
-              <Input
-                id="title"
-                {...form.register('title')}
-                placeholder="Event title"
-              />
-            </Field>
-            {form.formState.errors.title && (
-              <FieldError>{form.formState.errors.title.message}</FieldError>
+          <Controller
+            control={form.control}
+            name="title"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="title">Title *</FieldLabel>
+                <Input
+                  id="title"
+                  {...field}
+                  placeholder="Event title"
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
             )}
-          </FieldGroup>
+          />
 
-          <FieldGroup>
-            <FieldLabel htmlFor="description">Description</FieldLabel>
-            <Field>
-              <Textarea
-                id="description"
-                {...form.register('description')}
-                placeholder="Event description"
-                rows={3}
-              />
-            </Field>
-          </FieldGroup>
-
-          <FieldGroup>
-            <FieldLabel htmlFor="type">Type *</FieldLabel>
-            <Field>
-              <Select
-                value={form.watch('type')}
-                onValueChange={(value: ScheduleTypeEnum) => form.setValue('type', value)}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Select event type" />
-                </SelectTrigger>
-                <SelectContent position="item-aligned">
-                  <SelectItem value={ScheduleTypeEnum.LIVE_SESSION}>Live Session</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.LESSON}>Lesson</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.COURSE}>Course</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.QUIZ}>Quiz</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.ASSIGNMENT}>Assignment</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.EXAM}>Exam</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.DEADLINE}>Deadline</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            {form.formState.errors.type && (
-              <FieldError>{form.formState.errors.type.message}</FieldError>
+          <Controller
+            control={form.control}
+            name="description"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="description">Description</FieldLabel>
+                <Textarea
+                  id="description"
+                  {...field}
+                  placeholder="Event description"
+                  rows={3}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
             )}
-          </FieldGroup>
+          />
+
+          <Controller
+            control={form.control}
+            name="type"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="type">Type *</FieldLabel>
+                <div>
+                  <Select
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger id="type" aria-invalid={fieldState.invalid}>
+                      <SelectValue placeholder="Select event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ScheduleTypeEnum.LIVE_SESSION}>Live Session</SelectItem>
+                      <SelectItem value={ScheduleTypeEnum.LESSON}>Lesson</SelectItem>
+                      <SelectItem value={ScheduleTypeEnum.COURSE}>Course</SelectItem>
+                      <SelectItem value={ScheduleTypeEnum.QUIZ}>Quiz</SelectItem>
+                      <SelectItem value={ScheduleTypeEnum.ASSIGNMENT}>Assignment</SelectItem>
+                      <SelectItem value={ScheduleTypeEnum.EXAM}>Exam</SelectItem>
+                      <SelectItem value={ScheduleTypeEnum.DEADLINE}>Deadline</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
 
           <div className="grid grid-cols-2 gap-4">
-            <FieldGroup>
-              <FieldLabel htmlFor="startDate">Start Date *</FieldLabel>
-              <Field>
-                <Input
-                  id="startDate"
-                  type="date"
-                  {...form.register('startDate')}
-                />
-              </Field>
-              {form.formState.errors.startDate && (
-                <FieldError>{form.formState.errors.startDate.message}</FieldError>
+            <Controller
+              control={form.control}
+              name="startDate"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="startDate">Start Date *</FieldLabel>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
-            </FieldGroup>
+            />
 
-            <FieldGroup>
-              <FieldLabel htmlFor="startTime">Start Time *</FieldLabel>
-              <Field>
-                <Input
-                  id="startTime"
-                  type="time"
-                  {...form.register('startTime')}
-                />
-              </Field>
-              {form.formState.errors.startTime && (
-                <FieldError>{form.formState.errors.startTime.message}</FieldError>
+            <Controller
+              control={form.control}
+              name="startTime"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="startTime">Start Time *</FieldLabel>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
-            </FieldGroup>
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FieldGroup>
-              <FieldLabel htmlFor="endDate">End Date *</FieldLabel>
-              <Field>
-                <Input
-                  id="endDate"
-                  type="date"
-                  {...form.register('endDate')}
-                />
-              </Field>
-              {form.formState.errors.endDate && (
-                <FieldError>{form.formState.errors.endDate.message}</FieldError>
+            <Controller
+              control={form.control}
+              name="endDate"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="endDate">End Date *</FieldLabel>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
-            </FieldGroup>
+            />
 
-            <FieldGroup>
-              <FieldLabel htmlFor="endTime">End Time *</FieldLabel>
-              <Field>
-                <Input
-                  id="endTime"
-                  type="time"
-                  {...form.register('endTime')}
-                />
-              </Field>
-              {form.formState.errors.endTime && (
-                <FieldError>{form.formState.errors.endTime.message}</FieldError>
+            <Controller
+              control={form.control}
+              name="endTime"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="endTime">End Time *</FieldLabel>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
-            </FieldGroup>
+            />
           </div>
         </div>
 
         <div className="space-y-4">
-          <FieldGroup>
-            <div className="flex items-center justify-between">
-              <FieldLabel htmlFor="allDay">All Day Event</FieldLabel>
-              <Switch
-                id="allDay"
-                checked={form.watch('allDay')}
-                onCheckedChange={(checked) => form.setValue('allDay', checked)}
-              />
-            </div>
-          </FieldGroup>
+          <Controller
+            control={form.control}
+            name="allDay"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="allDay">All Day Event</FieldLabel>
+                <Switch
+                  id="allDay"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
 
-          <FieldGroup>
-            <FieldLabel htmlFor="location.name">Location Name</FieldLabel>
-            <Field>
-              <Input
-                id="location.name"
-                {...form.register('location.name')}
-                placeholder="Room name or address"
-              />
-            </Field>
-          </FieldGroup>
+          <Controller
+            control={form.control}
+            name="location.name"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="location.name">Location Name</FieldLabel>
+                <Input
+                  id="location.name"
+                  {...field}
+                  placeholder="Room name or address"
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
 
-          <FieldGroup>
-            <div className="flex items-center justify-between">
-              <FieldLabel htmlFor="location.online">Online Event</FieldLabel>
-              <Switch
-                id="location.online"
-                checked={form.watch('location.online')}
-                onCheckedChange={(checked) => form.setValue('location.online', checked)}
-              />
-            </div>
-          </FieldGroup>
+          <Controller
+            control={form.control}
+            name="location.online"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="location.online">Online Event</FieldLabel>
+                <Switch
+                  id="location.online"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
 
           {form.watch('location.online') && (
-            <FieldGroup>
-              <FieldLabel htmlFor="location.meetingUrl">Meeting URL</FieldLabel>
-              <Field>
-                <Input
-                  id="location.meetingUrl"
-                  {...form.register('location.meetingUrl')}
-                  placeholder="https://meet.google.com/..."
-                />
-              </Field>
-              {form.formState.errors.location?.meetingUrl && (
-                <FieldError>{form.formState.errors.location.meetingUrl.message}</FieldError>
+            <Controller
+              control={form.control}
+              name="location.meetingUrl"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="location.meetingUrl">Meeting URL</FieldLabel>
+                  <Input
+                    id="location.meetingUrl"
+                    {...field}
+                    placeholder="https://meet.google.com/..."
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
               )}
-            </FieldGroup>
+            />
           )}
 
-          <FieldGroup>
-            <Field>
-            <FieldLabel htmlFor="recurrence-type">Recurrence</FieldLabel>
-              <div>
-              <Select
-                value={form.watch('recurrence.type')}
-                onValueChange={(value: RecurrenceTypeEnum) => form.setValue('recurrence.type', value)}
-              >
-                <SelectTrigger 
-                      id="recurrence-type">
-                  <SelectValue placeholder="Select recurrence" />
-                </SelectTrigger>
-                <SelectContent position="item-aligned">
-                  <SelectItem value={RecurrenceTypeEnum.NONE}>None</SelectItem>
-                  <SelectItem value={RecurrenceTypeEnum.DAILY}>Daily</SelectItem>
-                  <SelectItem value={RecurrenceTypeEnum.WEEKLY}>Weekly</SelectItem>
-                  <SelectItem value={RecurrenceTypeEnum.MONTHLY}>Monthly</SelectItem>
-                </SelectContent>
-              </Select>
-              </div>
-            </Field>
-          </FieldGroup>
+          <Controller
+            control={form.control}
+            name="recurrence.type"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="recurrence-type">Recurrence</FieldLabel>
+                <div>
+                  <Select
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger id="recurrence-type" aria-invalid={fieldState.invalid}>
+                      <SelectValue placeholder="Select recurrence" />
+                    </SelectTrigger>
+                    <SelectContent >
+                      <SelectItem value={RecurrenceTypeEnum.NONE}>None</SelectItem>
+                      <SelectItem value={RecurrenceTypeEnum.DAILY}>Daily</SelectItem>
+                      <SelectItem value={RecurrenceTypeEnum.WEEKLY}>Weekly</SelectItem>
+                      <SelectItem value={RecurrenceTypeEnum.MONTHLY}>Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
 
           {form.watch('recurrence.type') !== RecurrenceTypeEnum.NONE && (
             <>
-              <FieldGroup>
-                <FieldLabel htmlFor="recurrence.interval">Recurrence Interval</FieldLabel>
-                <Field>
-                  <Input
-                    id="recurrence.interval"
-                    type="number"
-                    min="1"
-                    {...form.register('recurrence.interval', { valueAsNumber: true })}
-                  />
-                </Field>
-              </FieldGroup>
+              <Controller
+                control={form.control}
+                name="recurrence.interval"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="recurrence.interval">Recurrence Interval</FieldLabel>
+                    <Input
+                      id="recurrence.interval"
+                      type="number"
+                      min="1"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 1)}
+                      value={field.value || ""}
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
 
-              <FieldGroup>
-                <FieldLabel htmlFor="recurrence.endDate">Recurrence End Date</FieldLabel>
-                <Field>
-                  <Input
-                    id="recurrence.endDate"
-                    type="date"
-                    {...form.register('recurrence.endDate')}
-                  />
-                </Field>
-              </FieldGroup>
+              <Controller
+                control={form.control}
+                name="recurrence.endDate"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="recurrence.endDate">Recurrence End Date</FieldLabel>
+                    <Input
+                      id="recurrence.endDate"
+                      type="date"
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
             </>
           )}
 
-          <FieldGroup>
-            <div className="flex items-center justify-between">
-              <FieldLabel htmlFor="reminders.enabled">Enable Reminders</FieldLabel>
-              <Switch
-                id="reminders.enabled"
-                checked={form.watch('reminders.enabled')}
-                onCheckedChange={(checked) => form.setValue('reminders.enabled', checked)}
-              />
-            </div>
-          </FieldGroup>
+          <Controller
+            control={form.control}
+            name="reminders.enabled"
+            render={({ field }) => (
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="reminders.enabled">Enable Reminders</FieldLabel>
+                <Switch
+                  id="reminders.enabled"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
         </div>
       </form>
-    </FormDialog>
+    </BaseDialog>
   )
 }
 

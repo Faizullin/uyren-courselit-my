@@ -165,7 +165,7 @@ export default function CohortSchedulePage() {
     return (
       <DashboardContent
         breadcrumbs={breadcrumbs}
-        permissions={[UIConstants.permissions.manageAnyCourse]}
+        permissions={[UIConstants.permissions.manageCourse]}
       >
         <HeaderTopbar
           header={{
@@ -183,7 +183,7 @@ export default function CohortSchedulePage() {
   return (
     <DashboardContent
       breadcrumbs={breadcrumbs}
-      permissions={[UIConstants.permissions.manageAnyCourse]}
+      permissions={[UIConstants.permissions.manageCourse]}
     >
       <HeaderTopbar
         header={{
@@ -193,14 +193,6 @@ export default function CohortSchedulePage() {
       />
 
       <div className="grid gap-6">
-        <Calendar<ScheduleCalendarEvent>
-          service={calendarService}
-          mode={mode}
-          setMode={setMode}
-          date={date}
-          setDate={setDate}
-          getColorByEvent={(event) => calendarService.getColorByEvent(event)}
-        />
       </div>
     </DashboardContent>
   );

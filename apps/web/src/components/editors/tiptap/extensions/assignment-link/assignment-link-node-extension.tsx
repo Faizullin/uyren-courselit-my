@@ -3,12 +3,30 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import {
   AssignmentLinkAttrs,
   AssignmentLinkNodeComponent,
+  AssignmentSelectNiceDialog,
 } from "./assignment-link-node-component";
+import { NiceModal } from "@workspace/components-library";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     assignmentLink: {
       insertAssignmentLink: (attrs: AssignmentLinkAttrs) => ReturnType;
+      openAssignmentSelectDialog: (props: { 
+        type?: "assignment" | "quiz" | "all";
+        obj?: AssignmentLinkAttrs["obj"];
+        onUpdate?: (attrs: Partial<AssignmentLinkAttrs>) => void;
+      }) => ReturnType;
+    };
+  }
+}
+
+declare module "@tiptap/core" {
+  interface Storage {
+    assignmentLink: {
+      lesson: {
+        _id: string;
+        courseId: string;
+      };
     };
   }
 }
@@ -85,7 +103,7 @@ export const AssignmentLinkNodeExtension = Node.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(AssignmentLinkNodeComponent as any);
+    return ReactNodeViewRenderer(AssignmentLinkNodeComponent);
   },
 
   addCommands() {
@@ -97,6 +115,45 @@ export const AssignmentLinkNodeExtension = Node.create({
             type: "assignmentLink",
             attrs,
           });
+        },
+      openAssignmentSelectDialog:
+        ({ type, obj, onUpdate }) =>
+        ({ editor }) => {
+          const storage = editor.storage.assignmentLink;
+          NiceModal.show(AssignmentSelectNiceDialog, {
+            args: {
+              obj: obj || null,
+              courseId: storage.lesson.courseId,
+              initialType: type || obj?.type || "all",
+            },
+          }).then((response) => {
+            if (response.reason === "submit" && response.data) {
+              const selectedItem = response.data;
+              let link = "";
+              if (selectedItem.type === "assignment") {
+                link = `/assignments/${selectedItem.key}`;
+              } else if (selectedItem.type === "quiz") {
+                link = `/quiz/${selectedItem.key}`;
+              }
+              
+              const attrs = {
+                obj: {
+                  type: selectedItem.type,
+                  id: selectedItem.key,
+                  title: selectedItem.title,
+                },
+                label: `${selectedItem.title} (${selectedItem.type})`,
+                link: link,
+              };
+
+              if (onUpdate) {
+                onUpdate(attrs);
+              } else {
+                editor.commands.insertAssignmentLink(attrs);
+              }
+            }
+          });
+          return true;
         },
     };
   },

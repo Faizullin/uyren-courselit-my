@@ -178,7 +178,7 @@ export const CohortCreateNiceDialog = NiceModal.create<
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Cohort Title</FieldLabel>
+              <FieldLabel>Title</FieldLabel>
               <Input
                 {...field}
                 placeholder="e.g., Spring 2024 Cohort"

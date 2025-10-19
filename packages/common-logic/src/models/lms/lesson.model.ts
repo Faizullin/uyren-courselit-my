@@ -28,11 +28,8 @@ export const LessonSchema = new mongoose.Schema<ILesson>({
         required: true
     },
     requiresEnrollment: { type: Boolean, default: true },
-    published: { type: Boolean, required: true, default: false },
 });
 
-LessonSchema.index({ courseId: 1, published: 1 });
-LessonSchema.index({ ownerId: 1, published: 1 });
 LessonSchema.index({ orgId: 1, courseId: 1 });
 LessonSchema.index({ title: 'text', content: 'text' });
 

@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Fragment, ReactNode } from "react";
 import LoadingScreen from "./loading-screen";
 import PermissionError from "./permission-error";
+import ThemeToggle from "../layout/theme-toggle";
 
 export default function DashboardContent({
   breadcrumbs,
@@ -81,7 +82,8 @@ export default function DashboardContent({
             </Breadcrumb>
           )}
         </div>
-        <div className="ml-auto px-3">
+        <div className="ml-auto flex items-center gap-2 px-3">
+          <ThemeToggle />
           <NotificationsViewer />
         </div>
       </header>

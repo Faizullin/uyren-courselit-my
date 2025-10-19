@@ -1,17 +1,19 @@
 "use client";
 
 import { ScrollAnimation } from "@/components/public/scroll-animation";
+import { trpc } from "@/utils/trpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { BookOpen, Clock } from "lucide-react";
+import { Star, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
+import CourseEnrollmentCard from "./_components/course-enrollment-card";
+import { CourseErrorBoundary, CourseErrorFallback } from "./_components/course-error-boundary";
 import { useCourseData } from "./_components/course-provider";
 import { CourseDetailSkeleton } from "./_components/course-skeletons";
-import { CourseErrorBoundary, CourseErrorFallback } from "./_components/course-error-boundary";
 
 const DescriptionEditor = dynamic(
   () =>
@@ -23,21 +25,54 @@ const DescriptionEditor = dynamic(
   },
 );
 
-function CourseMainContent({ course }: { course: any }) {
+function CourseMainContent() {
+  const courseData  = useCourseData();
   const { t } = useTranslation("common");
-
+  const loadCourseDetailedQuery = trpc.lmsModule.courseModule.course.publicGetByIdDetailed.useQuery(
+    { id: courseData._id },
+    { enabled: !!courseData._id }
+  );
+  const course = loadCourseDetailedQuery.data;
+  if (!course) {
+    return null;
+  }
   return (
     <>
-      {/* Course Header */}
+      {/* Course Header with Title and Meta */}
       <ScrollAnimation variant="fadeUp">
         <div className="space-y-4 m--course-header">
-          <div className="flex flex-wrap items-center gap-4 text-sm m--course-meta">
+          <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 dark:text-gray-100">
+            {course.title}
+          </h1>
+          
+          {/* Short Introduction */}
+          {course.shortDescription && (
+            <p className="text-lg leading-relaxed text-gray-700 dark:text-gray-300">
+              {course.shortDescription}
+            </p>
+          )}
+
+          {/* Course Meta Info */}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
+            {/* Rating */}
             <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4 text-brand-primary" />
-              <span>
-                {course.duration || "~"} {t("weeks")}
-              </span>
+              <Star className="h-4 w-4 text-transparent fill-yellow-500" />
+              <span>{course.statsAverageRating}</span>
             </div>
+         
+
+            {/* Enrollment Count */}
+            {course.statsEnrollmentCount && (
+              <>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>{course.statsEnrollmentCount} {t("students")}</span>
+                </div>
+                <span className="text-gray-400">•</span>
+              </>
+            )}
+
+            {/* Level Badge */}
             <Badge
               variant="secondary"
               className="bg-brand-primary/10 text-brand-primary border-brand-primary/20"
@@ -45,10 +80,32 @@ function CourseMainContent({ course }: { course: any }) {
               {course.level || "Beginner"}
             </Badge>
           </div>
+
+          {/* Course Tags */}
+          {course.tags && course.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {course.tags.map((tag: any, index: number) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                >
+                  {tag.name || tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Mobile Enrollment Card */}
+          <div className="md:hidden my-4">
+            <CourseEnrollmentCard 
+              course={course}
+            />
+          </div>
         </div>
       </ScrollAnimation>
 
-      {/* Course Card with Image, Overview and Description */}
+      {/* Course Description Card */}
       <ScrollAnimation variant="fadeUp">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm m--course-overview">
           {/* Featured Image */}
@@ -67,44 +124,6 @@ function CourseMainContent({ course }: { course: any }) {
               />
             </div>
           )}
-
-          {/* Course Title */}
-          <div className="p-6 pb-0">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 m--course-title">
-              {course.title}
-            </h1>
-
-            {/* Course Tags */}
-            {course.tags && course.tags.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {course.tags.map((tag: string, index: number) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="border-b border-gray-100 dark:border-gray-700 p-6 m--overview-header">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-brand-primary to-orange-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {t("course_overview")}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t("course_overview_desc")}
-                </p>
-              </div>
-            </div>
-          </div>
 
           <div className="p-6 space-y-6 m--overview-content">
             <div className="space-y-3 m--description-block">
@@ -150,12 +169,12 @@ function CourseDetailsContent() {
   return (
     <CourseErrorBoundary fallback={<CourseErrorFallback error={new Error("Failed to load course content")} reset={() => window.location.reload()} />}>
       <Suspense fallback={<CourseDetailSkeleton />}>
-        <CourseMainContent course={course} />
+        <CourseMainContent/>
       </Suspense>
     </CourseErrorBoundary>
   );
 }
 
-export default function CourseDetailsPage() {
+export default function Page() {
   return <CourseDetailsContent />;
 }

@@ -1,44 +1,48 @@
 "use client";
 
+import { trpc } from "@/utils/trpc";
 import { useParams, usePathname } from "next/navigation";
 import CourseLessonsSidebar from "../../_components/course-lessons-sidebar";
-import { useProfile } from "@/components/contexts/profile-context";
-import { trpc } from "@/utils/trpc";  
+import CourseEnrollmentCard from "./course-enrollment-card";
 
 interface CourseLayoutContentProps {
-  courseData: any;
+  courseData: {
+    _id: string;
+    title: string;
+  };
+  showEnrollmentCard?: boolean;
 }
 
-export default function CourseLayoutContent({ courseData }: CourseLayoutContentProps) {
+export default function CourseLayoutContent({ 
+  courseData, 
+  showEnrollmentCard = true 
+}: CourseLayoutContentProps) {
   const params = useParams();
   const pathname = usePathname();
-  const { profile } = useProfile();
-  
-  const lessonId = params.lessonId as string;
-  const isLessonPage = pathname.includes('/lessons/');
-  
-  // Get membership status for access control
-  const { data: membershipStatus } = trpc.userModule.user.getMembershipStatus.useQuery(
+  const loadCourseDetailedQuery = trpc.lmsModule.courseModule.course.publicGetByIdDetailed.useQuery(
     {
-      entityId: courseData.courseId,
-      entityType: Constants.MembershipEntityType.COURSE,
+      id: courseData._id,
     },
     {
-      enabled: !!courseData.courseId && !!profile?.userId,
+      enabled: !!courseData._id,
     },
   );
 
-  const hasAccess = !!profile?.userId && membershipStatus === Constants.MembershipStatus.ACTIVE;
+  const isLessonPage = pathname.includes('/lessons/');
 
   return (
     <div className="space-y-6 m--course-sidebar">
-      <CourseLessonsSidebar 
-        course={courseData}
-        currentLessonId={isLessonPage ? lessonId : undefined}
-        // showPricing={!hasAccess}
-        showPricing={false}
-        showCourseInfo={true}
-      />
+      {/* Enrollment Card - shown on course overview page, hidden on mobile (shown inline) */}
+      {showEnrollmentCard && !isLessonPage && loadCourseDetailedQuery.data && (
+        <div className="hidden md:block">
+          <CourseEnrollmentCard 
+            course={loadCourseDetailedQuery.data}
+          />
+        </div>
+      )}
+
+      {/* Course Lessons Sidebar - always shown */}
+      <CourseLessonsSidebar courseId={courseData._id} />
     </div>
   );
 } 

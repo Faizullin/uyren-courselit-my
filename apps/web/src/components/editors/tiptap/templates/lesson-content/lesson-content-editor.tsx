@@ -1,13 +1,17 @@
 "use client";
 
 import { InsertMediaNiceDialog } from "@/components/media/insert-media-dialog";
-import { Editor } from "@tiptap/react";
+import { AnyExtension, Editor } from "@tiptap/react";
 import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 import { NiceModal } from "@workspace/components-library";
+import type { CommandSuggestionItem } from "@workspace/text-editor/tiptap-sh";
 import {
   ContentEditor,
   ContentEditorProps,
   EditorToolbarItems,
+  getSuggestion,
+  MediaViewExtension,
+  SlashCommand,
   ToolbarProvider,
   useToolbar,
 } from "@workspace/text-editor/tiptap-sh";
@@ -27,23 +31,143 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
-import { FileTextIcon, HelpCircleIcon, ImageIcon, Plus, VideoIcon, Volume2 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { FileTextIcon, HelpCircleIcon, ImageIcon, Plus, VideoIcon, Volume2, Palette } from "lucide-react";
+import { useMemo } from "react";
 import { AssignmentLinkNodeExtension } from "../../extensions/assignment-link/assignment-link-node-extension";
 
 import "./lesson-content-editor.scss";
 
-export const LessonContentEditor = (props: ContentEditorProps) => {
+interface ILessonMinimal {
+  _id: string;
+  courseId: string;
+}
+
+interface LessonContentEditorProps extends ContentEditorProps {
+  lesson: ILessonMinimal;
+}
+
+type AssetType = ITextEditorContent["assets"][number];
+
+// Create custom extension factories with lesson context
+
+const createLessonMediaViewExtension = (lesson: ILessonMinimal) => {
+  return MediaViewExtension.extend({
+
+    addStorage() {
+      return {
+        lesson: lesson,
+      };
+    },
+
+    addCommands() {
+      const parentCommands = this.parent?.();
+      return {
+        ...parentCommands,
+        openMediaSelectDialog:
+          ({ fileType }) =>
+          ({ editor, chain }) => {
+            // Execute async logic but don't block command execution
+            const storage = editor.storage.mediaView;
+            
+            NiceModal.show(InsertMediaNiceDialog, {
+              selectMode: true,
+              selectedMedia: null,
+              initialFileType: fileType,
+              courseId: storage?.lesson?.courseId,
+              lessonId: storage?.lesson?._id,
+            })
+              .then((result) => {
+                console.log("[media dialog result]", result);
+                
+                if (result.reason === "submit" && result.data) {
+                  const asset: AssetType = {
+                    url: result.data.url,
+                    caption: result.data.caption || result.data.originalFileName || "",
+                    media: result.data,
+                  };
+                  
+                  // Insert after dialog resolves
+                  editor.chain().focus().setMediaView(asset).run();
+                }
+              })
+              .catch((error) => {
+                console.error("Failed to insert media:", error);
+              });
+
+            // Return true immediately to indicate command executed successfully
+            return true;
+          },
+      };
+    },
+  });
+};
+
+export const LessonContentEditor = (props: LessonContentEditorProps) => {
+  const { lesson, ...editorProps } = props;
+
+  const customSuggestions = useMemo(() => {
+    const mediaItems: CommandSuggestionItem[] = [
+      {
+        title: "Media",
+        description: "Insert media from media library.",
+        keywords: ["image", "photo", "picture", "img", "audio", "sound", "music", "mp3", "mp4", "pdf", "document", "file", "media"],
+        icon: ImageIcon,
+        command: ({ editor, range }: any) => {
+          editor.chain().focus().deleteRange(range).run();
+          editor.commands.openMediaSelectDialog("image/");
+        },
+      },
+      {
+        title: "Attach Assignment",
+        description: "Attach assignment from assignment library.",
+        keywords: ["assignment", "homework", "project", "submission", "grading", "feedback"],
+        icon: FileTextIcon,
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          editor.commands.openAssignmentSelectDialog({ type: "assignment" });
+        },
+      },
+      {
+        title: "Attach Quiz",
+        description: "Attach quiz from quiz library.",
+        keywords: ["quiz", "test", "exam", "question", "answer", "evaluation"],
+        icon: HelpCircleIcon,
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          editor.commands.openAssignmentSelectDialog({ type: "quiz" });
+        },
+      },
+    ];
+
+    return getSuggestion({ ai: true, customItems: mediaItems });
+  }, []);
+
+  const extensionsDict: Record<string, AnyExtension | false> = useMemo(() => {
+    return {
+      slashCommand: SlashCommand.configure({
+        suggestion: customSuggestions,
+      }),
+      mediaView: createLessonMediaViewExtension(lesson),
+      assignmentLink: AssignmentLinkNodeExtension.extend({
+        addStorage() {
+          return {
+            lesson: lesson,
+          };
+        },
+      }),
+    };
+  }, [customSuggestions, lesson]);
+
   return (
     <ContentEditor
       className={cn(
         "lesson-content-editor-wrapper",
-        props.className,
-        props.editable ? "" : "readonly",
+        editorProps.className,
+        editorProps.editable ? "" : "readonly",
       )}
-      extraExtensions={[AssignmentLinkNodeExtension]}
-      {...props}
-      toolbar={props.toolbar !== undefined ? props.toolbar : EditorToolbar}
+      extraExtensions={extensionsDict}
+      {...editorProps}
+      toolbar={editorProps.toolbar !== undefined ? editorProps.toolbar : EditorToolbar}
     />
   );
 };
@@ -109,20 +233,8 @@ const EditorToolbar = ({ editor }: { editor: Editor }) => {
 const InsertAssignmentToolbar = () => {
   const { editor } = useToolbar();
 
-  const handleInsertAssingment = (type: "assignment" | "quiz") => {
-    if (type === "assignment") {
-      editor.commands.insertAssignmentLink({
-        label: "Assignment",
-        obj: null,
-        link: "#",
-      });
-    } else {
-      editor.commands.insertAssignmentLink({
-        label: "Quiz",
-        obj: null,
-        link: "#",
-      });
-    }
+  const handleInsertAssignment = (type: "assignment" | "quiz") => {
+    editor.commands.openAssignmentSelectDialog({ type });
   };
 
   return (
@@ -145,11 +257,11 @@ const InsertAssignmentToolbar = () => {
       </Tooltip>
 
       <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={() => handleInsertAssingment("assignment")}>
+        <DropdownMenuItem onClick={() => handleInsertAssignment("assignment")}>
           <FileTextIcon className="h-4 w-4 mr-2" />
           Assignment
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleInsertAssingment("quiz")}>
+        <DropdownMenuItem onClick={() => handleInsertAssignment("quiz")}>
           <HelpCircleIcon className="h-4 w-4 mr-2" />
           Quiz
         </DropdownMenuItem>
@@ -158,45 +270,19 @@ const InsertAssignmentToolbar = () => {
   );
 };
 
-type AssetType = ITextEditorContent["assets"][number];
-
 const CustomMediaInsertDropdown = () => {
   const { editor } = useToolbar();
-  const [isOpen, setIsOpen] = useState(false);
 
-  const openMediaDialog = useCallback(
-    async (fileType: string) => {
-      try {
-        const result = await NiceModal.show(InsertMediaNiceDialog, {
-          selectMode: true,
-          selectedMedia: null,
-          initialFileType: fileType,
-        });
-
-        if (result.reason === "submit" && editor) {
-          const asset: AssetType = {
-            url: result.data.url,
-            caption: result.data.caption || result.data.originalFileName || "",
-            media: result.data,
-          };
-          editor.chain().focus().setMediaView(asset).run();
-        }
-
-        setIsOpen(false);
-        return result;
-      } catch (error) {
-        console.error("Failed to open media dialog:", error);
-        setIsOpen(false);
-        return null;
-      }
-    },
-    [editor],
-  );
+  const handleInsertMedia = (fileType: string) => {
+    if (editor) {
+      editor.commands.openMediaSelectDialog({fileType});
+    }
+  };
 
   if (!editor) return null;
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu>
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
@@ -218,19 +304,19 @@ const CustomMediaInsertDropdown = () => {
       </Tooltip>
 
       <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={() => openMediaDialog("image/")}>
+        <DropdownMenuItem onClick={() => handleInsertMedia("image/")}>
           <ImageIcon className="h-4 w-4 mr-2" />
           Image
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openMediaDialog("video/")}>
+        <DropdownMenuItem onClick={() => handleInsertMedia("video/")}>
           <VideoIcon className="h-4 w-4 mr-2" />
           Video
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openMediaDialog("audio/")}>
+        <DropdownMenuItem onClick={() => handleInsertMedia("audio/")}>
           <Volume2 className="h-4 w-4 mr-2" />
           Audio
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openMediaDialog("application/pdf")}>
+        <DropdownMenuItem onClick={() => handleInsertMedia("application/pdf")}>
           <FileTextIcon className="h-4 w-4 mr-2" />
           PDF
         </DropdownMenuItem>

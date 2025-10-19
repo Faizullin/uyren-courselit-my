@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { IEntity } from "../lib/entity";
 
 export enum MediaAccessTypeEnum {
   PUBLIC = "public",
@@ -19,5 +20,12 @@ export interface IAttachmentMedia {
   file?: string;
   metadata?: any;
   ownerId: mongoose.Types.ObjectId;
+}
+
+export interface IAttachment extends IAttachmentMedia {
+  _id: mongoose.Types.ObjectId;
+  entity: IEntity;
+  createdAt: Date;
+  updatedAt: Date;
 }
 

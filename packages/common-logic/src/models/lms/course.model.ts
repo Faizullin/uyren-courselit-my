@@ -143,3 +143,6 @@ CourseSchema.virtual("theme", {
 export const CourseModel = createModel('Course', CourseSchema);
 export type ICourseHydratedDocument = HydratedDocument<ICourse>;
 
+export const checkCourseInstructorPermission = (course: ICourseHydratedDocument, userId: mongoose.Types.ObjectId) => {
+  return course.instructors.some(instructor => instructor.userId.equals(userId));
+}

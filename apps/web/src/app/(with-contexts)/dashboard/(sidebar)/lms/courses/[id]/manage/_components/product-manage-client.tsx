@@ -4,7 +4,7 @@ import { useSiteInfo } from "@/components/contexts/site-info-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import PaymentPlanList from "@/components/dashboard/payments/payment-plan-list";
-import { removeFeaturedImage, uploadFeaturedImage } from "@/server/actions/course/media";
+import { removeFeaturedImage, uploadFeaturedImage } from "@/server/actions/lms/course-media";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Editor } from "@tiptap/react";
@@ -73,20 +73,23 @@ function usePaymentPlanOperations({
   const [paymentPlans, setPaymentPlans] = useState<PaymentPlanWithId[]>([]);
   const [defaultPaymentPlanId, setDefaultPaymentPlanId] = useState<string>();
 
-  const createPaymentPlanMutation = trpc.paymentModule.paymentPlan.create.useMutation();
-  const archivePaymentPlanMutation =  trpc.paymentModule.paymentPlan.archive.useMutation();
+  const createPaymentPlanMutation = trpc.lmsModule.courseModule.course.createPaymentPlan.useMutation();
+  const archivePaymentPlanMutation = trpc.paymentModule.paymentPlan.archive.useMutation();
   const setDefaultPlanMutation = trpc.paymentModule.paymentPlan.setDefault.useMutation();
 
   const onPlanSubmitted = useCallback(async (values: any) => {
     try {
       const response = await createPaymentPlanMutation.mutateAsync({
-        data: values,
+        data: {
+          ...values,
+          courseId: id,
+        },
       });
       setPaymentPlans([...paymentPlans, response as unknown as PaymentPlanWithId]);
     } catch (error) {
       console.error("Error submitting plan:", error);
     }
-  }, [createPaymentPlanMutation, paymentPlans]);
+  }, [createPaymentPlanMutation, paymentPlans, id]);
 
   const onPlanArchived = useCallback(async (plan: PaymentPlanWithId) => {
     const response = await archivePaymentPlanMutation.mutateAsync({
@@ -447,9 +450,7 @@ export default function ProductManageClient({
           <MediaSelector
             media={featuredImage}
             onSelection={(media) => {
-              if (media) {
-                setFeaturedImage(media);
-              }
+              setFeaturedImage(media);
             }}
             onRemove={() => {
               setFeaturedImage(null);
@@ -467,7 +468,6 @@ export default function ProductManageClient({
                 files.forEach(file => formData.append("file", file));
                 
                 const result = await uploadFeaturedImage(product._id, formData);
-                
                 if (!result.success) {
                   throw new Error(result.error || "Upload failed");
                 }
@@ -512,13 +512,23 @@ export default function ProductManageClient({
             </p>
           </div>
           <PaymentPlanList
-            paymentPlans={paymentPlans.map((plan) => ({
-              ...plan,
-              type: plan.type,
-            }))}
+            paymentPlans={paymentPlans}
             onPlanSubmit={async (values) => {
+              const submitValues: any = {
+                name: values.name,
+                type: values.type,
+              };
+              if (values.type === PaymentPlanTypeEnum.SUBSCRIPTION) {
+                submitValues.subscriptionMonthlyAmount = values.subscriptionMonthlyAmount;
+                submitValues.subscriptionYearlyAmount = values.subscriptionYearlyAmount;
+              } else if (values.type === PaymentPlanTypeEnum.ONE_TIME) {
+                submitValues.oneTimeAmount = values.oneTimeAmount;
+              } else if (values.type === PaymentPlanTypeEnum.EMI) {
+                submitValues.emiAmount = values.emiAmount;
+                submitValues.emiTotalInstallments = values.emiTotalInstallments;
+              }
               try {
-                await onPlanSubmitted(values);
+                await onPlanSubmitted(submitValues);
               } catch (err) {
                 const error = err instanceof Error ? err : new Error(String(err));
                 toast({
@@ -563,7 +573,6 @@ export default function ProductManageClient({
               }
             }}
             defaultPaymentPlanId={defaultPaymentPlanId}
-            paymentMethod={siteInfo.paymentMethod}
           />
         </div>
 
@@ -592,9 +601,6 @@ export default function ProductManageClient({
             <Label className="text-base font-semibold">
               Allow enrollment
             </Label>
-            <p className="text-sm text-muted-foreground">
-              Automatically activate access when enrolling for free
-            </p>
           </div>
           <Switch
             checked={allowEnrollment}

@@ -25,7 +25,7 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <div className="mt-6">
-                <Link href="/dashboard/studio/db">
+                <Link href="/dashboard/admin/studio/db">
                   <Button className="w-full">
                     Open Database Manager
                   </Button>

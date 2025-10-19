@@ -8,9 +8,10 @@ export default async function Page() {
   const user = session?.user;
   if (!user) {
     redirect("/auth/sign-in");
-  } else if (user.roles.includes(UIConstants.roles.admin)) {
-    redirect("/dashboard/admin");
-  }
+  } 
+  // else if (user.roles.includes(UIConstants.roles.admin)) {
+  //   redirect("/dashboard/admin");
+  // }
   else if (user.roles.includes(UIConstants.roles.instructor)) {
     redirect("/dashboard/instructor");
   }

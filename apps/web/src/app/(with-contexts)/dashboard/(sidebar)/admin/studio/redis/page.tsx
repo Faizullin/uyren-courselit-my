@@ -205,7 +205,7 @@ export default function RedisManagementPage() {
 
   return (
     <DashboardContent breadcrumbs={[
-      { label: "Studio", href: "/dashboard/studio" },
+      { label: "Studio", href: "/dashboard/admin/studio" },
       { label: "Redis", href: "#" }
     ]}>
       <div className="flex flex-col gap-6">

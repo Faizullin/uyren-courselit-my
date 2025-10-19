@@ -84,7 +84,7 @@ export default function Page() {
   return (
     <DashboardContent
       breadcrumbs={breadcrumbs}
-      permissions={[UIConstants.permissions.manageAnyCourse, UIConstants.permissions.manageCourse]}
+      permissions={[ UIConstants.permissions.manageCourse]}
     >
       <HeaderTopbar
         header={{

@@ -28,8 +28,12 @@ import {
   CourseModel,
   ICourseHydratedDocument,
 } from "@workspace/common-logic/models/lms/course.model";
+import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
+import { CourseEnrollmentMemberTypeEnum, EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
 import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
-import { IPaymentPlanHydratedDocument } from "@workspace/common-logic/models/payment/payment-plan.model";
+import { UserProgressModel } from "@workspace/common-logic/models/lms/user-progress.model";
+import { IPaymentPlanHydratedDocument, PaymentPlanModel } from "@workspace/common-logic/models/payment/payment-plan.model";
+import { PaymentPlanStatusEnum, PaymentPlanTypeEnum } from "@workspace/common-logic/models/payment/payment-plan.types";
 import { ITagHydratedDocument } from "@workspace/common-logic/models/post/tag.model";
 import { IThemeHydratedDocument } from "@workspace/common-logic/models/theme.model";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
@@ -44,7 +48,7 @@ import {
 import { CourseLevelEnum, CourseStatusEnum, ICourseChapter } from "@workspace/common-logic/models/lms/course.types";
 
 // TODO: Add chapter reordering (like Frappe LMS update_chapter_index)
-// TODO: Add course progress distribution analytics (like Frappe LMS get_course_progress_distribution)
+// ✓ Added course progress distribution analytics (getEnrollmentStats)
 
 const addChapter = async ({
   course,
@@ -593,13 +597,13 @@ export const courseRouter = router({
         published: true,
       })
         .populate<{
-          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          owner: Pick<IUserHydratedDocument, "_id" | "username" | "firstName" | "lastName" | "fullName" | "email">;
         }>("owner", "username firstName lastName fullName email")
         .populate<{
-          paymentPlans: Pick<IPaymentPlanHydratedDocument, "name" | "type" | "status">[];
-        }>("paymentPlans", "name type status")
+          paymentPlans: Pick<IPaymentPlanHydratedDocument, "_id" | "name" | "type" | "status" | "oneTimeAmount" | "emiAmount" | "subscriptionMonthlyAmount" | "subscriptionYearlyAmount" | "currency">[];
+        }>("paymentPlans", "name type status oneTimeAmount emiAmount subscriptionMonthlyAmount subscriptionYearlyAmount currency")
         .populate<{
-          tags: Pick<ITagHydratedDocument, "name">[];
+          tags: Pick<ITagHydratedDocument, "_id" | "name">[];
         }>("tags", "name")
         .lean();
 
@@ -611,7 +615,6 @@ export const courseRouter = router({
       const allLessons = await LessonModel.find({
         courseId: course._id,
         orgId: ctx.domainData.domainObj.orgId,
-        published: true,
       })
         .select("_id title slug type requiresEnrollment media downloadable")
         .lean();
@@ -637,6 +640,164 @@ export const courseRouter = router({
       return jsonify({
         ...course,
         chapters: chaptersWithLessons,
+      });
+    }),
+
+  createPaymentPlan: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .input(
+      getFormDataSchema({
+        courseId: documentIdValidator(),
+        name: z.string().min(2).max(255),
+        type: z.nativeEnum(PaymentPlanTypeEnum),
+        status: z.nativeEnum(PaymentPlanStatusEnum).default(PaymentPlanStatusEnum.ACTIVE),
+        oneTimeAmount: z.number().min(0).optional(),
+        emiAmount: z.number().min(0).optional(),
+        emiTotalInstallments: z.number().min(1).max(24).optional(),
+        subscriptionMonthlyAmount: z.number().min(0).optional(),
+        subscriptionYearlyAmount: z.number().min(0).optional(),
+        currency: z.string().length(3).default("USD"),
+        isDefault: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const course = await getCourseOrThrow({
+        ctx,
+        courseId: input.data.courseId,
+      });
+
+      const paymentPlan = await PaymentPlanModel.create({
+        orgId: ctx.domainData.domainObj.orgId,
+        name: input.data.name,
+        type: input.data.type,
+        status: input.data.status,
+        oneTimeAmount: input.data.oneTimeAmount,
+        emiAmount: input.data.emiAmount,
+        emiTotalInstallments: input.data.emiTotalInstallments,
+        subscriptionMonthlyAmount: input.data.subscriptionMonthlyAmount,
+        subscriptionYearlyAmount: input.data.subscriptionYearlyAmount,
+        currency: input.data.currency,
+        ownerId: ctx.user._id,
+        entity: {
+          entityType: "course",
+          entityIdStr: course._id.toString(),
+          entityId: course._id,
+        },
+        isDefault: input.data.isDefault,
+        isInternal: false,
+      });
+
+      return jsonify(paymentPlan.toObject());
+    }),
+
+  // Check if user is enrolled in course (for public pages)
+  checkEnrollment: publicProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      z.object({
+        courseId: documentIdValidator(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session?.user) {
+        return jsonify({ isEnrolled: false });
+      }
+
+      const enrollment = await EnrollmentModel.findOne({
+        userId: ctx.session.user.id,
+        courseId: input.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: EnrollmentStatusEnum.ACTIVE,
+      }).lean();
+
+      return jsonify({
+        isEnrolled: !!enrollment,
+        enrollmentId: enrollment?._id,
+      });
+    }),
+
+  // Get course enrollment statistics (like get_course_progress_distribution)
+  getEnrollmentStats: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(
+      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+    )
+    .input(
+      z.object({
+        courseId: documentIdValidator(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      await getCourseOrThrow({ ctx, courseId: input.courseId });
+
+      // Get all enrollments
+      const enrollments = await EnrollmentModel.find({
+        courseId: input.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+        memberType: CourseEnrollmentMemberTypeEnum.STUDENT,
+        status: EnrollmentStatusEnum.ACTIVE,
+      }).lean();
+
+      // Get all progress docs
+      const progressDocs = await UserProgressModel.find({
+        courseId: input.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+      }).lean();
+
+      // Calculate progress distribution
+      const progressMap = new Map(
+        progressDocs.map((p) => [p.userId.toString(), p]),
+      );
+
+      const distribution = {
+        notStarted: 0,
+        inProgress: 0,
+        completed: 0,
+        totalEnrollments: enrollments.length,
+      };
+
+      enrollments.forEach((enrollment) => {
+        const progress = progressMap.get(enrollment.userId.toString());
+        
+        if (!progress || progress.lessons.length === 0) {
+          distribution.notStarted++;
+        } else {
+          const totalLessons = progress.lessons.length;
+          const completedLessons = progress.lessons.filter(
+            (l) => l.status === "completed",
+          ).length;
+
+          if (completedLessons === totalLessons && totalLessons > 0) {
+            distribution.completed++;
+          } else if (completedLessons > 0) {
+            distribution.inProgress++;
+          } else {
+            distribution.notStarted++;
+          }
+        }
+      });
+
+      // Calculate average completion rate
+      let totalPercentage = 0;
+      enrollments.forEach((enrollment) => {
+        const progress = progressMap.get(enrollment.userId.toString());
+        if (progress && progress.lessons.length > 0) {
+          const completedLessons = progress.lessons.filter(
+            (l) => l.status === "completed",
+          ).length;
+          totalPercentage += (completedLessons / progress.lessons.length) * 100;
+        }
+      });
+
+      const averageCompletion =
+        enrollments.length > 0
+          ? Math.round(totalPercentage / enrollments.length)
+          : 0;
+
+      return jsonify({
+        ...distribution,
+        averageCompletion,
       });
     }),
 });

@@ -2,13 +2,10 @@ import mongoose from "mongoose";
 import { IEntity } from "../../lib/entity";
 
 export enum ScheduleTypeEnum {
-  COURSE = "course",
-  LESSON = "lesson",
   ASSIGNMENT = "assignment",
   QUIZ = "quiz",
   LIVE_SESSION = "live_session",
   DEADLINE = "deadline",
-  EXAM = "exam",
 }
 
 export enum ScheduleStatusEnum {

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { createModel } from "../../lib/create-model";
 import { orgaizationIdField } from "../../lib/organization"; 
 import { CourseEnrollmentMemberTypeEnum, CourseEnrollmentRoleEnum, EnrollmentStatusEnum, ICourseEnrollment } from "./enrollment.types";
+import { ApprovalStatusEnum } from "../../lib/approval_status";
 
 export const EnrollmentSchema = new mongoose.Schema<ICourseEnrollment>({
   orgId: orgaizationIdField(),
@@ -38,6 +39,12 @@ export const EnrollmentSchema = new mongoose.Schema<ICourseEnrollment>({
     type: String,
     enum: EnrollmentStatusEnum,
     required: true
+  },
+  approvalStatus: {
+    type: String,
+    enum: ApprovalStatusEnum,
+    required: true,
+    default: ApprovalStatusEnum.APPROVED
   },
 }, {
   timestamps: true

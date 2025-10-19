@@ -1,4 +1,5 @@
 import {
+  AuthorizationException,
   NotFoundException,
   ValidationException,
 } from "@/server/api/core/exceptions";
@@ -20,6 +21,8 @@ import { IQuizQuestion, QuestionTypeEnum } from "@workspace/common-logic/models/
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 import { QuestionProviderFactory } from "../question-bank/_providers";
+import { checkPermission } from "@workspace/utils";
+import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
 
 const findOrAssertQuiz = async (quizId: string, ctx: MainContextType) => {
   const quiz = await QuizModel.findOne({
@@ -27,6 +30,17 @@ const findOrAssertQuiz = async (quizId: string, ctx: MainContextType) => {
     orgId: ctx.domainData.domainObj.orgId,
   });
   if (!quiz) throw new NotFoundException("Quiz", quizId);
+  if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageCourse])) {
+    if(!quiz.ownerId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+      const course = await CourseModel.findOne({
+        _id: quiz.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if(!course || !course.ownerId.equals(ctx.user._id)) {
+        throw new AuthorizationException();
+      }
+    }
+  }
   return quiz;
 };
 
@@ -42,7 +56,7 @@ const getQuestionProvider = (questionType: IQuizQuestion["type"]) => {
 export const quizQuestionsRouter = router({
   list: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       ListInputSchema.extend({
         filter: z.object({
@@ -52,7 +66,7 @@ export const quizQuestionsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const quiz = await findOrAssertQuiz(input.filter.quizId, ctx as any);
+      const quiz = await findOrAssertQuiz(input.filter.quizId, ctx);
       const query: RootFilterQuery<typeof QuizQuestionModel> = {
         orgId: ctx.domainData.domainObj.orgId,
         _id: { $in: quiz.questionIds },
@@ -129,7 +143,7 @@ export const quizQuestionsRouter = router({
 
   create: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       getFormDataSchema({
         text: z.string().min(1),
@@ -151,11 +165,15 @@ export const quizQuestionsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
+      const quiz = await findOrAssertQuiz(input.quizId, ctx);
       const question = await QuizQuestionModel.create({
-        ...input.data,
+        text: input.data.text,
+        type: input.data.type,
+        points: input.data.points,
+        explanation: input.data.explanation,
+        options: input.data.options,
+        correctAnswers: input.data.correctAnswers,
         orgId: ctx.domainData.domainObj.orgId,
-        teacherId: ctx.user._id,
       });
       const newQuestionIds = Array.from(
         new Set([...quiz.questionIds, question._id]),
@@ -164,7 +182,7 @@ export const quizQuestionsRouter = router({
         questionIds: newQuestionIds,
         totalPoints: quiz.totalPoints + input.data.points,
       });
-      return question;
+      return jsonify(question.toObject());
     }),
 
   update: protectedProcedure
@@ -199,7 +217,7 @@ export const quizQuestionsRouter = router({
       const pointsDifference = newPoints - oldPoints;
 
       // Update question with validated data
-      await QuizQuestionModel.findByIdAndUpdate(input.id, validatedData, {
+      const updatedQuestion = await QuizQuestionModel.findByIdAndUpdate(input.id, validatedData, {
         new: true,
       });
 
@@ -209,9 +227,7 @@ export const quizQuestionsRouter = router({
           $inc: { totalPoints: pointsDifference },
         });
       }
-
-      const updated = await QuizQuestionModel.findById(input.id);
-      return updated;
+      return jsonify(updatedQuestion!.toObject());
     }),
 
   delete: protectedProcedure
@@ -224,7 +240,7 @@ export const quizQuestionsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
+      const quiz = await findOrAssertQuiz(input.quizId, ctx);
       if (!quiz.questionIds.includes(new mongoose.Types.ObjectId(input.id)))
         throw new NotFoundException("Question not found");
 
@@ -239,12 +255,12 @@ export const quizQuestionsRouter = router({
         $inc: { totalPoints: -(question.points || 0) },
       });
       await QuizQuestionModel.findByIdAndDelete(input.id);
-      return { success: true };
+      return jsonify({ success: true });
     }),
 
   getById: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       z.object({
         id: documentIdValidator(),
@@ -252,7 +268,7 @@ export const quizQuestionsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const quiz = await findOrAssertQuiz(input.quizId, ctx as any);
+      const quiz = await findOrAssertQuiz(input.quizId, ctx);
       if (!quiz.questionIds.includes(new mongoose.Types.ObjectId(input.id)))
         throw new NotFoundException("Question not found");
 
@@ -261,6 +277,6 @@ export const quizQuestionsRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       });
       if (!question) throw new NotFoundException("Question not found");
-      return question;
+      return jsonify(question.toObject());
     }),
 });

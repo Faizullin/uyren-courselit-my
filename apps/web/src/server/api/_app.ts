@@ -2,7 +2,6 @@ import { createTRPCContext, router, t } from "./core/trpc";
 import { activityModuleRouter } from "./routers/activity";
 import { chatModuleRouter } from "./routers/chat";
 import { lmsModuleRouter } from "./routers/lms";
-import { mediaModuleRouter } from "./routers/media";
 import { paymentModuleRouter } from "./routers/payment";
 import { siteModuleRouter } from "./routers/site";
 import { userModuleRouter } from "./routers/user";
@@ -17,7 +16,6 @@ export const appRouter = router({
   siteModule: siteModuleRouter,
   lmsModule: lmsModuleRouter,
   activityModule: activityModuleRouter,
-  mediaModule: mediaModuleRouter,
   paymentModule: paymentModuleRouter,
   chatModule: chatModuleRouter,
 });

@@ -1,6 +1,6 @@
+import { AttachmentModel, IAttachmentHydratedDocument } from "@workspace/common-logic/models/media.model";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
-import { generateUniqueId } from "@workspace/utils";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 
@@ -17,6 +17,8 @@ export interface CloudinaryUploadOptions {
   type: string;
   caption?: string;
   access?: string;
+  entityType: string;
+  entityId: mongoose.Types.ObjectId | string;
 }
 
 export interface CloudinaryUploadResult {
@@ -28,18 +30,14 @@ export interface CloudinaryUploadResult {
 }
 
 export class CloudinaryService {
-  static async uploadFile(options: CloudinaryUploadOptions, domain: IDomainHydratedDocument): Promise<IAttachmentMedia> {
-    const { file, userId, type, caption, access } = options;
+  static async uploadFile(options: CloudinaryUploadOptions, domain: IDomainHydratedDocument): Promise<IAttachmentHydratedDocument> {
+    const { file, userId, type, caption, access, entityType, entityId } = options;
 
     if (!file) {
       throw new Error("No file provided");
     }
 
     try {
-      // Generate unique filename
-      const mediaId = generateUniqueId();
-
-      // Get folder prefix from environment or use default
       const folderPrefix = process.env.UPLOAD_FOLDER_PREFIX;
       if (!folderPrefix) {
         throw new Error("UPLOAD_FOLDER_PREFIX is not set");
@@ -49,7 +47,6 @@ export class CloudinaryService {
       let uploadResult: any;
 
       if (file instanceof Buffer) {
-        // Upload buffer to Cloudinary
         uploadResult = await new Promise((resolve, reject) => {
           cloudinary.uploader
             .upload_stream(
@@ -66,7 +63,6 @@ export class CloudinaryService {
             .end(file);
         });
       } else {
-        // Upload File object to Cloudinary
         const bytes = await (file as File).arrayBuffer();
         const buffer = Buffer.from(bytes);
 
@@ -87,16 +83,12 @@ export class CloudinaryService {
         });
       }
 
-      // Create Media object
-      const media: IAttachmentMedia = {
+      const attachment = new AttachmentModel({
         orgId: domain.orgId,
         ownerId: userId,
         url: uploadResult.secure_url,
         originalFileName: file instanceof File ? file.name : "uploaded_file",
-        mimeType:
-          file instanceof File
-            ? file.type
-            : this.getMimeTypeFromFormat(uploadResult.format),
+        mimeType: file instanceof File ? file.type : this.getMimeTypeFromFormat(uploadResult.format),
         size: uploadResult.bytes,
         access: (access as any) || MediaAccessTypeEnum.PUBLIC,
         thumbnail:
@@ -114,10 +106,17 @@ export class CloudinaryService {
         metadata: {
           public_id: uploadResult.public_id,
         },
-        mediaId: mediaId,
-      };
+        entity: {
+          entityType,
+          entityIdStr: typeof entityId === 'string' ? entityId : entityId.toString(),
+          entityId: typeof entityId === 'string' ? new mongoose.Types.ObjectId(entityId) : entityId,
+        },
+      });
 
-      return media;
+      attachment.mediaId = attachment._id.toString();
+      await attachment.save();
+
+      return attachment;
     } catch (error: any) {
       console.error("Cloudinary upload error:", error);
       throw new Error(`Upload failed: ${error.message}`);
@@ -133,6 +132,9 @@ export class CloudinaryService {
       if (result.result === "not found") {
         throw new Error("File not found for mediaId: " + item.metadata.public_id);
       }
+      
+      await AttachmentModel.deleteOne({ mediaId: item.mediaId });
+      
       return result.result === "ok";
     } catch (error: any) {
       console.error("Cloudinary delete error:", error);

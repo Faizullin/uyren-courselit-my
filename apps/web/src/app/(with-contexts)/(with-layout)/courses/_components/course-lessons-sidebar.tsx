@@ -1,13 +1,8 @@
 "use client";
 
 import { useProfile } from "@/components/contexts/profile-context";
-import { useSiteInfo } from "@/components/contexts/site-info-context";
-import { getPlanPrice } from "@/lib/ui/utils";
-import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
-import { Constants } from "@workspace/common-models";
 import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
@@ -15,110 +10,76 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Separator } from "@workspace/ui/components/separator";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { formatCurrency } from "@workspace/utils";
 import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  Clock,
   Download,
   FileText,
   HelpCircle,
   Lock,
   Play,
-  Video,
-  CheckCircle,
+  Video
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-type CourseType =
-  GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["publicGetByCourseId"];
+  
 
 interface CourseLessonsSidebarProps {
-  course: CourseType;
-  currentLessonId?: string;
-  showPricing?: boolean;
-  showCourseInfo?: boolean;
-  loading?: boolean;
+  courseId: string;
+  isEnrolled?: boolean;
 }
 
 export default function CourseLessonsSidebar({
-  course,
-  currentLessonId,
-  showPricing = true,
-  showCourseInfo = true,
-  loading = false,
+  courseId,
+  isEnrolled = false,
 }: CourseLessonsSidebarProps) {
   const { t } = useTranslation("common");
-  const { siteInfo } = useSiteInfo();
-  const { profile } = useProfile();
+  const { profile } = useProfile();  
+  const loadCourseDetailedQuery = trpc.lmsModule.courseModule.course.publicGetByIdDetailed.useQuery(
+    {
+      id: courseId,
+    },
+    {
+      enabled: !!courseId,
+    },
+  );
 
-  // Get membership status via tRPC only if user is authenticated
-  const { data: membershipStatus, isLoading: isMembershipLoading } =
-    trpc.userModule.user.getMembershipStatus.useQuery(
-      {
-        entityId: course.courseId,
-        entityType: Constants.MembershipEntityType.COURSE,
-      },
-      {
-        enabled: !!course.courseId && !!profile?.userId,
-      },
-    );
-
-  const handlePurchase = useCallback(() => {
-    window.location.href = `/checkout?type=course&id=${course.courseId}`;
-  }, [course.courseId]);
+  const loadCourseEnrollmentMemebershipQuery = trpc.lmsModule.enrollment.getMembership.useQuery(
+    {
+      courseId: loadCourseDetailedQuery.data?._id!,
+    },
+    {
+      enabled: !!profile?.id && !!loadCourseDetailedQuery.data?._id,
+    },
+  );
   
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
+  const course = useMemo(() => loadCourseDetailedQuery.data, [loadCourseDetailedQuery.data]);
+
   // Smart group expansion logic
   useEffect(() => {
-    if (!course.groups?.length) return;
-
-    if (currentLessonId) {
-      // Find group containing current lesson and expand it
-      const currentLessonGroup = course.groups.find(group =>
-        group.lessonsOrder.includes(currentLessonId)
-      );
-      if (currentLessonGroup && !expandedGroups.includes(currentLessonGroup.groupId)) {
-        setExpandedGroups(prev => Array.from(new Set([...prev, currentLessonGroup.groupId])));
-      }
-    } else {
-      // No current lesson (course detail page) - expand first group
-      const firstGroup = course.groups[0];
-      if (firstGroup && !expandedGroups.includes(firstGroup.groupId)) {
-        setExpandedGroups(prev => Array.from(new Set([...prev, firstGroup.groupId])));
-      }
+    if (!course?.chapters?.length) return;
+    const firstGroup = course.chapters[0];
+    if (firstGroup && !expandedGroups.includes(firstGroup._id)) {
+      setExpandedGroups(prev => Array.from(new Set([...prev, firstGroup._id])));
     }
-  }, [currentLessonId, course.groups?.length]); // Removed expandedGroups from deps to prevent loops
+  }, [course?.chapters]);
 
-  const toggleGroup = (groupId: string) => {
+  const toggleGroup = (chapterId: string) => {
     setExpandedGroups((prev) =>
-      prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId],
+      prev.includes(chapterId)
+        ? prev.filter((id) => id !== chapterId)
+        : [...prev, chapterId],
     );
   };
 
-  const defaultPlan =
-    course.attachedPaymentPlans?.find(
-      (plan) => plan.planId === course.defaultPaymentPlan,
-    ) || course.attachedPaymentPlans?.[0];
-  const isFree = defaultPlan?.type === Constants.PaymentPlanType.FREE;
-  const planPrice = defaultPlan
-    ? getPlanPrice(defaultPlan)
-    : { amount: 0, period: "" };
-
   // Determine if user has access to the course
-  const isAuthenticated = !!profile?.userId;
-  const hasAccess =
-    isAuthenticated && membershipStatus === Constants.MembershipStatus.ACTIVE;
-  const isPending =
-    isAuthenticated && membershipStatus === Constants.MembershipStatus.PENDING;
+  const isAuthenticated = !!profile?.id;
+  const hasAccess = isAuthenticated && (loadCourseEnrollmentMemebershipQuery.data?.hasMembership || isEnrolled);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -141,244 +102,47 @@ export default function CourseLessonsSidebar({
     }
   };
 
-  if (loading) {
+  if (loadCourseDetailedQuery.isLoading) {
     return (
-      <div className="space-y-6">
-        {/* Pricing Card Skeleton */}
-        {showPricing && (
-          <Card className="border-2 border-brand-primary/20">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Skeleton className="h-8 w-32 mx-auto mb-2" />
-                  <Skeleton className="h-6 w-24 mx-auto" />
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-48" />
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="space-y-1">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-4 w-4" />
+                  <Skeleton className="h-4 w-32" />
                 </div>
-                <Skeleton className="h-12 w-full" />
-                {showCourseInfo && (
-                  <div className="space-y-3 pt-4 border-t">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <Skeleton className="h-4 w-4 rounded" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <Skeleton className="h-5 w-16" />
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Course Content Skeleton */}
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="space-y-1">
-              {[...Array(3)].map((_, i) => (
-                <div key={i}>
-                  <div className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-32" />
-                    </div>
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                  <Separator />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
+  if (!course) return null;
+
   return (
-    <div className="space-y-6">
-      {/* Pricing Card */}
-      {showPricing && (
-        <Card className="border-2 border-brand-primary/20">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="text-center">
-              {!hasAccess && !isMembershipLoading && (
-                <div className="flex flex-col items-center justify-center gap-2 mb-2 text-muted-foreground">
-                  <Lock
-                    className="h-10 w-10 text-[rgb(var(--brand-primary))]"
-                    aria-label={t("access_restricted")}
-                  />
-                  <span className="text-sm">
-                    {isFree
-                      ? !isAuthenticated
-                        ? t("sign_in_to_enroll")
-                        : course.allowEnrollment
-                          ? t("self_enroll_available")
-                          : t("self_enroll_moderated")
-                      : isAuthenticated
-                        ? t("purchase_to_start")
-                        : t("sign_in_or_purchase")}
-                  </span>
-                </div>
-              )}
-                {isAuthenticated && isMembershipLoading ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-8 w-32 mx-auto" />
-                    <Skeleton className="h-6 w-24 mx-auto" />
-                  </div>
-                ) : defaultPlan ? (
-                  <>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="text-2xl font-bold text-[rgb(var(--brand-primary))]">
-                        {formatCurrency(
-                          planPrice.amount,
-                          siteInfo.currencyISOCode,
-                        )}
-                        {planPrice.period && (
-                          <span className="text-lg">{planPrice.period}</span>
-                        )}
-                      </span>
-                      {defaultPlan.type === Constants.PaymentPlanType.EMI &&
-                        defaultPlan.emiTotalInstallments && (
-                          <span className="text-lg text-muted-foreground">
-                            for {defaultPlan.emiTotalInstallments} months
-                          </span>
-                        )}
-                    </div>
-                    {defaultPlan.type === Constants.PaymentPlanType.ONE_TIME &&
-                      course.cost > 0 && (
-                        <div className="space-y-2">
-                          {defaultPlan.oneTimeAmount &&
-                            course.cost > defaultPlan.oneTimeAmount && (
-                              <div className="text-center">
-                                <span className="text-sm text-muted-foreground line-through">
-                                  {formatCurrency(
-                                    course.cost,
-                                    siteInfo.currencyISOCode,
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                          <Badge
-                            variant="destructive"
-                            className="bg-[rgb(var(--brand-primary))] hover:bg-[rgb(var(--brand-primary-hover))]"
-                          >
-                            {defaultPlan.oneTimeAmount &&
-                            course.cost > defaultPlan.oneTimeAmount
-                              ? `${Math.round(((course.cost - defaultPlan.oneTimeAmount) / course.cost) * 100)}% OFF`
-                              : t("course_sidebar_special_offer")}
-                          </Badge>
-                        </div>
-                      )}
-                    {defaultPlan.type ===
-                      Constants.PaymentPlanType.SUBSCRIPTION && (
-                      <Badge variant="secondary" className="text-xs">
-                        {defaultPlan.subscriptionYearlyAmount
-                          ? t("course_sidebar_yearly_plan")
-                          : t("course_sidebar_monthly_plan")}
-                      </Badge>
-                    )}
-                  </>
-                ) : course.costType === Constants.ProductPriceType.FREE ? (
-                  <div className="text-center">
-                    <span className="text-2xl font-bold text-[rgb(var(--brand-primary))]">
-                      {t("course_sidebar_free")}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <span className="text-2xl font-bold text-[rgb(var(--brand-primary))]">
-                      {formatCurrency(course.cost, siteInfo.currencyISOCode)}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-center">
-                {isAuthenticated && isMembershipLoading ? (
-                  <div className="space-y-3 w-full">
-                    <Skeleton className="h-10 w-32 mx-auto" />
-                    <Skeleton className="h-4 w-48 mx-auto" />
-                  </div>
-                ) : isPending ? (
-                  <div className="space-y-2">
-                    <div className="text-center">
-                      <span className="text-sm text-muted-foreground">
-                        {t("course_sidebar_enrollment_pending")}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Clock className="h-5 w-5 text-amber-500" />
-                      <span className="text-sm font-medium text-amber-600">
-                        {t("course_sidebar_waiting_approval")}
-                      </span>
-                    </div>
-                  </div>
-                ) : hasAccess ? (
-                  <div className="space-y-2">
-                    <div className="text-center">
-                      <span className="text-sm text-muted-foreground">
-                        {t("course_sidebar_has_access")}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                      <span className="text-sm font-medium text-green-600">
-                        {t("course_sidebar_course_purchased")}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="bg-[rgb(var(--brand-primary))] hover:bg-[rgb(var(--brand-primary-hover))] text-white"
-                    onClick={handlePurchase}
-                  >
-                    {defaultPlan?.type === Constants.PaymentPlanType.FREE ? profile?.userId
-                      ? (isPending ? t("enrollment_pending") : t("get_free_course"))
-                     : t("sign_in_to_enroll")
-                     : t("purchase_course")}
-                  </Button>
-                )}
-              </div>
-
-              {/* Course Info */}
-              {showCourseInfo && (
-                <div className="space-y-3 pt-4 border-t">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Clock className="h-4 w-4 text-brand-primary" />
-                    <span>
-                      {course.duration} {t("weeks")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <BookOpen className="h-4 w-4 text-brand-primary" />
-                    <span>
-                      {course.attachedLessons.length || 0}{" "}
-                      {t("course_sidebar_lessons")}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
+    <>
       {/* Course Content */}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">
-            {t("course_sidebar_course_content")}
+            {t("course_content") || "Course Content"}
           </CardTitle>
           <CardDescription>
-            {course.groups?.length || 0} {t("course_sidebar_sections")} •{" "}
-            {course.attachedLessons.length || 0} {t("course_sidebar_lessons")}
+            {course?.chapters?.length || 0} {t("chapters") || "Chapters"} •{" "}
+            {course?.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0} {t("lessons") || "Lessons"}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {isAuthenticated && isMembershipLoading ? (
+          {loadCourseEnrollmentMemebershipQuery.isLoading ? (
             <div className="p-6 space-y-4">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="space-y-3">
@@ -389,59 +153,53 @@ export default function CourseLessonsSidebar({
             </div>
           ) : (
             <div className="space-y-1">
-              {course.groups?.map((group) => (
-                <div key={group.groupId}>
+              {course?.chapters?.map((chapter) => (
+                <div key={chapter._id}>
                   <button
-                    onClick={() => toggleGroup(group.groupId)}
+                    onClick={() => toggleGroup(chapter._id)}
                     className="w-full p-4 text-left hover:bg-muted/50 transition-colors flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-3">
-                      {expandedGroups.includes(group.groupId) ? (
+                      {expandedGroups.includes(chapter._id) ? (
                         <ChevronDown className="h-4 w-4 text-brand-primary" />
                       ) : (
                         <ChevronRight className="h-4 w-4 text-brand-primary" />
                       )}
                       <span className="font-medium group-hover:text-brand-primary transition-colors">
-                        {group.name}
+                        {chapter.title}
                       </span>
                     </div>
                     <Badge variant="secondary" className="text-xs">
-                      {group.lessonsOrder.length || 0}{" "}
+                      {chapter.lessons?.length || 0}{" "}
                       {t("course_sidebar_lessons")}
                     </Badge>
                   </button>
 
-                  {expandedGroups.includes(group.groupId) && (
+                  {expandedGroups.includes(chapter._id) && (
                     <div className="ml-4 border-l-2 border-brand-primary/20">
-                      {group.lessonsOrder.map((lessonId) => {
-                        const lesson = course.attachedLessons?.find(
-                          (l) => l.lessonId === lessonId,
-                        );
-                        const isCurrentLesson = lessonId === currentLessonId;
-
-                        // Lesson access logic:
-                        // - hasAccess: User has active membership
-                        // - !lesson?.requiresEnrollment: Lesson doesn't require enrollment (free preview)
-                        // - If neither condition is met, lesson is locked
+                      {chapter?.lessons?.map((lesson) => {
+                        if (!lesson) return null;
+                        const isCurrentLesson = false;
+                        const hasLessonAccess = hasAccess || !lesson.requiresEnrollment;
                         return (
                           <div
-                            key={lessonId}
+                            key={lesson._id}
                             className="w-full overflow-hidden"
                           >
                             <Link
-                              href={`/courses/${course.courseId}/lessons/${lessonId}`}
+                              href={`/dashboard/student/courses/${course._id}/lessons/${lesson._id}`}
                               scroll={false}
                               className={`block p-3 pl-6 text-left hover:bg-muted/50 transition-colors border-l-2 hover:border-brand-primary ${
                                 isCurrentLesson
                                   ? "bg-brand-primary/5 border-brand-primary"
                                   : "border-transparent"
-                              } ${!(hasAccess || !lesson?.requiresEnrollment) ? "opacity-60 pointer-events-none" : ""}`}
+                              } ${!hasLessonAccess ? "opacity-60 pointer-events-none" : ""}`}
                             >
                               <div className="flex items-center gap-3">
                                 <div className="flex-shrink-0 w-6 h-6 rounded-sm border-2 border-brand-primary/30 flex items-center justify-center bg-white">
-                                  {hasAccess || !lesson?.requiresEnrollment ? (
+                                  {hasLessonAccess ? (
                                     <div className="text-brand-primary">
-                                      {getTypeIcon(lesson?.type || "text")}
+                                      {getTypeIcon(lesson.type || "text")}
                                     </div>
                                   ) : (
                                     <Lock className="h-3 w-3 text-muted-foreground" />
@@ -456,7 +214,7 @@ export default function CourseLessonsSidebar({
                                           : ""
                                       }`}
                                     >
-                                      {lesson?.title || t("course_sidebar_lesson_default", { number: lessonId })}
+                                      {lesson.title || t("lesson") || "Lesson"}
                                     </span>
                                   </div>
                                 </div>
@@ -467,7 +225,6 @@ export default function CourseLessonsSidebar({
                       })}
                     </div>
                   )}
-                  <Separator />
                 </div>
               )) || (
                 <div className="p-6 text-center text-muted-foreground">
@@ -479,6 +236,6 @@ export default function CourseLessonsSidebar({
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

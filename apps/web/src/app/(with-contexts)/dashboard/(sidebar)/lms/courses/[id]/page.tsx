@@ -35,8 +35,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import MetricCard from "./_components/metric-card";
-import SalesCard from "./_components/sales-card";
+// import MetricCard from "./_components/metric-card";
+// import SalesCard from "./_components/sales-card";
 import { useCourseContext } from "./_components/course-context";
 
 export default function Page() {
@@ -52,12 +52,12 @@ export default function Page() {
     },
   ];
 
-  const { data: salesData, loading: salesLoading } = useActivities(
-    ActivityTypeEnum.ENROLLED,
-    timeRange,
-    course?._id,
-    true,
-  );
+  // const { data: salesData, loading: salesLoading } = useActivities(
+  //   ActivityTypeEnum.ENROLLED,
+  //   timeRange,
+  //   course?._id,
+  //   true,
+  // );
 
   const loadCohortsQuery = trpc.lmsModule.cohortModule.cohort.list.useQuery({
     pagination: { skip: 0, take: 5 },
@@ -171,7 +171,7 @@ export default function Page() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <MetricCard
+        {/* <MetricCard
           title="Sales"
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
           type={ActivityTypeEnum.PURCHASED}
@@ -187,17 +187,17 @@ export default function Page() {
             duration={timeRange}
             entityId={course._id}
           />
-        </Link>
-        <MetricCard
+        </Link> */}
+        {/* <MetricCard
           title="People who completed the course"
           icon={<GraduationCap className="h-4 w-4 text-muted-foreground" />}
           type={ActivityTypeEnum.COURSE_COMPLETED}
           duration={timeRange}
           entityId={course._id}
-        />
+        /> */}
       </div>
 
-      <SalesCard data={salesData} loading={salesLoading} />
+      {/* <SalesCard data={salesData} loading={salesLoading} /> */}
 
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">

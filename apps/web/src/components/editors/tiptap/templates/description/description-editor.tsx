@@ -3,6 +3,7 @@ import {
   ContentEditorProps,
 } from "@workspace/text-editor/tiptap-sh";
 import { cn } from "@workspace/ui/lib/utils";
+
 import "./description-editor.scss";
 
 export function DescriptionEditor(props: ContentEditorProps) {

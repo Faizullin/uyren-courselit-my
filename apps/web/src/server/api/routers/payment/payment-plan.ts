@@ -220,52 +220,6 @@ export const paymentPlanRouter = router({
       return jsonify(paymentPlan);
     }),
 
-  create: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(
-      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
-    )
-    .input(
-      getFormDataSchema({
-        name: z.string().min(2).max(255),
-        type: z.nativeEnum(PaymentPlanTypeEnum),
-        status: z
-          .nativeEnum(PaymentPlanStatusEnum)
-          .default(PaymentPlanStatusEnum.ACTIVE),
-        oneTimeAmount: z.number().min(0).optional(),
-        emiAmount: z.number().min(0).optional(),
-        emiTotalInstallments: z.number().min(1).max(24).optional(),
-        subscriptionMonthlyAmount: z.number().min(0).optional(),
-        subscriptionYearlyAmount: z.number().min(0).optional(),
-        currency: z.string().length(3).default("USD"),
-        entityType: z.string().optional(),
-        entityIdStr: z.string().optional(),
-        isDefault: z.boolean().default(false),
-        isInternal: z.boolean().default(false),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      validatePaymentPlanAmounts(input.data.type, input.data);
-
-      const entity =
-        input.data.entityType && input.data.entityIdStr
-          ? {
-            entityType: input.data.entityType,
-            entityIdStr: input.data.entityIdStr,
-          }
-          : undefined;
-
-      const { entityType, entityIdStr, ...paymentPlanData } = input.data;
-
-      const paymentPlan = await PaymentPlanModel.create({
-        ...paymentPlanData,
-        entity,
-        orgId: ctx.domainData.domainObj.orgId,
-        ownerId: ctx.user._id,
-      });
-
-      return jsonify(paymentPlan.toObject());
-    }),
 
   update: protectedProcedure
     .use(createDomainRequiredMiddleware())

@@ -4,7 +4,7 @@ import {
 } from "@/server/actions/quiz-attempt";
 import { trpcCaller } from "@/server/api/caller";
 import { NotFoundException } from "@/server/api/core/exceptions";
-import { IQuizAttemptHydratedDocument, QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt";
+import { QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -19,6 +19,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import QuizActions from "./_components/quiz-actions";
+import { IQuizAttemptHydratedDocument } from "@workspace/common-logic/models/lms/quiz-attempt.model";
 
 interface QuizPageProps {
   params: Promise<{ id: string }>;

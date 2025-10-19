@@ -27,32 +27,6 @@ const currencyISOCodes = currencies.map((currency) =>
   currency.isoCode,
 );
 
-function validatePaymentSettings(siteInfo: ISiteInfo) {
-  if (siteInfo.currencyISOCode) {
-    if (!currencyISOCodes.includes(siteInfo.currencyISOCode)) {
-      throw new ValidationException(
-        `Unrecognised currency code: ${siteInfo.currencyISOCode}`,
-      );
-    }
-  }
-
-  if (siteInfo.paymentMethods?.stripe) {
-    if (!siteInfo.currencyISOCode) {
-      throw new ValidationException("Currency ISO code is required for Stripe");
-    }
-
-    if (
-      siteInfo.paymentMethods.stripe.type === "stripe" &&
-      (!siteInfo.paymentMethods.stripe.stripeKey ||
-        !siteInfo.paymentMethods.stripe.stripeSecret)
-    ) {
-      throw new ValidationException(
-        "Stripe publishable key and secret are required",
-      );
-    }
-  }
-}
-
 export const siteInfoRouter = router({
   publicGetSettings: publicProcedure.query(async ({ ctx }) => {
     const { domainObj } = ctx.domainData || {};
@@ -188,66 +162,54 @@ export const siteInfoRouter = router({
 
   updatePaymentInfo: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(
-      createPermissionMiddleware([UIConstants.permissions.manageSettings]),
-    )
+    .use(createPermissionMiddleware([UIConstants.permissions.manageSettings]))
     .input(
       getFormDataSchema({
-        currencyISOCode: z.string().length(3).optional(),
-        stripeKey: z.string().min(32).max(255).optional(),
-        stripeSecret: z.string().min(32).max(255).optional(),
+        currencyISOCode: z.string().length(3),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
+      if (!domain) throw new NotFoundException("Domain", "current");
+      if (!domain.siteInfo || !domain.siteInfo.title) throw new ValidationException("School title is not set");
+
+      domain.siteInfo.currencyISOCode = input.data.currencyISOCode;
+      
+      const saved = await domain.save();
+      await DomainManager.removeFromCache(domain);
+      return jsonify(saved.toObject().siteInfo);
+    }),
+
+  updateStripeSettings: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageSettings]))
+    .input(
+      getFormDataSchema({
+        stripeKey: z.string().min(32).max(255),
+        stripeSecret: z.string().min(32).max(255),
         stripeWebhookSecret: z.string().min(32).max(255).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const domain = await DomainModel.findById(ctx.domainData.domainObj._id);
+      if (!domain) throw new NotFoundException("Domain", "current");
+      if (!domain.siteInfo) throw new ValidationException("Site info not found");
 
-      if (!domain) {
-        throw new NotFoundException("Domain", "current");
+      if (!domain.siteInfo.paymentMethods) {
+        domain.siteInfo.paymentMethods = { stripe: { type: "stripe" } };
+      }
+      if (!domain.siteInfo.paymentMethods.stripe) {
+        domain.siteInfo.paymentMethods.stripe = { type: "stripe" };
       }
 
-      if (!domain.siteInfo || !domain.siteInfo.title) {
-        throw new ValidationException("School title is not set");
+      domain.siteInfo.paymentMethods.stripe.stripeKey = input.data.stripeKey;
+      domain.siteInfo.paymentMethods.stripe.stripeSecret = input.data.stripeSecret;
+      if (input.data.stripeWebhookSecret) {
+        domain.siteInfo.paymentMethods.stripe.stripeWebhookSecret = input.data.stripeWebhookSecret;
       }
-
-      if (input.data.currencyISOCode) {
-        domain.siteInfo.currencyISOCode = input.data.currencyISOCode;
-      }
-
-      if (
-        input.data.stripeKey ||
-        input.data.stripeSecret ||
-        input.data.stripeWebhookSecret
-      ) {
-        if (!domain.siteInfo.paymentMethods) {
-          domain.siteInfo.paymentMethods = { stripe: { type: "stripe" } };
-        }
-
-        if (!domain.siteInfo.paymentMethods.stripe) {
-          domain.siteInfo.paymentMethods.stripe = { type: "stripe" };
-        }
-
-        if (input.data.stripeKey) {
-          domain.siteInfo.paymentMethods.stripe.stripeKey =
-            input.data.stripeKey;
-        }
-
-        if (input.data.stripeSecret) {
-          domain.siteInfo.paymentMethods.stripe.stripeSecret =
-            input.data.stripeSecret;
-        }
-
-        if (input.data.stripeWebhookSecret) {
-          domain.siteInfo.paymentMethods.stripe.stripeWebhookSecret =
-            input.data.stripeWebhookSecret;
-        }
-      }
-
-      validatePaymentSettings(domain.siteInfo);
-
-      await DomainManager.removeFromCache(domain);
+      
       const saved = await domain.save();
-
-      return jsonify(saved.toObject());
+      await DomainManager.removeFromCache(domain);
+      return jsonify(saved.toObject().siteInfo);
     }),
 });

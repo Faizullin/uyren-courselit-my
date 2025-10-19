@@ -19,7 +19,6 @@ export interface BaseQuestion {
     type: QuestionTypeEnum;
     points: number;
     explanation?: string;
-    gradedById: mongoose.Types.ObjectId;
     settings?: Record<string, any>;
     options?: Array<IOption>;
 }

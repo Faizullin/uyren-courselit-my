@@ -16,7 +16,7 @@ import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { AssignmentModel } from "@workspace/common-logic/models/lms/assignment.model";
 import { AssignmentDifficultyEnum, AssignmentTypeEnum } from "@workspace/common-logic/models/lms/assignment.types";
-import { ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { checkCourseInstructorPermission, CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
@@ -55,9 +55,19 @@ const CreateAssignmentSchema = getFormDataSchema({
 export const assignmentRouter = router({
   create: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(CreateAssignmentSchema)
     .mutation(async ({ ctx, input }) => {
+      const course = await CourseModel.findOne({
+        _id: input.data.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!course) throw new NotFoundException("Course", input.data.courseId);
+      if (!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+        if (!course.ownerId.equals(ctx.user._id) && !checkCourseInstructorPermission(course, ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+          throw new AuthorizationException();
+        }
+      }
       const assignment = await AssignmentModel.create({
         ...input.data,
         orgId: ctx.domainData.domainObj.orgId,
@@ -68,7 +78,7 @@ export const assignmentRouter = router({
 
   update: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
       getFormDataSchema({
         title: z.string().min(1).max(255).optional(),
@@ -108,7 +118,11 @@ export const assignmentRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       });
       if (!assignment) throw new NotFoundException("Assignment not found");
-
+      if (!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+        if (!assignment.ownerId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+          throw new AuthorizationException();
+        }
+      }
       Object.keys(input.data).forEach((key) => {
         (assignment as any)[key] = (input.data as any)[key];
       });
@@ -118,7 +132,7 @@ export const assignmentRouter = router({
 
   archive: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(z.object({
       id: documentIdValidator(),
     }))
@@ -128,6 +142,11 @@ export const assignmentRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       });
       if (!assignment) throw new NotFoundException("Assignment not found");
+      if(!ctx.user.roles.includes(UIConstants.roles.admin)) {
+        if (!assignment.ownerId.equals(ctx.user._id)) {
+          throw new AuthorizationException();
+        }
+      }
 
       assignment.publicationStatus = PublicationStatusEnum.ARCHIVED;
       const saved = await assignment.save();
@@ -137,7 +156,7 @@ export const assignmentRouter = router({
 
   delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
-    .use(createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]))
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(z.object({
       id: documentIdValidator(),
     }))
@@ -147,6 +166,11 @@ export const assignmentRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       });
       if (!assignment) throw new NotFoundException("Assignment", input.id);
+      if(!ctx.user.roles.includes(UIConstants.roles.admin)) {
+        if (!assignment.ownerId.equals(ctx.user._id)) {
+          throw new AuthorizationException();
+        }
+      }
       await AssignmentModel.findByIdAndDelete(input.id);
       return { success: true };
     }),
@@ -172,16 +196,11 @@ export const assignmentRouter = router({
         .lean();
 
       if (!assignment) throw new NotFoundException("Assignment", input.id);
-
-      const hasAccess = checkPermission(ctx.user.permissions, [
-        UIConstants.permissions.manageAnyCourse,
-      ]);
-      if (
-        !hasAccess &&
-        assignment.publicationStatus === PublicationStatusEnum.DRAFT
-      )
-        throw new AuthorizationException();
-
+      if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+        if (!assignment.ownerId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+          throw new AuthorizationException();
+        }
+      }
       return jsonify(assignment);
     }),
 
@@ -202,7 +221,24 @@ export const assignmentRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       };
       if (input.filter?.publicationStatus) query.publicationStatus = input.filter.publicationStatus;
-      if (input.filter?.courseId) query.courseId = input.filter.courseId;
+      if (input.filter?.courseId) {
+        query.courseId = input.filter.courseId;
+        const course = await CourseModel.findOne({
+          _id: input.filter.courseId,
+          orgId: ctx.domainData.domainObj.orgId,
+        });
+        if (!course) throw new NotFoundException("Course", input.filter.courseId);
+        if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+          if (!course.ownerId.equals(ctx.user._id) && !checkCourseInstructorPermission(course, ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+            throw new AuthorizationException();
+          }
+        }
+      }
+      if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+        if(!ctx.user.roles.includes(UIConstants.roles.admin)) {
+          query.ownerId = ctx.user._id;
+        }
+      }
       const paginationMeta = paginate(input.pagination);
       const [items, total] = await Promise.all([
         AssignmentModel.find(query)

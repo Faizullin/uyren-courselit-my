@@ -258,7 +258,7 @@ export default function Page() {
     return (
         <DashboardContent
             breadcrumbs={breadcrumbs}
-            permissions={[UIConstants.permissions.manageAnyCourse, UIConstants.permissions.manageCourse]}
+            permissions={[UIConstants.permissions.manageCourse]}
         >
             <HeaderTopbar
                 header={{
@@ -316,19 +316,6 @@ export default function Page() {
                                     {Object.values(CohortStatusEnum).map((status) => (
                                         <SelectItem key={status} value={status}>
                                             {status}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select value={courseFilter} onValueChange={(value) => setCourseFilter(value)}>
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Filter by course" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Courses</SelectItem>
-                                    {uniqueCourses.map((course) => (
-                                        <SelectItem key={course} value={course}>
-                                            {course}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { format } from "date-fns";
-import { Archive, Calendar, Edit, ExternalLink, Eye, MoreHorizontal, Play, Table } from "lucide-react";
+import { Archive, Calendar, Edit, ExternalLink, Eye, MoreHorizontal, Play, Table, Plus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,18 +37,24 @@ export default function Page() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<LiveClassStatusEnum | "all">("all");
     const [typeFilter, setTypeFilter] = useState<LiveClassTypeEnum | "all">("all");
-    const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     const breadcrumbs = useMemo(() => [{ label: t("common:dashboard.liveClasses.title"), href: "#" }], [t]);
 
     const deleteMutation = trpc.lmsModule.liveClass.delete.useMutation({
         onSuccess: () => {
-            toast({ title: t("common:dashboard.success"), description: "Live class deleted successfully" });
+            toast({ 
+                title: t("common:dashboard.success"), 
+                description: "Live class deleted successfully" 
+            });
             loadListQuery.refetch();
         },
-        onError: (err: any) => {
-            toast({ title: t("common:dashboard.error"), description: err.message, variant: "destructive" });
+        onError: (error) => {
+            toast({ 
+                title: t("common:dashboard.error"), 
+                description: error.message, 
+                variant: "destructive" 
+            });
         },
     });
 
@@ -101,6 +107,7 @@ export default function Page() {
         return `${minutes}m`;
     }, []);
 
+    // 7. Memoized values
     const columns: ColumnDef<ItemType>[] = useMemo(() => {
         return [
             {
@@ -263,10 +270,6 @@ export default function Page() {
         });
     }, [loadListQuery.data]);
 
-    const handleCreateSuccess = useCallback(() => {
-        loadListQuery.refetch();
-    }, [loadListQuery.refetch]);
-
     const statistics = useMemo(() => {
         const total = parsedData.length;
         const scheduled = parsedData.filter(c => c.status === LiveClassStatusEnum.SCHEDULED).length;
@@ -285,134 +288,64 @@ export default function Page() {
                     title: t("common:dashboard.liveClasses.title"),
                     subtitle: t("common:dashboard.liveClasses.description"),
                 }}
+                rightAction={
+                    <Button onClick={() => {/* TODO: Open create dialog */}}>
+                        Schedule Live Class
+                    </Button>
+                }
             />
-
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "table" | "calendar")} className="w-full">
-                <div className="flex items-center justify-between mb-4">
-                    <TabsList>
-                        <TabsTrigger value="table">
-                            <Table className="h-4 w-4 mr-2" />
-                            Table View
-                        </TabsTrigger>
-                        <TabsTrigger value="calendar">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Calendar View
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <TabsContent value="table">
-                    <Card>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 pt-6">
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Search</Label>
-                                        <Input
-                                            placeholder={t("table.search_placeholder")}
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-[250px]"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Status</Label>
-                                        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as LiveClassStatusEnum | "all")}>
-                                            <SelectTrigger className="w-[180px]">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Statuses</SelectItem>
-                                                {Object.values(LiveClassStatusEnum).map((status) => (
-                                                    <SelectItem key={status} value={status}>
-                                                        {status}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-medium">Type</Label>
-                                        <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as LiveClassTypeEnum | "all")}>
-                                            <SelectTrigger className="w-[180px]">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Types</SelectItem>
-                                                <SelectItem value={LiveClassTypeEnum.LECTURE}>Lecture</SelectItem>
-                                                <SelectItem value={LiveClassTypeEnum.WORKSHOP}>Workshop</SelectItem>
-                                                <SelectItem value={LiveClassTypeEnum.Q_AND_A}>Q&A</SelectItem>
-                                                <SelectItem value={LiveClassTypeEnum.GROUP_DISCUSSION}>Discussion</SelectItem>
-                                                <SelectItem value={LiveClassTypeEnum.PRESENTATION}>Presentation</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <DataTable table={table}>
-                                    <DataTableToolbar table={table} />
-                                </DataTable>
+            <Card>
+                <CardContent>
+                    <div className="flex flex-col gap-4 pt-6">
+                        <div className="flex flex-wrap gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">Search</Label>
+                                <Input
+                                    placeholder={t("table.search_placeholder")}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-[250px]"
+                                />
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="calendar">
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="grid gap-4">
-                                {parsedData.length === 0 ? (
-                                    <div className="text-center py-12 text-muted-foreground">
-                                        No live classes scheduled
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {parsedData
-                                            .sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime())
-                                            .map((liveClass) => (
-                                                <div key={liveClass._id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="space-y-2 flex-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <h3 className="font-semibold">{liveClass.title}</h3>
-                                                                {getStatusBadge(liveClass.status)}
-                                                                {getTypeBadge(liveClass.type)}
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {format(new Date(liveClass.scheduledStartTime), "EEEE, MMM dd, yyyy")}
-                                                            </p>
-                                                            <div className="flex items-center gap-4 text-sm">
-                                                                <span>🕐 {format(new Date(liveClass.scheduledStartTime), "HH:mm")} - {format(new Date(liveClass.scheduledEndTime), "HH:mm")}</span>
-                                                                <span>⏱️ {getDuration(liveClass.scheduledStartTime, liveClass.scheduledEndTime)}</span>
-                                                                <span>💻 {getPlatform(liveClass.meetingUrl)}</span>
-                                                                {liveClass.entity?.entityIdStr && <span>📚 {liveClass.entity.entityIdStr}</span>}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {liveClass.status === LiveClassStatusEnum.SCHEDULED && liveClass.meetingUrl && (
-                                                                <Button size="sm" variant="default" asChild>
-                                                                    <a href={liveClass.meetingUrl} target="_blank" rel="noopener noreferrer">
-                                                                        <Play className="h-3 w-3 mr-1" />
-                                                                        Start
-                                                                    </a>
-                                                                </Button>
-                                                            )}
-                                                            <Link href={`/dashboard/lms/live-classes/${liveClass._id}`}>
-                                                                <Button size="sm" variant="outline">
-                                                                    <Edit className="h-3 w-3 mr-1" />
-                                                                    Edit
-                                                                </Button>
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                )}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">Status</Label>
+                                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as LiveClassStatusEnum | "all")}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Statuses</SelectItem>
+                                        {Object.values(LiveClassStatusEnum).map((status) => (
+                                            <SelectItem key={status} value={status}>
+                                                {status}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">Type</Label>
+                                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as LiveClassTypeEnum | "all")}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Types</SelectItem>
+                                        <SelectItem value={LiveClassTypeEnum.LECTURE}>Lecture</SelectItem>
+                                        <SelectItem value={LiveClassTypeEnum.WORKSHOP}>Workshop</SelectItem>
+                                        <SelectItem value={LiveClassTypeEnum.Q_AND_A}>Q&A</SelectItem>
+                                        <SelectItem value={LiveClassTypeEnum.GROUP_DISCUSSION}>Discussion</SelectItem>
+                                        <SelectItem value={LiveClassTypeEnum.PRESENTATION}>Presentation</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DataTable table={table}>
+                            <DataTableToolbar table={table} />
+                        </DataTable>
+                    </div>
+                </CardContent>
+            </Card>
         </DashboardContent>
     );
 }

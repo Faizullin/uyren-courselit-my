@@ -260,6 +260,7 @@ export default function LessonPage() {
               Content
             </FieldLabel>
             <LessonContentEditor
+              lesson={lesson!}
               onEditor={(editor, meta) => {
                 if (meta.reason === "create") {
                   editorRef.current = editor;

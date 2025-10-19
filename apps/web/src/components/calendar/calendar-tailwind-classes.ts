@@ -1,9 +1,20 @@
 // this is used to generate all tailwind classes for the calendar
 // if you want to use your own colors, you can override the classes here
 
-export const colorOptions = [
+export enum DefaultCalendarColors {
+  BLUE = 'blue',
+  INDIGO = 'indigo',
+  PINK = 'pink',
+  RED = 'red',
+  ORANGE = 'orange',
+  AMBER = 'amber',
+  EMERALD = 'emerald',
+}
+
+
+export const colorOptions: { value: DefaultCalendarColors; label: string; class: { base: string; light: string; dark: string } }[] = [
   {
-    value: 'blue',
+    value: DefaultCalendarColors.BLUE,
     label: 'Blue',
     class: {
       base: 'bg-blue-500 border-blue-500 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500',
@@ -12,7 +23,7 @@ export const colorOptions = [
     },
   },
   {
-    value: 'indigo',
+    value: DefaultCalendarColors.INDIGO,
     label: 'Indigo',
     class: {
       base: 'bg-indigo-500 border-indigo-500 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500',
@@ -21,7 +32,7 @@ export const colorOptions = [
     },
   },
   {
-    value: 'pink',
+    value: DefaultCalendarColors.PINK,
     label: 'Pink',
     class: {
       base: 'bg-pink-500 border-pink-500 bg-pink-500/10 hover:bg-pink-500/20 text-pink-500',
@@ -30,7 +41,7 @@ export const colorOptions = [
     },
   },
   {
-    value: 'red',
+    value: DefaultCalendarColors.RED,
     label: 'Red',
     class: {
       base: 'bg-red-500 border-red-500 bg-red-500/10 hover:bg-red-500/20 text-red-500',
@@ -39,7 +50,7 @@ export const colorOptions = [
     },
   },
   {
-    value: 'orange',
+    value: DefaultCalendarColors.ORANGE,
     label: 'Orange',
     class: {
       base: 'bg-orange-500 border-orange-500 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500',
@@ -48,7 +59,7 @@ export const colorOptions = [
     },
   },
   {
-    value: 'amber',
+    value: DefaultCalendarColors.AMBER,
     label: 'Amber',
     class: {
       base: 'bg-amber-500 border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500',
@@ -57,7 +68,7 @@ export const colorOptions = [
     },
   },
   {
-    value: 'emerald',
+    value: DefaultCalendarColors.EMERALD,
     label: 'Emerald',
     class: {
       base: 'bg-emerald-500 border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500',

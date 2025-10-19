@@ -62,7 +62,6 @@ function CoursesContent() {
     },
   );
 
-  const courses = loadCoursesQuery.data?.items || [];
   const totalCourses = loadCoursesQuery.data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalCourses / COURSES_PER_PAGE));
 

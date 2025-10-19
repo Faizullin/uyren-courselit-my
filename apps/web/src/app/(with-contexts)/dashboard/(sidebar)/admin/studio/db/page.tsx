@@ -3,7 +3,6 @@
 import { useProfile } from "@/components/contexts/profile-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { DeleteConfirmNiceDialog, NiceModal, useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -11,21 +10,18 @@ import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type ModelKey = "users" | "courses" | "quizzes" | "media" | "assignments" | "lessons" | "domains" | "activities" | "apikeys" | "pages" | "progress" | "memberships";
+type ModelKey = "users" | "courses" | "quizzes" | "attachments" | "lessons" | "activities" | "enrollments" | "organizations" | "domains";
 
 const MODEL_OPTIONS: { value: ModelKey; label: string }[] = [
   { value: "users", label: "Users" },
   { value: "courses", label: "Courses" },
   { value: "quizzes", label: "Quizzes" },
-  { value: "media", label: "Media" },
-  { value: "assignments", label: "Assignments" },
+  { value: "attachments", label: "Attachments" },
   { value: "lessons", label: "Lessons" },
-  { value: "domains", label: "Domains" },
   { value: "activities", label: "Activities" },
-  { value: "apikeys", label: "API Keys" },
-  { value: "pages", label: "Pages" },
-  { value: "progress", label: "Progress" },
-  { value: "memberships", label: "Memberships" },
+  { value: "enrollments", label: "Enrollments" },
+  { value: "organizations", label: "Organizations" },
+  { value: "domains", label: "Domains" },
 ];
 
 async function fetcher(input: RequestInfo, init?: RequestInit) {
@@ -36,18 +32,15 @@ async function fetcher(input: RequestInfo, init?: RequestInit) {
 
 function getDisplayValue(item: any, model: ModelKey): { primary: string; secondary: string } {
   const displayMap: Record<ModelKey, (item: any) => { primary: string; secondary: string }> = {
-    users: (item) => ({ primary: item.name || item.email, secondary: item.email || item.userId }),
+      users: (item) => ({ primary: item.name || item.email, secondary: item.email || item.own }),
     courses: (item) => ({ primary: item.title, secondary: item.instructor || item.courseId }),
     quizzes: (item) => ({ primary: item.title, secondary: item.ownerId }),
-    media: (item) => ({ primary: item.originalFileName, secondary: item.mimeType }),
-    assignments: (item) => ({ primary: item.title, secondary: item.ownerId }),
+    attachments: (item) => ({ primary: item.originalFileName, secondary: item.mimeType }),
     lessons: (item) => ({ primary: item.title, secondary: item.type || item.courseId }),
+    activities: (item) => ({ primary: item.type, secondary: item.own }),
+    enrollments: (item) => ({ primary: item.courseId, secondary: item.userId }),
+    organizations: (item) => ({ primary: item.name, secondary: item.customDomain || "" }),
     domains: (item) => ({ primary: item.name, secondary: item.customDomain || "" }),
-    activities: (item) => ({ primary: item.type, secondary: item.userId }),
-    apikeys: (item) => ({ primary: item.name, secondary: item.createdBy }),
-    pages: (item) => ({ primary: item.title, secondary: item.slug }),
-    progress: (item) => ({ primary: item.userId, secondary: item.courseId }),
-    memberships: (item) => ({ primary: item.userId, secondary: item.communityId }),
   };
 
   const display = displayMap[model]?.(item) || { primary: item._id, secondary: "" };
@@ -194,7 +187,7 @@ export default function DatabaseManagementPage() {
 
   return (
     <DashboardContent breadcrumbs={[
-      { label: "Studio", href: "/dashboard/studio" },
+      { label: "Studio", href: "/dashboard/admin/studio" },
       { label: "Database", href: "#" }
     ]}>
       <div className="flex flex-col gap-6">

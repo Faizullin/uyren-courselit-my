@@ -21,7 +21,7 @@ export type CommentEditorProps = {
   placeholder?: string;
   editable?: boolean;
   className?: ReturnType<typeof cn>;
-  extraExtensions?: AnyExtension[];
+  extraExtensions?: Record<string, AnyExtension | false>;
 };
 
 export type CommentEditorRef = Editor;
@@ -33,11 +33,11 @@ export function CommentEditor({
   placeholder,
   editable = true,
   className,
-  extraExtensions = [],
+  extraExtensions = {},
 }: CommentEditorProps) {
   const allExtensions = useMemo(() => {
-    const defaultExtensions = [
-      StarterKit.configure({
+    const defaultExtensionsDict: Record<string, AnyExtension | false> = {
+      starterKit: StarterKit.configure({
         // Disable complex features for comments
         heading: false,
         horizontalRule: false,
@@ -49,19 +49,26 @@ export function CommentEditor({
         link: false,
         underline: false,
       }),
-      Placeholder.configure({
+      placeholder: Placeholder.configure({
         emptyNodeClass: "is-editor-empty",
         placeholder: placeholder || "Write a comment...",
         includeChildren: false,
       }),
-      Link.configure({
+      link: Link.configure({
         openOnClick: false,
         HTMLAttributes: {
           class: "text-primary underline",
         },
       }),
-    ];
-    return [...defaultExtensions, ...extraExtensions];
+    };
+
+    // Merge with extraExtensions (allowing overrides)
+    const extensionsDict = { ...defaultExtensionsDict, ...extraExtensions };
+    
+    // Filter out false values and return only valid extensions
+    return Object.values(extensionsDict).filter(
+      (ext): ext is AnyExtension => ext !== false
+    );
   }, [extraExtensions, placeholder]);
 
   const editor = useEditor({

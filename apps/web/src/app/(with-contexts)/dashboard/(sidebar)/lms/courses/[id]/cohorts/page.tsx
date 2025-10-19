@@ -71,8 +71,10 @@ export default function CourseCohorts() {
     return [
       {
         accessorKey: "title",
-        header: "Cohort Title",
-        cell: ({ row }) => <div className="font-medium">{row.getValue("title")}</div>,
+        header: "Title",
+        cell: ({ row }) => (
+          <Link href={`/dashboard/lms/cohorts/${row.original._id}`} className="font-medium">{row.getValue("title")}</Link>
+        ),
       },
       {
         accessorKey: "instructor",

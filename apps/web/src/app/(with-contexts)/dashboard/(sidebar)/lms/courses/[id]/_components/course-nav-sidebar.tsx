@@ -125,7 +125,7 @@ function SortableLesson({
         <GripVertical className="h-4 w-4" />
       </button>
       <LessonIcon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-foreground" : "text-muted-foreground")} />
-      <button type="button" onClick={() => router.push(href)} className="flex-1 min-w-0 truncate text-left">
+      <button type="button" onClick={() => router.push(href)} className="flex-1 min-w-0 truncate text-left" title={lesson.title}>
         {lesson.title}
       </button>
       <button
@@ -212,7 +212,7 @@ function SortableChapter({
           {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
         <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <span className="flex-1 min-w-0 truncate font-medium">{chapter.title}</span>
+        <span className="flex-1 min-w-0 truncate font-medium" title={chapter.title}>{chapter.title}</span>
         <Button
           variant="ghost"
           size="sm"
@@ -477,7 +477,7 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
   if (courseLoading) {
     return (
-      <aside className="w-full lg:w-80 xl:w-96 space-y-3">
+      <aside className="w-full h-full space-y-3 p-4">
         <Skeleton className="h-9 w-full" />
         <Skeleton className="h-6 w-1/2" />
         <Skeleton className="h-10 w-full" />
@@ -487,7 +487,7 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
   }
 
   if (!course) {
-    return <aside className="w-full lg:w-80 xl:w-96 text-sm text-muted-foreground">No course found.</aside>;
+    return <aside className="w-full h-full text-sm text-muted-foreground p-4">No course found.</aside>;
   }
 
   return (
@@ -498,7 +498,7 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
       <aside
         className={cn(
-          "w-full lg:w-80 xl:w-96 border-l bg-card",
+          "w-full h-full border-l bg-card",
           isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
         )}
       >
@@ -511,8 +511,8 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
                 isOnCoursePage ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
               )}
             >
-              <BookOpen className="h-5 w-5" />
-              <span className="flex-1">Course Overview</span>
+              <BookOpen className="h-5 w-5 flex-shrink-0" />
+              <span className="flex-1 truncate">Course Overview</span>
             </Link>
           </div>
 

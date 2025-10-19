@@ -13,8 +13,9 @@ import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { AssignmentSubmissionModel, IAssignmentHydratedDocument } from "@workspace/common-logic/models/lms/assignment.model";
+import { AssignmentModel, AssignmentSubmissionModel, IAssignmentHydratedDocument } from "@workspace/common-logic/models/lms/assignment.model";
 import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
+import { checkCourseInstructorPermission, CourseModel } from "@workspace/common-logic/models/lms/course.model";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
@@ -29,8 +30,8 @@ export const assignmentSubmissionRouter = router({
       ListInputSchema.extend({
         filter: z
           .object({
-            assignmentId: z.string().optional(),
-            userId: z.string().optional(),
+            assignmentId: documentIdValidator().optional(),
+            userId: documentIdValidator().optional(),
             status: z
               .nativeEnum(AssignmentSubmissionStatusEnum)
               .optional(),
@@ -255,5 +256,35 @@ export const assignmentSubmissionRouter = router({
 
       await AssignmentSubmissionModel.findByIdAndDelete(input.id);
       return { success: true };
+    }),
+
+
+    listForAssignment: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
+    .input(z.object({
+      assignmentId: documentIdValidator(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const assignment = await AssignmentModel.findOne({
+        _id: input.assignmentId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!assignment) throw new NotFoundException("Assignment", input.assignmentId);
+      const course = await CourseModel.findOne({
+        _id: assignment.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!course) throw new NotFoundException("Course", assignment.courseId);
+      if (!assignment.ownerId.equals(ctx.user._id) && !checkCourseInstructorPermission(course, ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+        throw new AuthorizationException();
+      }
+      const submissions = await AssignmentSubmissionModel.find({
+        assignmentId: input.assignmentId,
+        orgId: ctx.domainData.domainObj.orgId,
+      }).populate<{
+        student: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+      }>("student", "username firstName lastName fullName email").lean();
+      return jsonify(submissions);
     }),
 });

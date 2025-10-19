@@ -22,7 +22,7 @@ import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.type
 import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
 import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
 import { ScheduleEventModel } from "@workspace/common-logic/models/lms/schedule.model";
-import { ScheduleStatusEnum } from "@workspace/common-logic/models/lms/schedule.types";
+import { RecurrenceTypeEnum, ScheduleStatusEnum, ScheduleTypeEnum } from "@workspace/common-logic/models/lms/schedule.types";
 import { IUserHydratedDocument, UserModel } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
@@ -32,7 +32,7 @@ export const cohortRouter = router({
     list: protectedProcedure
         .use(createDomainRequiredMiddleware())
         .use(
-            createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+            createPermissionMiddleware([UIConstants.permissions.manageCourse]),
         )
         .input(
             ListInputSchema.extend({
@@ -54,10 +54,6 @@ export const cohortRouter = router({
                 query.courseId = input.filter.courseId;
             }
 
-            if (input.filter?.instructorId) {
-                query.instructorId = input.filter.instructorId;
-            }
-
             if (input.filter?.status) {
                 query.status = input.filter.status;
             }
@@ -65,6 +61,17 @@ export const cohortRouter = router({
             if (input.search?.q) {
                 query.$text = { $search: input.search.q };
             }
+
+            if (!ctx.user.roles.includes(UIConstants.roles.admin)) {
+                if (input.filter?.instructorId) {
+                    if (!ctx.user._id.equals(input.filter.instructorId)) {
+                        throw new AuthorizationException();
+                    }
+                    query.instructorId = input.filter.instructorId;
+                } else {
+                    query.instructorId = ctx.user._id;
+                }
+            } 
 
             const paginationMeta = paginate(input.pagination);
             const orderBy = input.orderBy || {
@@ -163,7 +170,7 @@ export const cohortRouter = router({
     create: protectedProcedure
         .use(createDomainRequiredMiddleware())
         .use(
-            createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+            createPermissionMiddleware([UIConstants.permissions.manageCourse]),
         )
         .input(
             getFormDataSchema({
@@ -190,6 +197,12 @@ export const cohortRouter = router({
 
             if (!course) {
                 throw new NotFoundException("Course", input.data.courseId);
+            }
+
+            if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+                if (!course.ownerId.equals(ctx.user._id)) {
+                    throw new AuthorizationException();
+                }
             }
 
             const existingCohort = await CohortModel.findOne({
@@ -246,7 +259,7 @@ export const cohortRouter = router({
     update: protectedProcedure
         .use(createDomainRequiredMiddleware())
         .use(
-            createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+            createPermissionMiddleware([UIConstants.permissions.manageCourse]),
         )
         .input(
             getFormDataSchema(
@@ -277,6 +290,14 @@ export const cohortRouter = router({
 
             if (!cohort) {
                 throw new NotFoundException("Cohort", input.id);
+            }
+
+            if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+                if (cohort.ownerId.equals(ctx.user._id) || cohort.instructorId.equals(ctx.user._id) || isAdmin) {
+                   
+                } else {
+                    throw new AuthorizationException();
+                }
             }
 
             if (input.data.instructorId && !cohort.instructorId.equals(input.data.instructorId)) {
@@ -331,7 +352,7 @@ export const cohortRouter = router({
     delete: protectedProcedure
         .use(createDomainRequiredMiddleware())
         .use(
-            createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+            createPermissionMiddleware([UIConstants.permissions.manageCourse]),
         )
         .input(z.object({ id: documentIdValidator() }))
         .mutation(async ({ ctx, input }) => {
@@ -342,6 +363,14 @@ export const cohortRouter = router({
 
             if (!cohort) {
                 throw new NotFoundException("Cohort", input.id);
+            }
+
+            if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+                if (cohort.ownerId.equals(ctx.user._id) || ctx.user.roles.includes(UIConstants.roles.admin)) {
+                   
+                } else {
+                    throw new AuthorizationException();
+                }
             }
 
             const enrollmentCount = await EnrollmentModel.countDocuments({
@@ -522,19 +551,39 @@ export const cohortRouter = router({
     getStats: protectedProcedure
         .use(createDomainRequiredMiddleware())
         .use(
-            createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+            createPermissionMiddleware([UIConstants.permissions.manageCourse]),
         )
         .query(async ({ ctx }) => {
             const orgId = ctx.domainData.domainObj.orgId;
 
+            const courseQuery: RootFilterQuery<typeof CourseModel> = {
+                orgId,
+            };
+            if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+                courseQuery.$or = [
+                    { ownerId: ctx.user._id },
+                    { instructorId: ctx.user._id },
+                ];
+            }
+
+            const cohortQuery: RootFilterQuery<typeof CohortModel> = {
+                orgId,
+            };
+            if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+                cohortQuery.$or = [
+                    { ownerId: ctx.user._id },
+                    { instructorId: ctx.user._id },
+                ];
+            }
+
             const [totalCohorts, activeCohorts, completedCohorts, enrollmentStats] = await Promise.all([
-                CohortModel.countDocuments({ orgId }),
+                CohortModel.countDocuments(cohortQuery),
                 CohortModel.countDocuments({
-                    orgId,
+                    ...cohortQuery,
                     status: { $in: [CohortStatusEnum.LIVE, CohortStatusEnum.UPCOMING] },
                 }),
                 CohortModel.countDocuments({
-                    orgId,
+                    ...cohortQuery,
                     status: CohortStatusEnum.COMPLETED,
                 }),
                 EnrollmentModel.aggregate([
@@ -621,6 +670,81 @@ export const cohortRouter = router({
                 .lean();
 
             return jsonify(events);
+        }),
+
+    getCohortScheduleSettings: protectedProcedure
+        .use(createDomainRequiredMiddleware())
+        .input(
+            z.object({
+                cohortId: documentIdValidator(),
+                upsert: z.boolean().optional().default(false),
+            })
+        )
+        .query(async ({ ctx, input }) => {
+            const cohort = await CohortModel.findOne({
+                _id: input.cohortId,
+                orgId: ctx.domainData.domainObj.orgId,
+            });
+
+            if (!cohort) {
+                throw new NotFoundException("Cohort", input.cohortId);
+            }
+
+            // Find existing schedule event for this cohort
+            let scheduleEvent = await ScheduleEventModel.findOne({
+                cohortId: input.cohortId,
+                "entity.entityType": "cohort",
+                "entity.entityId": input.cohortId,
+                orgId: ctx.domainData.domainObj.orgId,
+            })
+                .populate<{
+                    instructor: Pick<
+                        IUserHydratedDocument,
+                        "_id" | "username" | "firstName" | "lastName" | "fullName" | "email"
+                    >;
+                }>("instructor", "username firstName lastName fullName email")
+                .lean();
+
+            // If upsert is true and no schedule exists, create a default one
+            if (input.upsert && !scheduleEvent && cohort.beginDate && cohort.endDate) {
+                const newScheduleEvent = await ScheduleEventModel.create({
+                    orgId: ctx.domainData.domainObj.orgId,
+                    title: `${cohort.title} Schedule`,
+                    type: ScheduleTypeEnum.LIVE_SESSION,
+                    status: ScheduleStatusEnum.ACTIVE,
+                    entity: {
+                        entityType: "cohort",
+                        entityId: input.cohortId,
+                    },
+                    startDate: cohort.beginDate,
+                    endDate: cohort.endDate,
+                    allDay: false,
+                    cohortId: input.cohortId,
+                    instructorId: cohort.instructorId,
+                    recurrence: {
+                        type: RecurrenceTypeEnum.NONE,
+                        interval: 1,
+                    },
+                    reminders: {
+                        enabled: true,
+                        minutesBefore: [15, 60],
+                    },
+                });
+
+                scheduleEvent = await ScheduleEventModel.findById(newScheduleEvent._id)
+                    .populate<{
+                        instructor: Pick<
+                            IUserHydratedDocument,
+                            "_id" | "username" | "firstName" | "lastName" | "fullName" | "email"
+                        >;
+                    }>("instructor", "username firstName lastName fullName email")
+                    .lean();
+            }
+
+            return jsonify({
+                cohort: cohort.toObject(),
+                scheduleEvent: scheduleEvent || null,
+            });
         }),
 });
 

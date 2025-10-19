@@ -4,10 +4,7 @@ import { getActionContext } from "@/server/api/core/actions";
 import { ValidationException } from "@/server/api/core/exceptions";
 import DomainManager from "@/server/lib/domain";
 import { CloudinaryService } from "@/server/services/cloudinary";
-import {
-  IAttachmentMedia,
-  MediaAccessTypeEnum,
-} from "@workspace/common-logic/models/media.types";
+import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import { DomainModel, IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { ISiteInfo } from "@workspace/common-logic/models/organization.types";
 import mongoose from "mongoose";
@@ -23,99 +20,62 @@ interface RemoveMediaResult {
   error?: string;
 }
 
-/**
- * Upload logo image
- */
-export async function uploadLogo(
-  formData: FormData,
-): Promise<UploadMediaResult> {
+export async function uploadLogo(formData: FormData): Promise<UploadMediaResult> {
   try {
     const ctx = await getActionContext();
-
     const files = formData.getAll("file") as File[];
-    if (!files || files.length === 0) {
-      return { success: false, error: "No files provided" };
-    }
+    if (!files || files.length === 0) return { success: false, error: "No files provided" };
 
-    const file = files[0]; // Only first file for logo
-    if (!file) {
-      throw new ValidationException("No file provided");
-    }
-    const maxSize = 5 * 1024 * 1024; // 5MB for images
+    const file = files[0];
+    if (!file) throw new ValidationException("No file provided");
+    if (!file.type.startsWith("image/")) throw new ValidationException("Only image files are allowed");
+    if (file.size > 5 * 1024 * 1024) throw new ValidationException("Image must be less than 5MB");
 
-    // Validate image only
-    if (!file.type.startsWith("image/")) {
-      throw new ValidationException("Only image files are allowed");
-    }
+    const domain = await DomainModel.findOne({ name: ctx.domainData.domainObj.name });
+    if (!domain) throw new ValidationException("Domain not found");
 
-    if (file.size > maxSize) {
-      throw new ValidationException("Image must be less than 5MB");
-    }
-
-    // Get domain document
-    const domain = await DomainModel.findOne({
-      name: ctx.domainData.domainObj.name,
-    });
-    if (!domain) {
-      throw new ValidationException("Domain not found");
-    }
-
-    const media = await CloudinaryService.uploadFile(
+    const attachment = await CloudinaryService.uploadFile(
       {
         file,
         userId: ctx.user._id as mongoose.Types.ObjectId,
         type: "domain",
         caption: "Site logo",
         access: MediaAccessTypeEnum.PUBLIC,
+        entityType: "domain",
+        entityId: domain._id,
       },
       domain as IDomainHydratedDocument,
     );
 
-    // Update siteInfo with logo
-    if (!domain.siteInfo) {
-      domain.siteInfo = {} as ISiteInfo;
-    }
-
-    domain.siteInfo.logo = media;
+    if (!domain.siteInfo) domain.siteInfo = {} as ISiteInfo;
+    domain.siteInfo.logo = attachment.toObject();
     await domain.save();
     await DomainManager.removeFromCache(domain);
 
-    return {
-      success: true,
-      media: [media],
-    };
+    return { success: true, media: [attachment.toObject()] };
   } catch (error: any) {
     console.error("Logo upload error:", error);
-    return {
-      success: false,
-      error: error.message || "Upload failed",
-    };
+    return { success: false, error: error.message || "Upload failed" };
   }
 }
 
-/**
- * Remove media file
- */
-export async function removeMedia(media: IAttachmentMedia): Promise<RemoveMediaResult> {
+export async function removeLogo(mediaId: string): Promise<RemoveMediaResult> {
   try {
-    await getActionContext(); // Validate auth & domain
+    const ctx = await getActionContext();
+    const domain = await DomainModel.findOne({ name: ctx.domainData.domainObj.name });
+    if (!domain) throw new ValidationException("Domain not found");
+    if (!domain.siteInfo?.logo) throw new ValidationException("Logo not found");
 
-    // Delete from Cloudinary
-    try {
-      await CloudinaryService.deleteFile(media);
-    } catch (error) {
-      throw new Error("Failed to delete from Cloudinary: " + (error as Error).message);
-    }
+    await CloudinaryService.deleteFile(domain.siteInfo.logo);
 
-    return {
-      success: true,
-    };
+    domain.siteInfo.logo = undefined;
+    await domain.save();
+    await DomainManager.removeFromCache(domain);
+
+    return { success: true };
   } catch (error: any) {
-    console.error("Media removal error:", error);
-    return {
-      success: false,
-      error: error.message || "Removal failed",
-    };
+    console.error("Logo removal error:", error);
+    return { success: false, error: error.message || "Removal failed" };
   }
 }
 

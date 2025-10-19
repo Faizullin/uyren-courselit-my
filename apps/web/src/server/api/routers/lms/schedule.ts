@@ -14,7 +14,7 @@ import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { ICohortHydratedDocument } from "@workspace/common-logic/models/lms/cohort.model";
+import { CohortModel, ICohortHydratedDocument } from "@workspace/common-logic/models/lms/cohort.model";
 import {
   EnrollmentModel,
 } from "@workspace/common-logic/models/lms/enrollment.model";
@@ -59,14 +59,13 @@ export const scheduleRouter = router({
   list: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .use(
-      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+      createPermissionMiddleware([UIConstants.permissions.manageCourse]),
     )
     .input(
       ListInputSchema.extend({
         filter: z
           .object({
             cohortId: documentIdValidator().optional(),
-            instructorId: documentIdValidator().optional(),
             type: z.nativeEnum(ScheduleTypeEnum).optional(),
             status: z.nativeEnum(ScheduleStatusEnum).optional(),
             startDate: z.string().datetime().optional(),
@@ -81,11 +80,19 @@ export const scheduleRouter = router({
       };
 
       if (input.filter?.cohortId) {
+        const cohort = await CohortModel.findOne({
+          orgId: ctx.domainData.domainObj.orgId,
+          _id: input.filter.cohortId,
+        });
+        if (!cohort) {
+          throw new NotFoundException("Cohort", input.filter.cohortId as string);
+        }
+        if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+          if (!cohort.ownerId.equals(ctx.user._id) && !cohort.instructorId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+            throw new AuthorizationException();
+          }
+        }
         query.cohortId = input.filter.cohortId;
-      }
-
-      if (input.filter?.instructorId) {
-        query.instructorId = input.filter.instructorId;
       }
 
       if (input.filter?.type) {
@@ -157,36 +164,36 @@ export const scheduleRouter = router({
       });
     }),
 
-  getById: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(z.object({ id: documentIdValidator() }))
-    .query(async ({ ctx, input }) => {
-      const schedule = await ScheduleEventModel.findOne({
-        _id: input.id,
-        orgId: ctx.domainData.domainObj.orgId,
-      })
-        .populate<{
-          instructor: Pick<
-            IUserHydratedDocument,
-            "_id" | "username" | "firstName" | "lastName" | "fullName" | "email"
-          >;
-        }>("instructor", "_id username firstName lastName fullName email")
-        .populate<{
-          cohort: Pick<ICohortHydratedDocument, "title" | "slug">;
-        }>("cohort", "title slug")
-        .lean();
+  // getById: protectedProcedure
+  //   .use(createDomainRequiredMiddleware())
+  //   .input(z.object({ id: documentIdValidator() }))
+  //   .query(async ({ ctx, input }) => {
+  //     const schedule = await ScheduleEventModel.findOne({
+  //       _id: input.id,
+  //       orgId: ctx.domainData.domainObj.orgId,
+  //     })
+  //       .populate<{
+  //         instructor: Pick<
+  //           IUserHydratedDocument,
+  //           "_id" | "username" | "firstName" | "lastName" | "fullName" | "email"
+  //         >;
+  //       }>("instructor", "_id username firstName lastName fullName email")
+  //       .populate<{
+  //         cohort: Pick<ICohortHydratedDocument, "title" | "slug">;
+  //       }>("cohort", "title slug")
+  //       .lean();
 
-      if (!schedule) {
-        throw new NotFoundException("Schedule Event", input.id);
-      }
+  //     if (!schedule) {
+  //       throw new NotFoundException("Schedule Event", input.id);
+  //     }
 
-      return jsonify(schedule);
-    }),
+  //     return jsonify(schedule);
+  //   }),
 
   create: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .use(
-      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+      createPermissionMiddleware([UIConstants.permissions.manageCourse]),
     )
     .input(
       getFormDataSchema({
@@ -198,28 +205,48 @@ export const scheduleRouter = router({
         startDate: z.string().datetime(),
         endDate: z.string().datetime(),
         allDay: z.boolean().default(false),
-        recurrenceType: z
-          .nativeEnum(RecurrenceTypeEnum)
-          .default(RecurrenceTypeEnum.NONE),
-        recurrenceInterval: z.number().min(1).default(1),
-        recurrenceDaysOfWeek: z.array(z.number().min(0).max(6)).optional(),
-        recurrenceEndDate: z.string().datetime().optional(),
-        locationName: z.string().optional(),
-        locationOnline: z.boolean().default(false),
-        locationMeetingUrl: z.string().url().optional(),
+        // ✅ recurrence is REQUIRED in model
+        recurrence: z.object({
+          type: z.nativeEnum(RecurrenceTypeEnum),
+          interval: z.number().min(1),
+          daysOfWeek: z.array(z.number().min(0).max(6)).optional(),
+          endDate: z.string().datetime().optional(),
+        }),
+        // ✅ location is OPTIONAL in model (entire object)
+        location: z.object({
+          name: z.string(),
+          online: z.boolean().optional(),
+          meetingUrl: z.string().url().optional(),
+        }).optional(),
         instructorId: documentIdValidator().optional(),
         cohortId: documentIdValidator().optional(),
-        remindersEnabled: z.boolean().default(true),
-        remindersMinutesBefore: z.array(z.number()).default([15, 60]),
+        // ✅ reminders is REQUIRED in model
+        reminders: z.object({
+          enabled: z.boolean(),
+          minutesBefore: z.array(z.number()),
+        }),
+        status: z.nativeEnum(ScheduleStatusEnum).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const cohort = await CohortModel.findOne({
+        _id: input.data.cohortId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!cohort) {
+        throw new NotFoundException("Cohort", input.data.cohortId as string);
+      }
+      if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+        if (!cohort.ownerId.equals(ctx.user._id) && !cohort.instructorId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+          throw new AuthorizationException();
+        }
+      }
       const schedule = await ScheduleEventModel.create({
         orgId: ctx.domainData.domainObj.orgId,
         title: input.data.title,
         description: input.data.description,
         type: input.data.type,
-        status: ScheduleStatusEnum.ACTIVE,
+        status: input.data.status || ScheduleStatusEnum.ACTIVE,
         entity: {
           entityType: input.data.entityType,
           entityId: new mongoose.Types.ObjectId(input.data.entityId),
@@ -228,27 +255,19 @@ export const scheduleRouter = router({
         startDate: new Date(input.data.startDate),
         endDate: new Date(input.data.endDate),
         allDay: input.data.allDay,
+        // ✅ recurrence is always provided
         recurrence: {
-          type: input.data.recurrenceType,
-          interval: input.data.recurrenceInterval,
-          daysOfWeek: input.data.recurrenceDaysOfWeek,
-          endDate: input.data.recurrenceEndDate
-            ? new Date(input.data.recurrenceEndDate)
-            : undefined,
+          type: input.data.recurrence.type,
+          interval: input.data.recurrence.interval,
+          daysOfWeek: input.data.recurrence.daysOfWeek,
+          endDate: input.data.recurrence.endDate ? new Date(input.data.recurrence.endDate) : undefined,
         },
-        location: input.data.locationName
-          ? {
-            name: input.data.locationName,
-            online: input.data.locationOnline,
-            meetingUrl: input.data.locationMeetingUrl,
-          }
-          : undefined,
+        // ✅ location is optional
+        location: input.data.location,
         instructorId: input.data.instructorId,
         cohortId: input.data.cohortId,
-        reminders: {
-          enabled: input.data.remindersEnabled,
-          minutesBefore: input.data.remindersMinutesBefore,
-        },
+        // ✅ reminders is always provided
+        reminders: input.data.reminders,
       });
 
       return jsonify(schedule.toObject());
@@ -257,7 +276,7 @@ export const scheduleRouter = router({
   update: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .use(
-      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+      createPermissionMiddleware([UIConstants.permissions.manageCourse]),
     )
     .input(
       getFormDataSchema(
@@ -269,17 +288,26 @@ export const scheduleRouter = router({
           endDate: z.string().datetime().optional(),
           allDay: z.boolean().optional(),
           status: z.nativeEnum(ScheduleStatusEnum).optional(),
-          recurrenceType: z.nativeEnum(RecurrenceTypeEnum).optional(),
-          recurrenceInterval: z.number().min(1).optional(),
-          recurrenceDaysOfWeek: z.array(z.number().min(0).max(6)).optional(),
-          recurrenceEndDate: z.string().datetime().optional(),
-          locationName: z.string().optional(),
-          locationOnline: z.boolean().optional(),
-          locationMeetingUrl: z.string().url().optional(),
+          // ✅ recurrence is REQUIRED in model (but optional in update)
+          recurrence: z.object({
+            type: z.nativeEnum(RecurrenceTypeEnum),
+            interval: z.number().min(1),
+            daysOfWeek: z.array(z.number().min(0).max(6)).optional(),
+            endDate: z.string().datetime().optional(),
+          }).optional(),
+          // ✅ location is OPTIONAL in model
+          location: z.object({
+            name: z.string(),
+            online: z.boolean().optional(),
+            meetingUrl: z.string().url().optional(),
+          }).optional(),
           instructorId: documentIdValidator().optional(),
           cohortId: documentIdValidator().optional(),
-          remindersEnabled: z.boolean().optional(),
-          remindersMinutesBefore: z.array(z.number()).optional(),
+          // ✅ reminders is REQUIRED in model (but optional in update)
+          reminders: z.object({
+            enabled: z.boolean(),
+            minutesBefore: z.array(z.number()),
+          }).optional(),
         },
         {
           id: documentIdValidator(),
@@ -288,50 +316,57 @@ export const scheduleRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const schedule = await getScheduleOrThrow(input.id, ctx);
-
-      Object.keys(input.data).forEach((key) => {
-        if (key === "startDate" || key === "endDate") {
-          (schedule as any)[key] = new Date((input.data as any)[key]);
-        } else if (key.startsWith("recurrence")) {
-          if (!schedule.recurrence) {
-            schedule.recurrence = {
-              type: RecurrenceTypeEnum.NONE,
-              interval: 1,
-            };
+      if (input.data.title) schedule.title = input.data.title;
+      if (input.data.description !== undefined) schedule.description = input.data.description;
+      if (input.data.type) schedule.type = input.data.type;
+      if (input.data.startDate) schedule.startDate = new Date(input.data.startDate);
+      if (input.data.endDate) schedule.endDate = new Date(input.data.endDate);
+      if (input.data.allDay !== undefined) schedule.allDay = input.data.allDay;
+      if (input.data.status) schedule.status = input.data.status;
+      if (input.data.instructorId !== undefined) {
+        if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+          console.log("schedule.instructorId", schedule.instructorId, ctx.user._id, ctx.user.roles);
+          if (!schedule.instructorId?.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+            throw new AuthorizationException();
           }
-          if (key === "recurrenceType")
-            schedule.recurrence.type = input.data.recurrenceType!;
-          if (key === "recurrenceInterval")
-            schedule.recurrence.interval = input.data.recurrenceInterval!;
-          if (key === "recurrenceDaysOfWeek")
-            schedule.recurrence.daysOfWeek = input.data.recurrenceDaysOfWeek;
-          if (key === "recurrenceEndDate")
-            schedule.recurrence.endDate = input.data.recurrenceEndDate
-              ? new Date(input.data.recurrenceEndDate)
-              : undefined;
-        } else if (key.startsWith("location")) {
-          if (!schedule.location) {
-            schedule.location = { name: "", online: false };
-          }
-          if (key === "locationName")
-            schedule.location.name = input.data.locationName!;
-          if (key === "locationOnline")
-            schedule.location.online = input.data.locationOnline!;
-          if (key === "locationMeetingUrl")
-            schedule.location.meetingUrl = input.data.locationMeetingUrl;
-        } else if (key.startsWith("reminders")) {
-          if (!schedule.reminders) {
-            schedule.reminders = { enabled: true, minutesBefore: [15, 60] };
-          }
-          if (key === "remindersEnabled")
-            schedule.reminders.enabled = input.data.remindersEnabled!;
-          if (key === "remindersMinutesBefore")
-            schedule.reminders.minutesBefore =
-              input.data.remindersMinutesBefore!;
-        } else {
-          (schedule as any)[key] = (input.data as any)[key];
         }
-      });
+        schedule.instructorId = new mongoose.Types.ObjectId(input.data.instructorId);
+      }
+      if (input.data.cohortId !== undefined) {
+        const cohort = await CohortModel.findOne({
+          _id: input.data.cohortId,
+          orgId: ctx.domainData.domainObj.orgId,
+        });
+        if (!cohort) {
+          throw new NotFoundException("Cohort", input.data.cohortId as string);
+        }
+        if(!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
+          if (!cohort.ownerId.equals(ctx.user._id) && !cohort.instructorId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+            throw new AuthorizationException();
+          }
+        } 
+        schedule.cohortId = new mongoose.Types.ObjectId(input.data.cohortId);
+      }
+      
+      // ✅ Update entire recurrence object
+      if (input.data.recurrence) {
+        schedule.recurrence = {
+            type: input.data.recurrence.type,
+            interval: input.data.recurrence.interval,
+          daysOfWeek: input.data.recurrence.daysOfWeek,
+          endDate: input.data.recurrence.endDate ? new Date(input.data.recurrence.endDate) : undefined,
+        };
+      }
+      
+      // ✅ Update entire location object
+      if (input.data.location) {
+        schedule.location = input.data.location;
+      }
+      
+      // ✅ Update entire reminders object
+      if (input.data.reminders) {
+        schedule.reminders = input.data.reminders;
+      }
 
       const saved = await schedule.save();
       return jsonify(saved.toObject());
@@ -340,7 +375,7 @@ export const scheduleRouter = router({
   delete: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .use(
-      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
+      createPermissionMiddleware([UIConstants.permissions.manageCourse]),
     )
     .input(z.object({ id: documentIdValidator() }))
     .mutation(async ({ ctx, input }) => {
@@ -352,181 +387,5 @@ export const scheduleRouter = router({
       });
 
       return { success: true };
-    }),
-
-  studentGetMyTimetable: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      z.object({
-        startDate: z.string().datetime(),
-        endDate: z.string().datetime(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const enrollments = await EnrollmentModel.find({
-        userId: ctx.user._id,
-        status: EnrollmentStatusEnum.ACTIVE,
-        orgId: ctx.domainData.domainObj.orgId,
-      });
-
-      const cohortIds = enrollments
-        .filter((e) => e.cohortId)
-        .map((e) => e.cohortId);
-
-      if (cohortIds.length === 0) {
-        return jsonify([]);
-      }
-
-      const events = await ScheduleEventModel.find({
-        cohortId: { $in: cohortIds },
-        $or: [
-          {
-            startDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-          {
-            endDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-        ],
-        status: ScheduleStatusEnum.ACTIVE,
-        orgId: ctx.domainData.domainObj.orgId,
-      })
-        .populate<{
-          instructor: Pick<
-            IUserHydratedDocument,
-            "_id" | "username" | "firstName" | "lastName" | "fullName"
-          >;
-        }>("instructor", "_id username firstName lastName fullName")
-        .populate<{
-          cohort: Pick<ICohortHydratedDocument, "title">;
-        }>("cohort", "title")
-        .sort({ startDate: 1 })
-        .lean();
-
-      return jsonify(events);
-    }),
-
-  publicGetCohortSchedule: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      z.object({
-        cohortId: documentIdValidator(),
-        startDate: z.string().datetime(),
-        endDate: z.string().datetime(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const events = await ScheduleEventModel.find({
-        cohortId: input.cohortId,
-        $or: [
-          {
-            startDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-          {
-            endDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-        ],
-        status: ScheduleStatusEnum.ACTIVE,
-        orgId: ctx.domainData.domainObj.orgId,
-      })
-        .populate<{
-          instructor: Pick<
-            IUserHydratedDocument,
-            "_id" | "username" | "firstName" | "lastName" | "fullName"
-          >;
-        }>("instructor", "_id username firstName lastName fullName")
-        .sort({ startDate: 1 })
-        .lean();
-
-      return jsonify(events);
-    }),
-
-  instructorGetMySchedule: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      z.object({
-        startDate: z.string().datetime(),
-        endDate: z.string().datetime(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const events = await ScheduleEventModel.find({
-        instructorId: ctx.user._id,
-        $or: [
-          {
-            startDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-          {
-            endDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-        ],
-        status: ScheduleStatusEnum.ACTIVE,
-        orgId: ctx.domainData.domainObj.orgId,
-      })
-        .populate<{
-          cohort: Pick<ICohortHydratedDocument, "title">;
-        }>("cohort", "title")
-        .sort({ startDate: 1 })
-        .lean();
-
-      return jsonify(events);
-    }),
-
-  adminGetInstructorSchedule: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .use(
-      createPermissionMiddleware([UIConstants.permissions.manageAnyCourse]),
-    )
-    .input(
-      z.object({
-        instructorId: documentIdValidator(),
-        startDate: z.string().datetime(),
-        endDate: z.string().datetime(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const events = await ScheduleEventModel.find({
-        instructorId: input.instructorId,
-        $or: [
-          {
-            startDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-          {
-            endDate: {
-              $gte: new Date(input.startDate),
-              $lte: new Date(input.endDate),
-            },
-          },
-        ],
-        status: ScheduleStatusEnum.ACTIVE,
-        orgId: ctx.domainData.domainObj.orgId,
-      })
-        .populate<{
-          cohort: Pick<ICohortHydratedDocument, "title">;
-        }>("cohort", "title")
-        .sort({ startDate: 1 })
-        .lean();
-
-      return jsonify(events);
     }),
 });

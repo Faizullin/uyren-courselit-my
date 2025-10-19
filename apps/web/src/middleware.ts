@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 // Define protected URL patterns
-const PROTECTED_ROUTES = ["/dashboard", "/profile", "/settings"];
+const PROTECTED_ROUTES = ["/dashboard", "/profile", "/settings", "/quiz"];
 
 // Define public routes that should not require authentication
 const PUBLIC_ROUTES = [

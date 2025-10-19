@@ -4,16 +4,17 @@ import {
   ComboBox2,
   NiceModal,
   NiceModalHocProps,
+  FormDialog,
 } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
+import { Label } from "@workspace/ui/components/label";
 import { Edit } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -25,7 +26,6 @@ export interface AssignmentLinkAttrs {
     id: string;
     title: string;
   } | null;
-  link?: string;
 }
 
 export function AssignmentLinkNodeComponent({
@@ -35,34 +35,15 @@ export function AssignmentLinkNodeComponent({
 }: NodeViewProps & {
   updateAttributes: (attrs: Partial<AssignmentLinkAttrs>) => void;
 }) {
-  const { label, obj, link } = node.attrs as AssignmentLinkAttrs;
+  const { label, obj } = node.attrs as AssignmentLinkAttrs;
 
   const handleSelectDialog = useCallback(() => {
-    NiceModal.show(AssignmentSelectNiceDialog, {
-      args: {
-        obj: obj || null,
-      },
-    }).then((response) => {
-      if (response.reason === "submit" && response.data) {
-        const selectedItem = response.data as SelectItemType;
-        let link = "";
-        if (selectedItem.type === "assignment") {
-          link = `/assignments/${selectedItem.key}`;
-        } else if (selectedItem.type === "quiz") {
-          link = `/quiz/${selectedItem.key}`;
-        }
-        updateAttributes({
-          obj: {
-            type: selectedItem.type,
-            id: selectedItem.key,
-            title: selectedItem.title,
-          },
-          label: `${selectedItem.title} (${selectedItem.type})`,
-          link: link,
-        });
-      }
+    editor.commands.openAssignmentSelectDialog({
+      type: obj?.type || "all",
+      obj: obj || null,
+      onUpdate: updateAttributes,
     });
-  }, [updateAttributes]);
+  }, [editor, obj, updateAttributes]);
   const acutalLink = useMemo(() => {
     if (!obj) return "#";
     else if (obj.type === "assignment") {
@@ -75,7 +56,7 @@ export function AssignmentLinkNodeComponent({
   return (
     <NodeViewWrapper
       as="div"
-      className="entity-card border rounded p-3 bg-white shadow"
+      className="entity-card border rounded p-3 bg-background shadow"
     >
       <div className="flex items-center justify-between">
         <Link href={acutalLink} target="_blank">
@@ -102,8 +83,13 @@ type SelectItemType = {
   type: "quiz" | "assignment";
 };
 
-const AssignmentSelectNiceDialog = NiceModal.create<
-  NiceModalHocProps & { args: { obj: AssignmentLinkAttrs["obj"] | null } },
+export const AssignmentSelectNiceDialog = NiceModal.create<
+  NiceModalHocProps & { args: { 
+    obj: AssignmentLinkAttrs["obj"] | null;
+    courseId: string;
+    initialType: "quiz" | "assignment" | "all";
+   };
+  },
   { reason: "cancel"; data: null } | { reason: "submit"; data: any }
 >(({ args }) => {
   const { visible, hide, resolve } = NiceModal.useModal();
@@ -116,34 +102,36 @@ const AssignmentSelectNiceDialog = NiceModal.create<
   const [selectedOptions, setSelectedOptions] = useState<SelectItemType | null>(
     null,
   );
+  const [typeFilter, setTypeFilter] = useState<"quiz" | "assignment" | "all">(args.initialType || "all");
+
   const updateTags = (options: SelectItemType) => {
     setSelectedOptions(options);
   };
+
   const trpcUtils = trpc.useUtils();
   const getAssignments = useCallback(async (search: string) => {
     const response =
       await trpcUtils.lmsModule.courseModule.lesson.searchAssignmentEntities.fetch(
         {
-          search: search,
+          search: {
+            q: search,
+          },
+          filter: {
+            courseId: args.courseId,
+            type: typeFilter === "all" ? undefined : typeFilter,
+          },
+          pagination: {
+            skip: 0,
+            take: 10,
+          }
         },
       );
-    const data: SelectItemType[] = [];
-    response.assignments.forEach((assignment) => {
-      data.push({
-        key: assignment._id.toString(),
-        title: assignment.title,
-        type: "assignment",
-      });
-    });
-    response.quizzes.forEach((quiz) => {
-      data.push({
-        key: quiz._id.toString(),
-        title: quiz.title,
-        type: "quiz",
-      });
-    });
-    return data;
-  }, []);
+    return response.items.map((item) => ({
+      key: item._id,
+      title: item.title,
+      type: item.type,
+    }));
+  }, [args.courseId, typeFilter]);
 
   const handleSubmit = useCallback(() => {
     resolve({ reason: "submit", data: selectedOptions });
@@ -162,36 +150,52 @@ const AssignmentSelectNiceDialog = NiceModal.create<
     );
   }, [args.obj]);
 
+  useEffect(() => {
+    setTypeFilter(args.initialType);
+  }, [args.initialType]);
+
   return (
-    <Dialog
+    <FormDialog
       open={visible}
       onOpenChange={(v) => {
-        if (!v) {
-          handleClose();
-        }
+        if (!v) handleClose();
       }}
+      title="Select"
+      onSubmit={handleSubmit}
+      onCancel={handleClose}
+      maxWidth="lg"
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Select Assignment</DialogTitle>
-        </DialogHeader>
-        <DialogDescription>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label>Type</Label>
+          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val as "quiz" | "assignment" | "all")}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="item-aligned">
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="assignment">Assignment</SelectItem>
+              <SelectItem value="quiz">Quiz</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Select Item</Label>
           <ComboBox2<SelectItemType>
-            title="Assignment"
+            title="Search..."
             valueKey="key"
             value={selectedOptions || undefined}
             searchFn={getAssignments}
-            renderText={(book) => `${book.title}`}
+            renderLabel={(item) => `${item.title} (${item.type})`}
             onChange={updateTags}
             multiple={false}
             showCreateButton={true}
             showEditButton={true}
             onCreateClick={() => {
-              // Navigate to assignment creation page
               window.open("/dashboard/lms/assignments/new", "_blank");
             }}
             onEditClick={(item) => {
-              // Navigate to assignment/quiz edit page based on type
               if (item.type === "assignment") {
                 window.open(`/dashboard/lms/assignments/${item.key}`, "_blank");
               } else if (item.type === "quiz") {
@@ -199,13 +203,8 @@ const AssignmentSelectNiceDialog = NiceModal.create<
               }
             }}
           />
-        </DialogDescription>
-        <DialogFooter>
-          <Button onClick={handleSubmit} variant="default">
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </FormDialog>
   );
 });

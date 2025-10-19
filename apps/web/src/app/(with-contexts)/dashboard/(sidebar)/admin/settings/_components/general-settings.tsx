@@ -1,6 +1,6 @@
 "use client";
 
-import { uploadLogo } from "@/server/actions/site/media";
+import { removeLogo, uploadLogo } from "@/server/actions/site/media";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MediaSelector, useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useSettingsContext } from "./settings-context";
+import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 
 const generalSettingsSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -22,7 +23,7 @@ export default function GeneralSettings() {
   const { settings, updateSettingsMutation, loadSettingsQuery } =
     useSettingsContext();
   const { toast } = useToast();
-  const [logo, setLogo] = useState<any>(null);
+  const [logo, setLogo] = useState<IAttachmentMedia | null>(null);
 
   const form = useForm<GeneralSettingsFormData>({
     resolver: zodResolver(generalSettingsSchema),
@@ -38,7 +39,7 @@ export default function GeneralSettings() {
         title: settings.title || "",
         subtitle: settings.subtitle || "",
       });
-      setLogo(settings.logo || null);
+      setLogo((settings.logo || null) as any);
     }
   }, [settings, form]);
 
@@ -101,13 +102,15 @@ export default function GeneralSettings() {
             )}
           />
 
-          <Button
-            type="submit"
-            disabled={isDisabled}
-            className="w-full sm:w-auto"
-          >
-            {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
-          </Button>
+          <div>
+            <Button
+              type="submit"
+              disabled={isDisabled}
+              className="w-full sm:w-auto"
+            >
+              {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
         </FieldGroup>
       </form>
 
@@ -116,27 +119,21 @@ export default function GeneralSettings() {
         <MediaSelector
           media={logo}
           onSelection={async (media) => {
-            await loadSettingsQuery.refetch();
+            setLogo(media);
           }}
           onRemove={async () => {
             setLogo(null);
             await loadSettingsQuery.refetch();
           }}
-          mimeTypesToShow={[
-            "image/png",
-            "image/jpeg",
-            "image/jpg",
-            "image/webp",
-            "image/gif",
-          ]}
+          mimeTypesToShow={["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]}
           type="domain"
-          disabled={isDisabled}
           strings={{
-            buttonCaption: "Upload",
+            buttonCaption: "Upload Image",
             removeButtonCaption: "Remove",
           }}
+          disabled={isDisabled}
           functions={{
-            uploadFile: async (files: File[]) => {
+            uploadFile: async (files) => {
               const formData = new FormData();
               files.forEach(file => formData.append("file", file));
               
@@ -145,7 +142,7 @@ export default function GeneralSettings() {
               return result.media || [];
             },
             removeFile: async (mediaId: string) => {
-              await loadSettingsQuery.refetch();
+              await removeLogo(mediaId);
             }
           }}
         />

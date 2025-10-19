@@ -6,14 +6,11 @@ import { useTranslation } from "react-i18next";
 import Settings from "./_components/settings";
 import { SettingsProvider } from "./_components/settings-context";
 
-
 export default function Page() {
   const { t } = useTranslation(["dashboard", "common"]);
   const searchParams = useSearchParams();
-
-  const breadcrumbs = [{ label: t("sidebar.settings"), href: "/dashboard/settings" }];
-
-  const tab = searchParams?.get("tab") || "Branding";
+  const breadcrumbs = [{ label: t("sidebar.settings"), href: "/dashboard/admin/settings" }];
+  const tab = searchParams?.get("tab") || "General";
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
