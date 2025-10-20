@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback } from "react";
-import Link from "next/link";
-import { useTranslation } from "react-i18next";
-import { BookOpen, CheckCircle, ClipboardList, Video, TrendingUp, Calendar, Clock } from "lucide-react";
-import { trpc } from "@/utils/trpc";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
+import { trpc } from "@/utils/trpc";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { format } from "date-fns";
+import { BookOpen, Calendar, CheckCircle, ClipboardList, Clock, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
@@ -19,6 +18,13 @@ export default function Page() {
 
     const loadDashboardStatsQuery = trpc.lmsModule.student.getDashboardStats.useQuery();
 
+
+    const data = loadDashboardStatsQuery.data;
+    const stats = data?.stats;
+    const recentCourses = data?.recentCourses || [];
+    const upcomingAssignments = data?.upcomingAssignments || [];
+    const upcomingEvents = data?.upcomingEvents || [];
+    
     if (loadDashboardStatsQuery.isLoading) {
         return (
             <DashboardContent breadcrumbs={breadcrumbs}>
@@ -32,12 +38,6 @@ export default function Page() {
         );
     }
 
-    const data = loadDashboardStatsQuery.data;
-    const stats = data?.stats;
-    const recentCourses = data?.recentCourses || [];
-    const upcomingAssignments = data?.upcomingAssignments || [];
-    const upcomingClasses = data?.upcomingClasses || [];
-
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>
             <HeaderTopbar
@@ -46,8 +46,6 @@ export default function Page() {
                     subtitle: "Track your learning progress and upcoming activities",
                 }}
             />
-
-            {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard
                     title="Enrolled Courses"
@@ -105,26 +103,26 @@ export default function Page() {
                             />
                         ) : (
                             <div className="space-y-4">
-                                {recentCourses.map((course: any) => (
+                                {recentCourses.map((enrollment) => (
                                     <Link
-                                        key={course._id}
-                                        href={`/dashboard/student/courses/${course.courseId}`}
+                                        key={enrollment._id}
+                                        href={`/dashboard/student/courses/${enrollment.course._id}`}
                                         className="block"
                                     >
                                         <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted transition-colors">
-                                            {course.course?.featuredImage?.thumbnail && (
+                                            {enrollment.course?.featuredImage?.thumbnail && (
                                                 <img
-                                                    src={course.course.featuredImage.thumbnail}
-                                                    alt={course.course.title}
+                                                    src={enrollment.course.featuredImage.thumbnail}
+                                                    alt={enrollment.course.title}
                                                     className="w-16 h-16 rounded object-cover"
                                                 />
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-medium truncate">
-                                                    {course.course?.title || "Untitled Course"}
+                                                    {enrollment.course?.title || "Untitled Course"}
                                                 </h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Enrolled {format(new Date(course.createdAt), "MMM d, yyyy")}
+                                                    Enrolled {enrollment.createdAt && format(new Date(enrollment.createdAt), "MMM d, yyyy")}
                                                 </p>
                                             </div>
                                         </div>
@@ -135,11 +133,11 @@ export default function Page() {
                     </CardContent>
                 </Card>
 
-                {/* Upcoming Live Classes */}
+                {/* Upcoming Events */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center justify-between">
-                            <span>Upcoming Live Classes</span>
+                            <span>Upcoming Events</span>
                             <Link href="/dashboard/student/schedule">
                                 <Button variant="ghost" size="sm">
                                     View Schedule
@@ -148,31 +146,34 @@ export default function Page() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {upcomingClasses.length === 0 ? (
+                        {upcomingEvents.length === 0 ? (
                             <EmptyState
-                                icon={<Video className="h-12 w-12 text-muted-foreground" />}
-                                text="No upcoming live classes"
+                                icon={<Calendar className="h-12 w-12 text-muted-foreground" />}
+                                text="No upcoming events"
                             />
                         ) : (
                             <div className="space-y-4">
-                                {upcomingClasses.slice(0, 5).map((liveClass: any) => (
+                                {upcomingEvents.slice(0, 5).map((event) => (
                                     <div
-                                        key={liveClass._id}
+                                        key={event._id}
                                         className="flex items-start gap-4 p-3 rounded-lg border"
                                     >
                                         <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                                            <Video className="h-6 w-6 text-primary" />
+                                            <Calendar className="h-6 w-6 text-primary" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-medium truncate">{liveClass.title}</h4>
+                                            <h4 className="font-medium truncate">{event.title}</h4>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                 <Clock className="h-3 w-3" />
                                                 <span>
-                                                    {format(new Date(liveClass.scheduledStartTime), "MMM d, h:mm a")}
+                                                    {format(new Date(event.startDate), "MMM d, h:mm a")}
                                                 </span>
                                             </div>
-                                            <Badge variant="secondary" className="mt-1">
-                                                {liveClass.type || "Lecture"}
+                                            <Badge 
+                                                variant="secondary" 
+                                                className="mt-1 capitalize"
+                                            >
+                                                {event.type}
                                             </Badge>
                                         </div>
                                     </div>
@@ -202,33 +203,31 @@ export default function Page() {
                             />
                         ) : (
                             <div className="space-y-4">
-                                {upcomingAssignments.map((submission: any) => (
+                                {upcomingAssignments.map((assignment) => (
                                     <Link
-                                        key={submission._id}
-                                        href={`/dashboard/student/assignments/${submission.assignmentId}`}
+                                        key={assignment._id}
+                                        href={`/dashboard/student/assignments/${assignment._id}`}
                                         className="block"
                                     >
                                         <div className="flex items-center gap-4 p-4 rounded-lg border hover:border-primary transition-colors">
                                             <div className="flex-1">
                                                 <h4 className="font-medium">
-                                                    {submission.assignment?.title || "Assignment"}
+                                                    {assignment.title}
                                                 </h4>
                                                 <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                                    {submission.assignment?.dueDate && (
+                                                    {assignment.dueDate && (
                                                         <div className="flex items-center gap-1">
                                                             <Calendar className="h-3 w-3" />
                                                             <span>
-                                                                Due: {format(new Date(submission.assignment.dueDate), "MMM d, yyyy")}
+                                                                Due: {format(new Date(assignment.dueDate), "MMM d, yyyy")}
                                                             </span>
                                                         </div>
                                                     )}
-                                                    {submission.assignment?.totalPoints && (
-                                                        <span>{submission.assignment.totalPoints} points</span>
-                                                    )}
+                                                    <span>{assignment.totalPoints} points</span>
                                                 </div>
                                             </div>
-                                            <Badge variant={submission.status === "submitted" ? "secondary" : "default"}>
-                                                {submission.status}
+                                            <Badge variant="default" className="capitalize">
+                                                {assignment.type}
                                             </Badge>
                                         </div>
                                     </Link>

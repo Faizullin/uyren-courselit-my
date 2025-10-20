@@ -46,6 +46,7 @@ import {
   syncCourseLessons
 } from "./helpers";
 import { CourseLevelEnum, CourseStatusEnum, ICourseChapter } from "@workspace/common-logic/models/lms/course.types";
+import { ICohortHydratedDocument } from "@workspace/common-logic/models/lms/cohort.model";
 
 // TODO: Add chapter reordering (like Frappe LMS update_chapter_index)
 // ✓ Added course progress distribution analytics (getEnrollmentStats)
@@ -798,6 +799,162 @@ export const courseRouter = router({
       return jsonify({
         ...distribution,
         averageCompletion,
+      });
+    }),
+
+  // Get current user's enrolled courses with progress
+  getMyEnrolledCourses: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      ListInputSchema.extend({
+        filter: z.object({
+          status: z.nativeEnum(EnrollmentStatusEnum).optional(),
+          level: z.nativeEnum(CourseLevelEnum).optional(),
+        }).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Build enrollment query
+      const enrollmentQuery: RootFilterQuery<typeof EnrollmentModel> = {
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        memberType: CourseEnrollmentMemberTypeEnum.STUDENT,
+      };
+
+      // Apply status filter (default to active only)
+      if (input.filter?.status) {
+        enrollmentQuery.status = input.filter.status;
+      } else {
+        enrollmentQuery.status = EnrollmentStatusEnum.ACTIVE;
+      }
+
+      // Get paginated enrollments
+      const paginationMeta = paginate(input.pagination);
+      
+      const [enrollments, totalEnrollments] = await Promise.all([
+        EnrollmentModel.find(enrollmentQuery)
+          .select("_id courseId cohortId createdAt status")
+          .populate<{
+            cohort: Pick<ICohortHydratedDocument, "_id" | "title" | "status" | "beginDate" | "endDate">;
+          }>("cohort", "_id title status beginDate endDate")
+          .sort({ createdAt: -1 })
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
+          .lean(),
+        paginationMeta.includePaginationCount
+          ? EnrollmentModel.countDocuments(enrollmentQuery)
+          : Promise.resolve(null),
+      ]);
+
+      if (enrollments.length === 0) {
+        return jsonify({
+          items: [],
+          total: totalEnrollments,
+          meta: paginationMeta,
+        });
+      }
+
+      const courseIds = enrollments.map((e) => e.courseId);
+
+      // Build course query
+      const courseQuery: FilterQuery<ICourseHydratedDocument> = {
+        _id: { $in: courseIds },
+        orgId: ctx.domainData.domainObj.orgId,
+      };
+
+      // Apply search filter if provided
+      if (input.search?.q) {
+        courseQuery.$text = { $search: input.search.q };
+      }
+
+      // Apply level filter if provided
+      if (input.filter?.level) {
+        courseQuery.level = input.filter.level;
+      }
+
+      // Get courses with full data
+      const courses = await CourseModel.find(courseQuery)
+        .populate<{
+          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName">;
+        }>("owner", "username firstName lastName fullName")
+        .populate<{
+          tags: Pick<ITagHydratedDocument, "name">[];
+        }>("tags", "name")
+        .populate<{
+          theme: Pick<IThemeHydratedDocument, "name">;
+        }>("theme", "name")
+        .lean();
+
+      // Get progress for all courses
+      const progressDocs = await UserProgressModel.find({
+        userId: ctx.user._id,
+        courseId: { $in: courseIds },
+        orgId: ctx.domainData.domainObj.orgId,
+      }).lean();
+
+      const progressMap = new Map(
+        progressDocs.map((p) => [p.courseId.toString(), p]),
+      );
+
+      // Create enrollment map for quick lookup
+      const enrollmentMap = new Map(
+        enrollments.map((e) => [e.courseId.toString(), e]),
+      );
+
+      // Combine course data with progress
+      const coursesWithProgress = courses.map((course) => {
+        const progress = progressMap.get(course._id.toString());
+        const enrollment = enrollmentMap.get(course._id.toString()) as {
+          _id: mongoose.Types.ObjectId;
+          courseId: mongoose.Types.ObjectId;
+          cohortId?: mongoose.Types.ObjectId;
+          status: EnrollmentStatusEnum;
+          createdAt: Date;
+          cohort?: {
+            _id: mongoose.Types.ObjectId;
+            title: string;
+            status: string;
+            beginDate?: Date;
+            endDate?: Date;
+          };
+        } | undefined;
+
+        const totalLessons = progress?.lessons.length || 0;
+        const completedLessons =
+          progress?.lessons.filter((l) => l.status === "completed").length || 0;
+        const percentComplete =
+          totalLessons > 0
+            ? Math.round((completedLessons / totalLessons) * 100)
+            : 0;
+
+        return {
+          ...course,
+          enrollment: {
+            _id: enrollment?._id,
+            status: enrollment?.status,
+            createdAt: enrollment?.createdAt,
+          },
+          cohort: enrollment?.cohort,
+          progress: {
+            totalLessons,
+            completedLessons,
+            percentComplete,
+            currentLesson: progress?.lessons.find((l) => l.status === "in_progress"),
+          },
+        };
+      });
+
+      // Sort by enrollment date (most recent first)
+      coursesWithProgress.sort((a, b) => {
+        const dateA = a.enrollment.createdAt ? new Date(a.enrollment.createdAt).getTime() : 0;
+        const dateB = b.enrollment.createdAt ? new Date(b.enrollment.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      return jsonify({
+        items: coursesWithProgress,
+        total: totalEnrollments,
+        meta: paginationMeta,
       });
     }),
 });

@@ -27,5 +27,7 @@ export interface ICourseEnrollment {
   role: CourseEnrollmentRoleEnum;
   status: EnrollmentStatusEnum;
   approvalStatus: ApprovalStatusEnum;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 

@@ -1,8 +1,8 @@
-import mongoose from "mongoose";
-import { createModel } from "../../lib/create-model";
-import { orgaizationIdField } from "../../lib/organization"; 
-import { CourseEnrollmentMemberTypeEnum, CourseEnrollmentRoleEnum, EnrollmentStatusEnum, ICourseEnrollment } from "./enrollment.types";
+import mongoose, { HydratedDocument } from "mongoose";
 import { ApprovalStatusEnum } from "../../lib/approval_status";
+import { createModel } from "../../lib/create-model";
+import { orgaizationIdField } from "../../lib/organization";
+import { CourseEnrollmentMemberTypeEnum, CourseEnrollmentRoleEnum, EnrollmentStatusEnum, ICourseEnrollment } from "./enrollment.types";
 
 export const EnrollmentSchema = new mongoose.Schema<ICourseEnrollment>({
   orgId: orgaizationIdField(),
@@ -54,6 +54,29 @@ EnrollmentSchema.index({ userId: 1, courseId: 1 });
 EnrollmentSchema.index({ courseId: 1, memberType: 1 });
 EnrollmentSchema.index({ orgId: 1, userId: 1 });
 EnrollmentSchema.index({ cohortId: 1, memberType: 1 });
+
+EnrollmentSchema.virtual('course', {
+  ref: 'Course',
+  localField: 'courseId',
+  foreignField: '_id',
+  justOne: true
+});
+
+EnrollmentSchema.virtual('cohort', {
+  ref: 'Cohort',
+  localField: 'cohortId',
+  foreignField: '_id',
+  justOne: true
+});
+
+EnrollmentSchema.virtual('user', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: '_id',
+  justOne: true
+});
+
+export type IEnrollmentHydratedDocument = HydratedDocument<ICourseEnrollment>;
 
 export const EnrollmentModel = createModel('Enrollment', EnrollmentSchema);
 

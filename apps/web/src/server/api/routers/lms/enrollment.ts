@@ -654,7 +654,10 @@ export const enrollmentRouter = router({
         courseId: input.courseId,
         orgId: ctx.domainData.domainObj.orgId,
       })
-        .select("_id userId courseId currentLesson status role memberType createdAt")
+        .select("_id userId courseId cohortId currentLesson status role memberType createdAt")
+        .populate<{
+          cohort: Pick<any, "_id" | "title" | "beginDate" | "endDate" | "maxCapacity">;
+        }>("cohort", "_id title beginDate endDate maxCapacity")
         .lean();
 
       if (!enrollment) {

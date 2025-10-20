@@ -239,6 +239,9 @@ AssignmentSubmissionSchema.index({ submittedAt: -1 });
 
 export const AssignmentModel = createModel('Assignment', AssignmentSchema);
 export type IAssignmentHydratedDocument = HydratedDocument<IAssignment>;
+
 export const AssignmentSubmissionModel = createModel('AssignmentSubmission', AssignmentSubmissionSchema);
+export type IAssignmentSubmissionHydratedDocument = HydratedDocument<IAssignmentSubmission>;
+
 export const AssignmentPeerReviewModel = createModel('AssignmentPeerReview', AssignmentPeerReviewSchema);
 

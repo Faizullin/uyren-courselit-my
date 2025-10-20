@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { BookOpen, PlayCircle, CheckCircle2, Clock } from "lucide-react";
+import { BookOpen, PlayCircle, CheckCircle2, User2, Users, Calendar } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
@@ -12,42 +12,66 @@ import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
-import { format } from "date-fns";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination";
+import { useDataTable } from "@/components/data-table/use-data-table";
 import { cn } from "@workspace/ui/lib/utils";
+import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
+import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course.types";
+import type { GeneralRouterOutputs } from "@/server/api/types";
+
+type MyCoursesOutput = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["getMyEnrolledCourses"];
+type EnrolledCourse = MyCoursesOutput["items"][number];
+
+type QueryParams = Parameters<typeof trpc.lmsModule.courseModule.course.getMyEnrolledCourses.useQuery>[0];
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
     const breadcrumbs = [{ label: t("common:dashboard.student.courses.title"), href: "#" }];
 
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [levelFilter, setLevelFilter] = useState<CourseLevelEnum | "all">("all");
+    const [parsedData, setParsedData] = useState<EnrolledCourse[]>([]);
+    const [parsedPagination, setParsedPagination] = useState({ pageCount: 1 });
 
-    const loadEnrollmentsQuery = trpc.lmsModule.enrollment.list.useQuery({
-        pagination: { skip: 0, take: 100 },
-        filter: {
-            status: statusFilter !== "all" ? statusFilter as any : undefined,
+    const columns = useMemo(() => [
+        { accessorKey: "_id", header: "ID" },
+    ], []);
+
+    const { table } = useDataTable({
+        columns,
+        data: parsedData,
+        pageCount: parsedPagination.pageCount,
+        initialState: {
+            pagination: { pageIndex: 0, pageSize: 9 },
         },
     });
 
-    const loadProgressQuery = trpc.lmsModule.student.getCourseProgress.useQuery({});
+    const tableState = table.getState();
+    const queryParams = useMemo<QueryParams>(() => ({
+        pagination: {
+            skip: tableState.pagination.pageIndex * tableState.pagination.pageSize,
+            take: tableState.pagination.pageSize,
+        },
+        search: search ? { q: search } : undefined,
+        filter: {
+            status: EnrollmentStatusEnum.ACTIVE,
+            level: levelFilter === "all" ? undefined : levelFilter,
+        },
+    }), [tableState.pagination, search, levelFilter]);
 
-    const enrollments = loadEnrollmentsQuery.data?.items || [];
-    const progressData = loadProgressQuery.data || [];
+    const loadMyCoursesQuery = trpc.lmsModule.courseModule.course.getMyEnrolledCourses.useQuery(queryParams);
 
-    // Create progress map
-    const progressMap = new Map(
-        progressData.map((p: any) => [p.courseId, p])
-    );
+    useEffect(() => {
+        if (!loadMyCoursesQuery.data) return;
+        setParsedData(loadMyCoursesQuery.data.items || []);
+        setParsedPagination({
+            pageCount: Math.ceil((loadMyCoursesQuery.data.total || 0) / loadMyCoursesQuery.data.meta.take),
+        });
+    }, [loadMyCoursesQuery.data]);
 
-    // Filter enrollments by search
-    const filteredEnrollments = enrollments.filter((enrollment: any) => {
-        if (!search) return true;
-        const courseTitle = enrollment.course?.title?.toLowerCase() || "";
-        return courseTitle.includes(search.toLowerCase());
-    });
-
-    const isLoading = loadEnrollmentsQuery.isLoading || loadProgressQuery.isLoading;
+    const courses = parsedData;
 
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>
@@ -59,114 +83,157 @@ export default function Page() {
             />
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                    <Input
-                        placeholder="Search courses..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="max-w-md"
-                    />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                    <div className="flex-1 max-w-md">
+                        <Input
+                            placeholder="Search courses..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium">Level</Label>
+                        <Select value={levelFilter} onValueChange={(value) => setLevelFilter(value as CourseLevelEnum | "all")}>
+                            <SelectTrigger className="w-full sm:w-[180px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Levels</SelectItem>
+                                <SelectItem value={CourseLevelEnum.BEGINNER}>Beginner</SelectItem>
+                                <SelectItem value={CourseLevelEnum.INTERMEDIATE}>Intermediate</SelectItem>
+                                <SelectItem value={CourseLevelEnum.ADVANCED}>Advanced</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Courses</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                </Select>
             </div>
 
             {/* Course Grid */}
-            {isLoading ? (
+            {loadMyCoursesQuery.isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[...Array(6)].map((_, i) => (
                         <CourseCardSkeleton key={i} />
                     ))}
                 </div>
-            ) : filteredEnrollments.length === 0 ? (
-                <EmptyState />
+            ) : courses.length === 0 ? (
+                <EmptyState search={search} />
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredEnrollments.map((enrollment: any) => {
-                        const progress = progressMap.get(enrollment.courseId.toString());
-                        return (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {courses.map((course) => (
                             <CourseCard
-                                key={enrollment._id}
-                                enrollment={enrollment}
-                                progress={progress}
+                                key={course._id}
+                                course={course}
                             />
-                        );
-                    })}
-                </div>
+                        ))}
+                    </div>
+
+                    {!loadMyCoursesQuery.isLoading && (
+                        <DataTablePagination table={table} pageSizeOptions={[9, 18, 27, 36]} />
+                    )}
+                </>
             )}
         </DashboardContent>
     );
 }
 
-function CourseCard({ enrollment, progress }: { enrollment: any; progress: any }) {
-    const course = enrollment.course;
-    const percentComplete = progress?.percentComplete || 0;
-    const completedLessons = progress?.completedLessons || 0;
-    const totalLessons = progress?.totalLessons || 0;
+interface CourseCardProps {
+    course: EnrolledCourse;
+}
+
+function CourseCard({ course }: CourseCardProps) {
+    const { progress, instructors, owner, cohort } = course;
+    const { percentComplete = 0, completedLessons = 0, totalLessons = 0 } = progress || {};
+    
+    const instructor = instructors?.[0] || owner;
 
     return (
-        <Link href={`/dashboard/student/courses/${enrollment.courseId}`}>
-            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                <div className="relative">
-                    {course?.featuredImage?.file ? (
+        <Link href={`/dashboard/student/courses/${course._id}`}>
+            <Card className="p-0 h-full hover:shadow-lg transition-all duration-200 cursor-pointer group overflow-hidden border-2 hover:border-primary/20">
+                {/* Image Section */}
+                <div className="relative h-40 bg-gradient-to-br from-primary/10 to-primary/5">
+                    {course.featuredImage?.file ? (
                         <img
                             src={course.featuredImage.file}
                             alt={course.title}
-                            className="w-full h-48 object-cover rounded-t-lg"
+                            className="w-full h-full object-cover"
                         />
                     ) : (
-                        <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/5 rounded-t-lg flex items-center justify-center">
-                            <BookOpen className="h-16 w-16 text-primary/40" />
+                        <div className="w-full h-full flex items-center justify-center">
+                            <BookOpen className="h-12 w-12 text-primary/40" />
                         </div>
                     )}
+                    
+                    {/* Progress Badge */}
                     <div className="absolute top-3 right-3">
-                        <Badge variant="secondary" className="bg-white/90 backdrop-blur">
-                            {enrollment.status}
+                        <Badge variant={percentComplete === 100 ? "default" : "secondary"} className="bg-white/95 backdrop-blur shadow-sm">
+                            {percentComplete}%
                         </Badge>
                     </div>
+
+                    {/* Cohort Badge */}
+                    {cohort && (
+                        <div className="absolute top-3 left-3">
+                            <Badge variant="outline" className="bg-white/95 backdrop-blur shadow-sm">
+                                <Users className="h-3 w-3 mr-1" />
+                                {cohort.title}
+                            </Badge>
+                        </div>
+                    )}
                 </div>
 
-                <CardContent className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-2">
-                        {course?.title || "Untitled Course"}
-                    </h3>
-
-                    {/* Progress Bar */}
-                    <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Progress</span>
-                            <span className="font-medium">{percentComplete}%</span>
+                {/* Content Section */}
+                <CardContent className="p-0">
+                    <div className="p-4 space-y-3">
+                        {/* Course Title */}
+                        <div>
+                            <h3 className="font-semibold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                                {course.title}
+                            </h3>
+                            <Badge variant="outline" className="mt-1 text-xs capitalize">
+                                {course.level}
+                            </Badge>
                         </div>
-                        <ProgressBar value={percentComplete} />
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>
-                                {completedLessons} of {totalLessons} lessons completed
-                            </span>
+
+                        {/* Instructor */}
+                        {instructor && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <User2 className="h-4 w-4" />
+                                <span className="truncate">{instructor.fullName}</span>
+                            </div>
+                        )}
+
+                        {/* Cohort Info */}
+                        {cohort && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                <span className="truncate">
+                                    {cohort.beginDate && new Date(cohort.beginDate).toLocaleDateString()}
+                                    {cohort.endDate && ` - ${new Date(cohort.endDate).toLocaleDateString()}`}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Progress Section */}
+                        <div className="space-y-2 pt-2 border-t">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Progress</span>
+                                <span className="font-medium">{completedLessons}/{totalLessons} lessons</span>
+                            </div>
+                            <ProgressBar value={percentComplete} />
                         </div>
-                    </div>
 
-                    {/* Enrollment Date */}
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-                        <Clock className="h-4 w-4" />
-                        <span>Enrolled {format(new Date(enrollment.createdAt), "MMM d, yyyy")}</span>
+                        {/* Action Button */}
+                        <Button 
+                            className="w-full mt-3" 
+                            variant={percentComplete === 0 ? "default" : "outline"}
+                            size="sm"
+                        >
+                            <PlayCircle className="h-4 w-4 mr-2" />
+                            {percentComplete === 0 ? "Start Learning" : "Continue"}
+                        </Button>
                     </div>
-
-                    {/* Action Button */}
-                    <Button className="w-full" variant="outline">
-                        <PlayCircle className="h-4 w-4 mr-2" />
-                        {percentComplete === 0 ? "Start Learning" : "Continue Learning"}
-                    </Button>
                 </CardContent>
             </Card>
         </Link>
@@ -202,22 +269,31 @@ function CourseCardSkeleton() {
     );
 }
 
-function EmptyState() {
+interface EmptyStateProps {
+    search: string;
+}
+
+function EmptyState({ search }: EmptyStateProps) {
     return (
         <div className="text-center py-16">
-            <div className="flex justify-center mb-4">
-                <BookOpen className="h-16 w-16 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No courses enrolled yet</h3>
+            <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+                {search ? "No courses found" : "No courses enrolled yet"}
+            </h3>
             <p className="text-muted-foreground mb-6">
-                Start your learning journey by enrolling in courses
+                {search 
+                    ? "Try adjusting your search criteria"
+                    : "Start your learning journey by enrolling in courses"
+                }
             </p>
-            <Link href="/courses">
-                <Button>
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Browse Courses
-                </Button>
-            </Link>
+            {!search && (
+                <Link href="/courses">
+                    <Button>
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Browse Courses
+                    </Button>
+                </Link>
+            )}
         </div>
     );
 }
