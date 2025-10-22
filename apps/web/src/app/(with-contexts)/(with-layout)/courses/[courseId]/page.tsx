@@ -14,6 +14,7 @@ import CourseEnrollmentCard from "./_components/course-enrollment-card";
 import { CourseErrorBoundary, CourseErrorFallback } from "./_components/course-error-boundary";
 import { useCourseData } from "./_components/course-provider";
 import { CourseDetailSkeleton } from "./_components/course-skeletons";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 
 const DescriptionEditor = dynamic(
   () =>
@@ -27,7 +28,7 @@ const DescriptionEditor = dynamic(
 
 function CourseMainContent() {
   const courseData  = useCourseData();
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const loadCourseDetailedQuery = trpc.lmsModule.courseModule.course.publicGetByIdDetailed.useQuery(
     { id: courseData._id },
     { enabled: !!courseData._id }
@@ -66,7 +67,7 @@ function CourseMainContent() {
               <>
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
-                  <span>{course.statsEnrollmentCount} {t("students")}</span>
+                  <span>{course.statsEnrollmentCount} {t("course_detail.students")}</span>
                 </div>
                 <span className="text-gray-400">•</span>
               </>
@@ -133,7 +134,7 @@ function CourseMainContent() {
                   toolbar={false}
                   onEditor={(editor, meta) => {
                     if (meta.reason === "create") {
-                      editor!.commands.setMyContent(course.description!);
+                      editor!.commands.setMyContent(course.description! as unknown as ITextEditorContent);
                     }
                   }}
                 />
@@ -147,19 +148,19 @@ function CourseMainContent() {
 }
 
 function CourseDetailsContent() {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const course = useCourseData();
 
   if (!course) {
     return (
       <div className="text-center py-20">
         <h1 className="text-2xl font-bold text-foreground mb-4">
-          {t("course_not_found")}
+          {t("course_detail.not_found_title")}
         </h1>
-        <p className="text-muted-foreground mb-4">{t("course_not_exist")}</p>
+        <p className="text-muted-foreground mb-4">{t("course_detail.not_found_description")}</p>
         <Link href="/courses">
           <Button className="bg-[rgb(var(--brand-primary))] hover:bg-[rgb(var(--brand-primary-hover))] text-white">
-            {t("back_to_courses")}
+            {t("course_detail.back_to_courses")}
           </Button>
         </Link>
       </div>

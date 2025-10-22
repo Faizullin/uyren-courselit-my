@@ -5,14 +5,14 @@ import {
   CommentEditorRef,
 } from "@workspace/text-editor/tiptap-sh";
 import { forwardRef } from "react";
-import { TextEditorContent } from "@workspace/common-models";
 
 import "./comment-editor.scss";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 
 export interface CommentEditorFieldProps {
   name: string;
-  value?: TextEditorContent;
-  onChange: (value: TextEditorContent) => void;
+  value?: ITextEditorContent;
+  onChange: (value: ITextEditorContent) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -23,7 +23,7 @@ export const CommentEditorField = forwardRef<
   CommentEditorFieldProps
 >(({ name, value, onChange, placeholder, className, disabled }, ref) => {
   const handleContentChange = (content: string) => {
-    const textEditorContent: TextEditorContent = {
+    const textEditorContent: ITextEditorContent = {
       content,
       type: "doc",
       assets: [],

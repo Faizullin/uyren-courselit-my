@@ -38,7 +38,7 @@ const COURSES_PER_PAGE = 9;
 
 
 function CoursesContent() {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["frontend", "common"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,14 +86,14 @@ function CoursesContent() {
             <CardContent className="p-6 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-red-600 mb-2">
-                {t("error_heading")}
+                {t("common:error_loading")} {t("common:courses")}
               </h3>
               <p className="text-gray-600 mb-4">{loadCoursesQuery.error.message}</p>
               <Button
                 onClick={() => window.location.reload()}
                 variant="outline"
               >
-                {t("try_again")}
+                {t("common:try_again")}
               </Button>
             </CardContent>
           </Card>
@@ -120,7 +120,7 @@ function CoursesContent() {
           >
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
               <Trans
-                i18nKey="courses_page.header_title"
+                i18nKey="courses.header_title"
                 t={t}
                 components={{
                   "primary-label": <span className="text-brand-primary" />,
@@ -128,7 +128,7 @@ function CoursesContent() {
               />
             </h1>
             <p className="text-lg md:text-xl text-white/90 mb-8">
-              {t("courses_page.header_desc")}
+              {t("courses.header_desc")}
             </p>
           </ScrollAnimation>
         </div>
@@ -141,7 +141,7 @@ function CoursesContent() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
               <Input
-                placeholder={t("search_placeholder")}
+                placeholder={t("courses.search_placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -153,18 +153,18 @@ function CoursesContent() {
                 onValueChange={(v) => setLevelFilter(v as LevelFilter)}
               >
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder={t("all_levels")} />
+                  <SelectValue placeholder={t("courses.all_levels")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t("all_levels")}</SelectItem>
+                  <SelectItem value="all">{t("courses.all_levels")}</SelectItem>
                   <SelectItem value="beginner">
-                    {t("level_beginner")}
+                    {t("courses.level_beginner")}
                   </SelectItem>
                   <SelectItem value="intermediate">
-                    {t("level_intermediate")}
+                    {t("courses.level_intermediate")}
                   </SelectItem>
                   <SelectItem value="advanced">
-                    {t("level_advanced")}
+                    {t("courses.level_advanced")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -174,7 +174,7 @@ function CoursesContent() {
                   onClick={clearFilters}
                   className="whitespace-nowrap bg-transparent"
                 >
-                  {t("clear_filters")}
+                  {t("courses.clear_filters")}
                 </Button>
               )}
             </div>
@@ -207,11 +207,11 @@ function CoursesContent() {
             <div className="text-center py-12">
               <BookOpen className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                {t("no_courses")}
+                {t("courses.no_courses")}
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">{t("no_courses_desc")}</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">{t("courses.no_courses_desc")}</p>
               <Button onClick={clearFilters} variant="outline">
-                {t("clear_filters")}
+                {t("courses.clear_filters")}
               </Button>
             </div>
           ) : (
@@ -262,10 +262,8 @@ function CoursesContent() {
                             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
                               <BookOpen className="h-4 w-4 mr-2" />
                               <span>
-                                {course.statsLessonCount} {t("lessons")} •{" "}
-                                {t(
-                                  `level_${course.level?.toLowerCase() || "beginner"}`,
-                                )}
+                                {course.statsLessonCount} {t("common:lessons")} •{" "}
+                                {course.level || "Beginner"}
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-2 mb-3">
@@ -285,7 +283,7 @@ function CoursesContent() {
                               )}
                             </div>
                             <Button className="w-full bg-brand-primary hover:bg-brand-primary-hover text-white">
-                              {t("view_course")}
+                              {t("courses.view_course")}
                             </Button>
                           </div>
                         </CardContent>
@@ -304,7 +302,7 @@ function CoursesContent() {
                     className="flex items-center gap-2"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    {t("previous")}
+                    {t("common:previous")}
                   </Button>
                   <div className="flex gap-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -328,7 +326,7 @@ function CoursesContent() {
                     disabled={currentPage === totalPages}
                     className="flex items-center gap-2"
                   >
-                    {t("next")}
+                    {t("common:next")}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

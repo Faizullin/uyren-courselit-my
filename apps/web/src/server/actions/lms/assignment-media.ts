@@ -15,44 +15,23 @@ import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
-interface UploadMediaResult {
-    success: boolean;
-    media?: IAttachmentMedia;
-    error?: string;
-}
 
-interface RemoveMediaResult {
-    success: boolean;
-    error?: string;
-}
-
-interface ListMediaResult {
-    success: boolean;
-    items?: IAttachmentMedia[];
-    meta?: {
-        skip: number;
-        take: number;
-    };
-    total?: number;
-    error?: string;
-}
-
-export async function uploadAssignmentMedia(assignmentId: string, formData: FormData): Promise<UploadMediaResult> {
+export async function uploadAssignmentMedia(assignmentId: string, formData: FormData) {
     try {
         const ctx = await getActionContext();
         const file = formData.get("file") as File;
         if (!file) throw new ValidationException("No file provided");
 
-        const assignment = await AssignmentModel.findOne({ 
-            _id: assignmentId, 
-            orgId: ctx.domainData.domainObj.orgId 
+        const assignment = await AssignmentModel.findOne({
+            _id: assignmentId,
+            orgId: ctx.domainData.domainObj.orgId
         });
         if (!assignment) throw new NotFoundException("Assignment", assignmentId);
 
         // Check permissions
         const isAdmin = checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse]);
         const isOwner = assignment.ownerId.toString() === ctx.user._id.toString();
-        
+
         if (!isAdmin && !isOwner) {
             throw new AuthorizationException();
         }
@@ -77,7 +56,26 @@ export async function uploadAssignmentMedia(assignmentId: string, formData: Form
         assignment.attachments.push(attachment.toObject());
         await assignment.save();
 
-        return { success: true, media: attachment.toObject() };
+        const media = attachment.toObject();
+
+        return {
+            success: true, media: {
+                _id: media._id.toString(),
+                mediaId: media.mediaId,
+                orgId: media.orgId.toString(),
+                storageProvider: media.storageProvider,
+                url: media.url,
+                originalFileName: media.originalFileName,
+                mimeType: media.mimeType,
+                size: media.size,
+                access: media.access,
+                thumbnail: media.thumbnail,
+                caption: media.caption,
+                file: media.file,
+                metadata: media.metadata,
+                ownerId: media.ownerId.toString(),
+            }
+        };
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error("Assignment media upload error:", err);
@@ -85,20 +83,20 @@ export async function uploadAssignmentMedia(assignmentId: string, formData: Form
     }
 }
 
-export async function removeAssignmentMedia(assignmentId: string, mediaId: string): Promise<RemoveMediaResult> {
+export async function removeAssignmentMedia(assignmentId: string, mediaId: string) {
     try {
         const ctx = await getActionContext();
-        
-        const assignment = await AssignmentModel.findOne({ 
-            _id: assignmentId, 
-            orgId: ctx.domainData.domainObj.orgId 
+
+        const assignment = await AssignmentModel.findOne({
+            _id: assignmentId,
+            orgId: ctx.domainData.domainObj.orgId
         });
         if (!assignment) throw new NotFoundException("Assignment", assignmentId);
 
         // Check permissions
         const isAdmin = checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse]);
         const isOwner = assignment.ownerId.toString() === ctx.user._id.toString();
-        
+
         if (!isAdmin && !isOwner) {
             throw new AuthorizationException();
         }
@@ -130,18 +128,18 @@ const ExtendedListInputSchema = ListInputSchema.extend({
     }),
 });
 
-export async function listAssignmentMedia(input: z.infer<typeof ListInputSchema>): Promise<ListMediaResult> {
+export async function listAssignmentMedia(input: z.infer<typeof ListInputSchema>) {
     try {
         const ctx = await getActionContext();
         const validatedInput = ExtendedListInputSchema.parse(input);
         const paginationMeta = paginate(validatedInput.pagination);
 
         // Check course access (courseId is now required)
-        const course = await CourseModel.findOne({ 
-            _id: validatedInput.filter.courseId, 
-            orgId: ctx.domainData.domainObj.orgId 
+        const course = await CourseModel.findOne({
+            _id: validatedInput.filter.courseId,
+            orgId: ctx.domainData.domainObj.orgId
         });
-        
+
         if (!course) throw new NotFoundException("Course", validatedInput.filter.courseId);
 
         const isAdmin = checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse]);
@@ -164,11 +162,11 @@ export async function listAssignmentMedia(input: z.infer<typeof ListInputSchema>
             query["entity.entityId"] = new mongoose.Types.ObjectId(validatedInput.filter.assignmentId);
         } else {
             // Otherwise, get all assignments for the course
-            const assignments = await AssignmentModel.find({ 
+            const assignments = await AssignmentModel.find({
                 courseId: course._id,
-                orgId: ctx.domainData.domainObj.orgId 
+                orgId: ctx.domainData.domainObj.orgId
             }).select("_id").lean();
-            
+
             const assignmentIds = assignments.map(a => a._id);
             query["entity.entityId"] = { $in: assignmentIds };
         }
@@ -200,7 +198,7 @@ export async function listAssignmentMedia(input: z.infer<typeof ListInputSchema>
             success: true,
             items: items.map(item => ({
                 mediaId: item.mediaId,
-                orgId: item.orgId,
+                orgId: item.orgId.toString(),
                 storageProvider: item.storageProvider,
                 url: item.url,
                 originalFileName: item.originalFileName,
@@ -211,7 +209,7 @@ export async function listAssignmentMedia(input: z.infer<typeof ListInputSchema>
                 caption: item.caption,
                 file: item.file,
                 metadata: item.metadata,
-                ownerId: item.ownerId,
+                ownerId: item.ownerId.toString(),
             })),
             meta: paginationMeta,
             total: total,

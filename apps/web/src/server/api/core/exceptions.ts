@@ -126,3 +126,17 @@ export class ExternalServiceException extends APIException {
     this.name = "ExternalServiceException";
   }
 }
+
+export class NotSupportedException extends APIException {
+  constructor(message: string = "Not supported") {
+    super(message, "NOT_SUPPORTED_ERROR", 400);
+    this.name = "NotSupportedException";
+  }
+}
+
+export class DomainNotFoundException extends NotFoundException {
+  constructor(domain: string) {
+    super("Domain", domain);
+    this.name = "DomainNotFoundException";
+  }
+}

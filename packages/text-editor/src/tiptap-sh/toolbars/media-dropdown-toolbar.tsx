@@ -1,6 +1,6 @@
 "use client";
 
-import { ITextEditorContent } from "@workspace/common-logic";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 import {
   MediaBrowserNiceDialog,
   NiceModal,

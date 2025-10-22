@@ -5,23 +5,17 @@ import { AuthorizationException, NotFoundException, ValidationException } from "
 import { CloudinaryService } from "@/server/services/cloudinary";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
-import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
+import { MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
-
-interface UploadMediaResult {
-    success: boolean;
-    media?: IAttachmentMedia[];
-    error?: string;
-}
 
 interface RemoveMediaResult {
     success: boolean;
     error?: string;
 }
 
-export async function uploadFeaturedImage(courseId: string, formData: FormData): Promise<UploadMediaResult> {
+export async function uploadFeaturedImage(courseId: string, formData: FormData) {
     try {
         const ctx = await getActionContext();
         const files = formData.getAll("file") as File[];
@@ -48,10 +42,29 @@ export async function uploadFeaturedImage(courseId: string, formData: FormData):
             ctx.domainData.domainObj as IDomainHydratedDocument,
         );
 
-        course.featuredImage = attachment.toObject();
+        const media = attachment.toObject();
+        course.featuredImage = media;
         await course.save();
 
-        return { success: true, media: [attachment.toObject()] };
+        return {
+            success: true,
+            media: {
+                _id: media._id.toString(),
+                mediaId: media.mediaId,
+                orgId: media.orgId.toString(),
+                storageProvider: media.storageProvider,
+                url: media.url,
+                originalFileName: media.originalFileName,
+                mimeType: media.mimeType,
+                size: media.size,
+                access: media.access,
+                thumbnail: media.thumbnail,
+                caption: media.caption,
+                file: media.file,
+                metadata: media.metadata,
+                ownerId: media.ownerId.toString(),
+            },
+        };
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error("Featured image upload error:", err);
@@ -62,7 +75,7 @@ export async function uploadFeaturedImage(courseId: string, formData: FormData):
 export async function removeFeaturedImage(courseId: string): Promise<RemoveMediaResult> {
     try {
         const ctx = await getActionContext();
-        
+
         if (!checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse])) {
             throw new AuthorizationException("You are not allowed to remove the featured image of this course");
         }

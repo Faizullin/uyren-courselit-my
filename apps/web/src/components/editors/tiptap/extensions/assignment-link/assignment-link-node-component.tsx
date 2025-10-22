@@ -172,7 +172,7 @@ export const AssignmentSelectNiceDialog = NiceModal.create<
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="item-aligned">
+            <SelectContent>
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="assignment">Assignment</SelectItem>
               <SelectItem value="quiz">Quiz</SelectItem>

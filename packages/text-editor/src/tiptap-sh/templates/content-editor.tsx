@@ -150,8 +150,9 @@ export function ContentEditor({
       }
       
       if (onTextEditorContentChange) {
-        const textEditorContent = editor.commands.getMyContent();
-        onTextEditorContentChange(textEditorContent);
+        editor.commands.getMyContent((textEditorContent) => {
+          onTextEditorContentChange(textEditorContent);
+        });
       }
     },
     onCreate: ({ editor }: { editor: Editor }) => {

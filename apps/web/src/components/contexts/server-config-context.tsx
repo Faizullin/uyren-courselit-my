@@ -1,6 +1,5 @@
 "use client";
 
-import { ServerConfig } from "@workspace/common-models";
 import {
   createContext,
   Dispatch,
@@ -11,9 +10,16 @@ import {
 } from "react";
 import { defaultState } from "./default-state";
 
+
+type IServerConfig = {
+  useNotificationsStream: boolean;
+  turnstileSiteKey: string;
+  queueServer: string;
+};
+
 type ServerConfigContextType = {
-  config: ServerConfig;
-  setConfig: Dispatch<SetStateAction<ServerConfig>>;
+  config: IServerConfig;
+  setConfig: Dispatch<SetStateAction<IServerConfig>>;
 };
 
 const ServerConfigContext = createContext<ServerConfigContextType>({
@@ -27,9 +33,9 @@ export const ServerConfigProvider = ({
   children,
   initialConfig,
 }: PropsWithChildren<{
-  initialConfig: ServerConfig;
+  initialConfig: IServerConfig;
 }>) => {
-  const [config, setConfig] = useState<ServerConfig>(initialConfig);
+  const [config, setConfig] = useState<IServerConfig>(initialConfig);
 
   return (
     <ServerConfigContext.Provider value={{ config, setConfig }}>

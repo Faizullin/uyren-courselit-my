@@ -7,7 +7,7 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     myContent: {
       setMyContent: (content: ITextEditorContent) => ReturnType;
-      getMyContent: () => ITextEditorContent;
+      getMyContent: (callback: (content: ITextEditorContent) => void) => ReturnType;
     };
   }
 }
@@ -38,18 +38,6 @@ export const MyContentExtension = Extension.create<{}, {}>({
   },
 
   addCommands() {
-    const getAllAssetsFromEditor = (editor: Editor): ITextEditorContent["assets"] => {
-      const assets: ITextEditorContent["assets"] = [];
-      
-      editor.state.doc.descendants((node) => {
-        if (node.type.name === "mediaView" && node.attrs.asset) {
-          assets.push(node.attrs.asset);
-        }
-      });
-
-      return assets;
-    };
-
     return {
       setMyContent:
         (textEditorContent: ITextEditorContent) =>
@@ -68,20 +56,29 @@ export const MyContentExtension = Extension.create<{}, {}>({
           },
 
       getMyContent:
-        () =>
-          ({ editor }: { editor: Editor }) => {
+        (callback: (content: ITextEditorContent) => void) =>
+          ({ editor }) => {
             const storage = editor.storage.myContent || {};
-            const assets = getAllAssetsFromEditor(editor);
+            const assets: ITextEditorContent["assets"] = [];
             
-            return {
+            // Extract all assets from the document
+            editor.state.doc.descendants((node) => {
+              if (node.type.name === "mediaView" && node.attrs.asset) {
+                assets.push(node.attrs.asset);
+              }
+            });
+            
+            const content: ITextEditorContent = {
               type: "doc" as const,
               content: editor.getHTML(),
               assets: assets,
               widgets: storage.widgets || [],
               config: storage.config || { editorType: "tiptap" },
-            } as ITextEditorContent;
+            };
+            
+            callback(content);
+            return true;
           },
-
     };
   },
 

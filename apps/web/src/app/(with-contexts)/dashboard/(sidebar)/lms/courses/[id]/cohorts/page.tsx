@@ -23,14 +23,15 @@ import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { format } from "date-fns";
 import { Archive, Edit, Eye, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCourseContext } from "../_components/course-context";
+import { NotSupportedException } from "@/server/api/core/exceptions";
 
 type ItemType = GeneralRouterOutputs["lmsModule"]["cohortModule"]["cohort"]["list"]["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.cohortModule.cohort.list.useQuery>[0];
 
 export default function CourseCohorts() {
+  throw new NotSupportedException("Cohorts are not supported yet");
   const { course, isLoading: courseLoading } = useCourseContext();
   const courseId = course?._id;
   
@@ -258,7 +259,7 @@ export default function CourseCohorts() {
     <DashboardContent
       breadcrumbs={[
         { label: "Courses", href: "/dashboard/lms/courses" },
-        { label: course.title, href: `/dashboard/lms/courses/${courseId}` },
+        { label: course?.title || "", href: `/dashboard/lms/courses/${courseId}` },
         { label: "Cohorts", href: "#" },
       ]}
     >
@@ -266,7 +267,7 @@ export default function CourseCohorts() {
         backLink={true}
         header={{
           title: "Cohort Groups",
-          subtitle: `Manage cohort groups for ${course.title}`,
+          subtitle: `Manage cohort groups for ${course?.title || ""}`,
         }}
         rightAction={
           <CreateButton onClick={handleCreateCohort} text="Add Cohort" />

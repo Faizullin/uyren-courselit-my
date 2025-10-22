@@ -28,24 +28,24 @@ import {
   Award,
   ChevronRight,
 } from "lucide-react";
-import { GrantApplicationForm } from "./_components/grant-application-form";
+import { GrantApplicationDialog } from "./_components/grant-application-dialog";
 import Header from "@/components/layout/header";
 import { useDialogControl } from "@workspace/components-library";
 
 export default function GrantsPage() {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["frontend", "common"]);
   const grantFormControl = useDialogControl();
 
   const grantTypes = [
     {
-      title: t("grant_100_title"),
-      description: t("grant_100_desc"),
+      title: t("grants.grant_100_title"),
+      description: t("grants.grant_100_desc"),
       icon: <Award className="h-8 w-8 text-brand-primary" />,
       highlight: true,
     },
     {
-      title: t("grant_50_title"),
-      description: t("grant_50_desc"),
+      title: t("grants.grant_50_title"),
+      description: t("grants.grant_50_desc"),
       icon: <Heart className="h-8 w-8 text-brand-primary" />,
       highlight: false,
     },
@@ -53,94 +53,94 @@ export default function GrantsPage() {
 
   const audiences = [
     {
-      title: t("audience_highschool_title"),
-      subtitle: t("audience_highschool_subtitle"),
-      description: t("audience_highschool_desc"),
+      title: t("grants.audience_highschool_title"),
+      subtitle: t("grants.audience_highschool_subtitle"),
+      description: t("grants.audience_highschool_desc"),
       icon: <GraduationCap className="h-6 w-6" />,
     },
     {
-      title: t("audience_university_title"),
-      subtitle: t("audience_university_subtitle"),
-      description: t("audience_university_desc"),
+      title: t("grants.audience_university_title"),
+      subtitle: t("grants.audience_university_subtitle"),
+      description: t("grants.audience_university_desc"),
       icon: <Users className="h-6 w-6" />,
     },
     {
-      title: t("audience_motivated_title"),
-      subtitle: t("audience_motivated_subtitle"),
-      description: t("audience_motivated_desc"),
+      title: t("grants.audience_motivated_title"),
+      subtitle: t("grants.audience_motivated_subtitle"),
+      description: t("grants.audience_motivated_desc"),
       icon: <Heart className="h-6 w-6" />,
     },
   ];
 
   const steps = [
     {
-      title: t("step_apply_title"),
-      description: t("step_apply_desc"),
+      title: t("grants.step_apply_title"),
+      description: t("grants.step_apply_desc"),
       icon: <FileText className="h-6 w-6" />,
     },
     {
-      title: t("step_test_title"),
-      description: t("step_test_desc"),
+      title: t("grants.step_test_title"),
+      description: t("grants.step_test_desc"),
       icon: <CheckCircle className="h-6 w-6" />,
     },
     {
-      title: t("step_review_title"),
-      description: t("step_review_desc"),
+      title: t("grants.step_review_title"),
+      description: t("grants.step_review_desc"),
       icon: <UserCheck className="h-6 w-6" />,
     },
     {
-      title: t("step_decision_title"),
-      description: t("step_decision_desc"),
+      title: t("grants.step_decision_title"),
+      description: t("grants.step_decision_desc"),
       icon: <Award className="h-6 w-6" />,
     },
     {
-      title: t("step_maintain_title"),
-      description: t("step_maintain_desc"),
+      title: t("grants.step_maintain_title"),
+      description: t("grants.step_maintain_desc"),
       icon: <Clock className="h-6 w-6" />,
     },
   ];
 
   const testimonials = [
     {
-      name: t("testimonial_aruzhan_name"),
-      role: t("testimonial_aruzhan_role"),
-      content: t("testimonial_aruzhan_content"),
+      name: t("grants.testimonial_aruzhan_name"),
+      role: t("grants.testimonial_aruzhan_role"),
+      content: t("grants.testimonial_aruzhan_content"),
       avatar: "AK",
     },
     {
-      name: t("testimonial_nursultan_name"),
-      role: t("testimonial_nursultan_role"),
-      content: t("testimonial_nursultan_content"),
+      name: t("grants.testimonial_nursultan_name"),
+      role: t("grants.testimonial_nursultan_role"),
+      content: t("grants.testimonial_nursultan_content"),
       avatar: "NT",
     },
     {
-      name: t("testimonial_aigerim_name"),
-      role: t("testimonial_aigerim_role"),
-      content: t("testimonial_aigerim_content"),
+      name: t("grants.testimonial_aigerim_name"),
+      role: t("grants.testimonial_aigerim_role"),
+      content: t("grants.testimonial_aigerim_content"),
       avatar: "AS",
     },
   ];
 
   const faqs = [
     {
-      question: t("faq_eligible_question"),
-      answer: t("faq_eligible_answer"),
+      question: t("grants.faq_eligible_question"),
+      answer: t("grants.faq_eligible_answer"),
     },
     {
-      question: t("faq_test_question"),
-      answer: t("faq_test_answer"),
+      question: t("grants.faq_test_question"),
+      answer: t("grants.faq_test_answer"),
     },
     {
-      question: t("faq_duration_question"),
-      answer: t("faq_duration_answer"),
+      question: t("grants.faq_duration_question"),
+      answer: t("grants.faq_duration_answer"),
     },
     {
-      question: t("faq_reapply_question"),
-      answer: t("faq_reapply_answer"),
+      question: t("grants.faq_reapply_question"),
+      answer: t("grants.faq_reapply_answer"),
     },
     {
-      question: t("faq_data_question"),
-      answer: t("faq_data_answer"),
+      question: t("grants.faq_data_question"),
+      answer: t("grants.faq_data_answer"),
     },
   ];
 
@@ -148,20 +148,20 @@ export default function GrantsPage() {
     <main className="page-transition">
       <Header />
 
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background dark:bg-gray-950">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-black via-gray-900 to-black py-24 px-4 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(241,81,27,0.1),transparent_50%)]" />
           <div className="container mx-auto max-w-4xl text-center relative z-10">
             <div className="animate-fade-in-up">
               <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                {t("grants_hero_title")}{" "}
+                {t("grants.hero_title")}{" "}
                 <span className="text-brand-primary">
-                  {t("grants_hero_title_highlight")}
+                  {t("grants.hero_title_highlight")}
                 </span>
               </h1>
-              <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-                {t("grants_hero_desc")}
+              <p className="text-xl text-gray-300 dark:text-gray-400 mb-8 max-w-3xl mx-auto leading-relaxed">
+                {t("grants.hero_desc")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
@@ -169,14 +169,14 @@ export default function GrantsPage() {
                   className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105"
                   onClick={() => grantFormControl.show()}
                 >
-                  {t("btn_apply_grant")}
+                  {t("grants.btn_apply_grant")}
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-black px-8 py-3 text-lg font-semibold transition-all duration-300 bg-transparent"
+                  className="border-white text-white hover:bg-white hover:text-gray-900 dark:hover:text-gray-900 px-8 py-3 text-lg font-semibold transition-all duration-300 bg-transparent"
                 >
-                  {t("btn_see_eligibility")}
+                  {t("grants.btn_see_eligibility")}
                 </Button>
               </div>
             </div>
@@ -187,11 +187,11 @@ export default function GrantsPage() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                {t("section_what_we_offer_title")}
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {t("grants.section_what_we_offer_title")}
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                {t("section_what_we_offer_desc")}
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                {t("grants.section_what_we_offer_desc")}
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8">
@@ -206,17 +206,17 @@ export default function GrantsPage() {
                     <div className="mx-auto mb-4 p-3 bg-brand-primary/10 rounded-full w-fit">
                       {grant.icon}
                     </div>
-                    <CardTitle className="text-2xl font-bold text-black mb-2">
+                    <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       {grant.title}
                       {grant.highlight && (
                         <Badge className="ml-2 bg-brand-primary text-white">
-                          {t("most_popular")}
+                          {t("grants.most_popular")}
                         </Badge>
                       )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-gray-600 text-lg leading-relaxed">
+                    <CardDescription className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
                       {grant.description}
                     </CardDescription>
                   </CardContent>
@@ -230,11 +230,11 @@ export default function GrantsPage() {
         <section className="py-20 px-4 bg-gray-50">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                {t("section_who_can_apply_title")}
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {t("grants.section_who_can_apply_title")}
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                {t("section_who_can_apply_desc")}
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                {t("grants.section_who_can_apply_desc")}
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
@@ -249,7 +249,7 @@ export default function GrantsPage() {
                         {audience.icon}
                       </div>
                       <div>
-                        <CardTitle className="text-xl font-bold text-black">
+                        <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
                           {audience.title}
                         </CardTitle>
                         <p className="text-brand-primary font-medium">
@@ -259,14 +259,14 @@ export default function GrantsPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-gray-600 leading-relaxed">
+                    <CardDescription className="text-gray-600 dark:text-gray-400 leading-relaxed">
                       {audience.description}
                     </CardDescription>
                     <Button
                       variant="ghost"
                       className="mt-4 text-brand-primary hover:text-brand-primary-hover p-0"
                     >
-                      {t("btn_view_details")}{" "}
+                      {t("grants.btn_view_details")}{" "}
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </CardContent>
@@ -280,15 +280,15 @@ export default function GrantsPage() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                {t("section_how_it_works_title")}
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {t("grants.section_how_it_works_title")}
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                {t("section_how_it_works_desc")}
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                {t("grants.section_how_it_works_desc")}
               </p>
             </div>
             <div className="relative">
-              <div className="absolute left-6 top-12 bottom-12 w-0.5 bg-gray-300 z-0 hidden md:block"></div>
+              <div className="absolute left-6 top-12 bottom-12 w-0.5 bg-gray-300 dark:bg-gray-700 z-0 hidden md:block"></div>
               {steps.map((step, index) => (
                 <div
                   key={index}
@@ -300,10 +300,10 @@ export default function GrantsPage() {
                     </div>
                   </div>
                   <div className="flex-1 pt-2">
-                    <h3 className="text-xl font-bold text-black mb-2">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                       {step.title}
                     </h3>
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                       {step.description}
                     </p>
                   </div>
@@ -314,61 +314,61 @@ export default function GrantsPage() {
         </section>
 
         {/* Selection Criteria */}
-        <section className="py-20 px-4 bg-gray-50">
+        <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                {t("section_selection_criteria_title")}
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {t("grants.section_selection_criteria_title")}
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                {t("section_selection_criteria_desc")}
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                {t("grants.section_selection_criteria_desc")}
               </p>
             </div>
             <div className="grid md:grid-cols-2 gap-8">
               <Card className="hover:shadow-xl transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-2xl font-bold text-black flex items-center gap-3">
+                  <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                     <Award className="h-6 w-6 text-brand-primary" />
-                    {t("criteria_merit_title")}
+                    {t("grants.criteria_merit_title")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 text-gray-600">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-brand-primary mt-0.5 flex-shrink-0" />
-                      {t("criteria_merit_item_1")}
+                      {t("grants.criteria_merit_item_1")}
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-brand-primary mt-0.5 flex-shrink-0" />
-                      {t("criteria_merit_item_2")}
+                      {t("grants.criteria_merit_item_2")}
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-brand-primary mt-0.5 flex-shrink-0" />
-                      {t("criteria_merit_item_3")}
+                      {t("grants.criteria_merit_item_3")}
                     </li>
                   </ul>
                 </CardContent>
               </Card>
               <Card className="hover:shadow-xl transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-2xl font-bold text-black flex items-center gap-3">
+                  <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                     <Heart className="h-6 w-6 text-brand-primary" />
-                    {t("criteria_need_title")}
+                    {t("grants.criteria_need_title")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3 text-gray-600">
+                  <ul className="space-y-3 text-gray-600 dark:text-gray-400">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-brand-primary mt-0.5 flex-shrink-0" />
-                      {t("criteria_need_item_1")}
+                      {t("grants.criteria_need_item_1")}
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-brand-primary mt-0.5 flex-shrink-0" />
-                      {t("criteria_need_item_2")}
+                      {t("grants.criteria_need_item_2")}
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-5 w-5 text-brand-primary mt-0.5 flex-shrink-0" />
-                      {t("criteria_need_item_3")}
+                      {t("grants.criteria_need_item_3")}
                     </li>
                   </ul>
                 </CardContent>
@@ -381,11 +381,11 @@ export default function GrantsPage() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                {t("section_testimonials_title")}
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {t("grants.section_testimonials_title")}
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                {t("section_testimonials_desc")}
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                {t("grants.section_testimonials_desc")}
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
@@ -395,7 +395,7 @@ export default function GrantsPage() {
                   className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   <CardContent className="pt-6">
-                    <p className="text-gray-600 mb-6 leading-relaxed italic">
+                    <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed italic">
                       "{testimonial.content}"
                     </p>
                     <div className="flex items-center gap-3">
@@ -403,10 +403,10 @@ export default function GrantsPage() {
                         {testimonial.avatar}
                       </div>
                       <div>
-                        <p className="font-semibold text-black">
+                        <p className="font-semibold text-gray-900 dark:text-white">
                           {testimonial.name}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-500">
                           {testimonial.role}
                         </p>
                       </div>
@@ -422,10 +422,10 @@ export default function GrantsPage() {
         <section className="py-20 px-4 bg-gradient-to-br from-black via-gray-900 to-black">
           <div className="container mx-auto max-w-4xl text-center">
             <h2 className="text-4xl font-bold text-white mb-4">
-              {t("cta_ready_to_apply")}
+              {t("grants.cta_ready_to_apply")}
             </h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              {t("cta_ready_desc")}
+            <p className="text-xl text-gray-300 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+              {t("grants.cta_ready_desc")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -433,14 +433,14 @@ export default function GrantsPage() {
                 className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105"
                 onClick={() => grantFormControl.show()}
               >
-                {t("btn_apply_grant")}
+                {t("grants.btn_apply_grant")}
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-black px-8 py-3 text-lg font-semibold transition-all duration-300 bg-transparent"
+                className="border-white text-white hover:bg-white hover:text-gray-900 dark:hover:text-gray-900 px-8 py-3 text-lg font-semibold transition-all duration-300 bg-transparent"
               >
-                {t("btn_contact_support")}
+                {t("common:btn_contact_support")}
               </Button>
             </div>
           </div>
@@ -450,19 +450,19 @@ export default function GrantsPage() {
         <section className="py-20 px-4 bg-gray-50">
           <div className="container mx-auto max-w-4xl">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-black mb-4">
-                {t("section_faq_title")}
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                {t("grants.section_faq_title")}
               </h2>
-              <p className="text-xl text-gray-600">{t("section_faq_desc")}</p>
+              <p className="text-xl text-gray-600 dark:text-gray-400">{t("grants.section_faq_desc")}</p>
             </div>
             <Accordion type="single" collapsible className="space-y-4">
               {faqs.map((faq, index) => (
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="bg-white rounded-lg px-6"
+                  className="bg-white dark:bg-gray-800 rounded-lg px-6"
                 >
-                  <AccordionTrigger className="text-left font-semibold text-black hover:text-brand-primary">
+                  <AccordionTrigger className="text-left font-semibold text-gray-900 dark:text-white hover:text-brand-primary">
                     {faq.question}
                   </AccordionTrigger>
                   <AccordionContent className="text-gray-600 leading-relaxed">
@@ -474,7 +474,7 @@ export default function GrantsPage() {
           </div>
         </section>
 
-        <GrantApplicationForm control={grantFormControl} />
+        <GrantApplicationDialog control={grantFormControl} />
       </div>
 
       <Footer />

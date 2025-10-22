@@ -1,3 +1,5 @@
+import NoDomainPage from "@/components/error/no-domain-page";
+import TranslationWrapper from "@/components/layout/translation-wrapper";
 import * as fonts from "@/lib/fonts";
 import { getServerSiteInfo } from "@/server/lib/site-info";
 import { TRPCReactProvider } from "@/server/provider";
@@ -5,7 +7,6 @@ import { TRPCError } from "@trpc/server";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
-import NoSubdomainPage from "./_components/no-subdomain-page";
 import { getT } from "./i18n/server";
 
 import "@/lib/global-client";
@@ -68,7 +69,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   if (hasError || !serverSiteInfo) {
     return (
       <RootWrapper>
-        <NoSubdomainPage />
+        <NoDomainPage />
       </RootWrapper>
     );
   }
@@ -111,7 +112,9 @@ const RootWrapper = async ({ children }: { children: React.ReactNode }) => {
     <html lang={i18n.language} suppressHydrationWarning>
       <body className={cls}>
         <NextTopLoader showSpinner={false} />
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TranslationWrapper>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+        </TranslationWrapper>
       </body>
     </html>
   );

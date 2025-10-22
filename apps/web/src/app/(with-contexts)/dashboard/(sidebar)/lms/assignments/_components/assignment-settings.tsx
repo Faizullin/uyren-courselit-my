@@ -1,5 +1,6 @@
 "use client";
 
+import { removeAssignmentMedia, uploadAssignmentMedia } from "@/server/actions/lms/assignment-media";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -31,14 +32,13 @@ import {
 } from "@workspace/ui/components/select";
 import { Switch } from "@workspace/ui/components/switch";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { Calendar, Clock, Save, Trash2, Plus, Paperclip } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar, Clock, Paperclip, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { format } from "date-fns";
 import z from "zod";
 import { useAssignmentContext } from "./assignment-context";
-import { uploadAssignmentMedia, removeAssignmentMedia } from "@/server/actions/lms/assignment-media";
 
 const AssignmentSettingsSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -269,7 +269,7 @@ export default function AssignmentSettings() {
       const result = await uploadAssignmentMedia(assignment._id, formData);
 
       if (result.success && result.media) {
-        setAttachments([...attachments, result.media]);
+        setAttachments([...attachments, result.media as any]);
         toast({
           title: "Success",
           description: "Attachment uploaded successfully",
@@ -453,7 +453,6 @@ export default function AssignmentSettings() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="type">Type *</FieldLabel>
-                      <div className="w-full">
                         <Select
                           name={field.name}
                           value={field.value}
@@ -462,14 +461,13 @@ export default function AssignmentSettings() {
                           <SelectTrigger id="type">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent position="item-aligned">
+                          <SelectContent>
                             <SelectItem value={AssignmentTypeEnum.ESSAY}>Essay</SelectItem>
                             <SelectItem value={AssignmentTypeEnum.PROJECT}>Project</SelectItem>
                             <SelectItem value={AssignmentTypeEnum.PRESENTATION}>Presentation</SelectItem>
                             <SelectItem value={AssignmentTypeEnum.FILE_UPLOAD}>File Upload</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     </Field>
                   )}

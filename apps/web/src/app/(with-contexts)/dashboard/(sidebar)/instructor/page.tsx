@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 export default function InstructorPage() {
     const { t } = useTranslation(["dashboard", "common"]);
     const breadcrumbs = [
-        { label: t("sidebar.instructor"), href: "/dashboard/instructor" },
+        { label: t("dashboard:sidebar.instructor"), href: "/dashboard/instructor" },
     ];
 
     // Single optimized query that gets all data from backend
@@ -40,8 +40,8 @@ export default function InstructorPage() {
             <div className="flex flex-col gap-6">
                 <HeaderTopbar
                     header={{
-                        title: t("sidebar.instructor"),
-                        subtitle: "Manage your courses and track progress"
+                        title: t("dashboard:sidebar.instructor"),
+                        subtitle: t("dashboard:instructor.subtitle")
                     }}
                 />
 
@@ -70,10 +70,10 @@ export default function InstructorPage() {
                                 <CardContent className="p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Total Courses</p>
+                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.total_courses")}</p>
                                             <p className="text-3xl font-bold mt-1">{stats?.totalCourses || 0}</p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                {stats?.publishedCourses || 0} published
+                                                {stats?.publishedCourses || 0} {t("dashboard:instructor.stats.published")}
                                             </p>
                                         </div>
                                         <div className="p-3 rounded-full bg-blue-100 text-blue-600">
@@ -87,10 +87,10 @@ export default function InstructorPage() {
                                 <CardContent className="p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Total Students</p>
+                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.total_students")}</p>
                                             <p className="text-3xl font-bold mt-1">{stats?.totalStudents || 0}</p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                Across all courses
+                                                {t("dashboard:instructor.stats.across_all_courses")}
                                             </p>
                                         </div>
                                         <div className="p-3 rounded-full bg-green-100 text-green-600">
@@ -104,12 +104,12 @@ export default function InstructorPage() {
                                 <CardContent className="p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
+                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.average_rating")}</p>
                                             <p className="text-3xl font-bold mt-1">
                                                 {stats && stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "-"}
                                             </p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                {stats && stats.avgRating > 0 ? "Out of 5.0" : "No ratings yet"}
+                                                {stats && stats.avgRating > 0 ? t("dashboard:instructor.stats.out_of_5") : t("dashboard:instructor.stats.no_ratings_yet")}
                                             </p>
                                         </div>
                                         <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
@@ -123,10 +123,10 @@ export default function InstructorPage() {
                                 <CardContent className="p-6">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Drafts</p>
+                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.drafts")}</p>
                                             <p className="text-3xl font-bold mt-1">{stats?.draftCourses || 0}</p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                Need publishing
+                                                {t("dashboard:instructor.stats.need_publishing")}
                                             </p>
                                         </div>
                                         <div className="p-3 rounded-full bg-orange-100 text-orange-600">
@@ -145,9 +145,9 @@ export default function InstructorPage() {
                     <div className="lg:col-span-2 space-y-6">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>My Courses</CardTitle>
+                                <CardTitle>{t("dashboard:instructor.my_courses.title")}</CardTitle>
                                 <Button asChild size="sm" disabled={isLoading}>
-                                    <Link href="/dashboard/lms/courses/new">Create Course</Link>
+                                    <Link href="/dashboard/lms/courses/new">{t("dashboard:instructor.my_courses.create_course")}</Link>
                                 </Button>
                             </CardHeader>
                             <CardContent>
@@ -174,12 +174,12 @@ export default function InstructorPage() {
                                 ) : recentCourses.length === 0 ? (
                                     <div className="text-center py-12">
                                         <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                        <h3 className="text-lg font-semibold mb-2">No courses yet</h3>
+                                        <h3 className="text-lg font-semibold mb-2">{t("dashboard:instructor.my_courses.no_courses_title")}</h3>
                                         <p className="text-muted-foreground mb-4">
-                                            Create your first course to get started
+                                            {t("dashboard:instructor.my_courses.no_courses_desc")}
                                         </p>
                                         <Button asChild>
-                                            <Link href="/dashboard/lms/courses/new">Create Course</Link>
+                                            <Link href="/dashboard/lms/courses/new">{t("dashboard:instructor.my_courses.create_course")}</Link>
                                         </Button>
                                     </div>
                                 ) : (
@@ -195,11 +195,11 @@ export default function InstructorPage() {
                                                         <div className="flex-1">
                                                             <h4 className="font-semibold text-base mb-1">{course.title}</h4>
                                                             <p className="text-sm text-muted-foreground line-clamp-2">
-                                                                {course.shortDescription || "No description"}
+                                                                {course.shortDescription || t("dashboard:instructor.my_courses.no_description")}
                                                             </p>
                                                         </div>
                                                         <Badge variant={course.published ? "default" : "secondary"} className="ml-4">
-                                                            {course.published ? "Published" : "Draft"}
+                                                            {course.published ? t("dashboard:instructor.my_courses.published") : t("dashboard:instructor.my_courses.draft")}
                                                         </Badge>
                                                     </div>
 
@@ -207,11 +207,11 @@ export default function InstructorPage() {
                                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                         <span className="flex items-center gap-1">
                                                             <BookOpen className="h-4 w-4" />
-                                                            {course.chapters?.length || 0} chapters
+                                                            {course.chapters?.length || 0} {t("dashboard:instructor.my_courses.chapters")}
                                                         </span>
                                                         <span className="flex items-center gap-1">
                                                             <Users className="h-4 w-4" />
-                                                            {course.statsEnrollmentCount || 0} students
+                                                            {course.statsEnrollmentCount || 0} {t("dashboard:instructor.my_courses.students")}
                                                         </span>
                                                         {course.statsAverageRating > 0 && (
                                                             <span className="flex items-center gap-1">
@@ -228,7 +228,7 @@ export default function InstructorPage() {
                                             <Button variant="outline" className="w-full" asChild>
                                                 <Link href="/dashboard/lms/courses">
                                                     <Eye className="h-4 w-4 mr-2" />
-                                                    View All Courses ({stats?.totalCourses})
+                                                    {t("dashboard:instructor.my_courses.view_all_courses")} ({stats?.totalCourses})
                                                 </Link>
                                             </Button>
                                         )}
@@ -240,7 +240,7 @@ export default function InstructorPage() {
                         {/* Quick Actions */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Quick Actions</CardTitle>
+                                <CardTitle>{t("dashboard:instructor.quick_actions.title")}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {isLoading ? (
@@ -254,25 +254,25 @@ export default function InstructorPage() {
                                         <Button asChild variant="outline" className="justify-start">
                                             <Link href="/dashboard/lms/courses">
                                                 <BookOpen className="h-4 w-4 mr-2" />
-                                                Manage Courses
+                                                {t("dashboard:instructor.quick_actions.manage_courses")}
                                             </Link>
                                         </Button>
                                         <Button asChild variant="outline" className="justify-start">
                                             <Link href="/dashboard/lms/assignments">
                                                 <Eye className="h-4 w-4 mr-2" />
-                                                View Assignments
+                                                {t("dashboard:instructor.quick_actions.view_assignments")}
                                             </Link>
                                         </Button>
                                         <Button asChild variant="outline" className="justify-start">
                                             <Link href="/dashboard/lms/live-classes">
                                                 <Video className="h-4 w-4 mr-2" />
-                                                Live Classes
+                                                {t("dashboard:instructor.quick_actions.live_classes")}
                                             </Link>
                                         </Button>
                                         <Button asChild variant="outline" className="justify-start">
                                             <Link href="/dashboard/lms/schedule">
                                                 <CalendarIcon className="h-4 w-4 mr-2" />
-                                                Master Schedule
+                                                {t("dashboard:instructor.quick_actions.master_schedule")}
                                             </Link>
                                         </Button>
                                     </div>
@@ -287,7 +287,7 @@ export default function InstructorPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <CalendarIcon className="h-5 w-5" />
-                                    Upcoming Events
+                                    {t("dashboard:instructor.upcoming_events.title")}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -309,7 +309,7 @@ export default function InstructorPage() {
                                     <div className="text-center py-8">
                                         <CalendarIcon className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                                         <p className="text-sm text-muted-foreground">
-                                            No upcoming events
+                                            {t("dashboard:instructor.upcoming_events.no_events")}
                                         </p>
                                     </div>
                                 ) : (
@@ -323,7 +323,7 @@ export default function InstructorPage() {
                                         {upcomingEvents.length >= 10 && (
                                             <Button variant="outline" className="w-full" asChild>
                                                 <Link href="/dashboard/lms/schedule">
-                                                    View Full Calendar
+                                                    {t("dashboard:instructor.upcoming_events.view_full_calendar")}
                                                 </Link>
                                             </Button>
                                         )}

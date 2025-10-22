@@ -56,16 +56,8 @@ export const getCourseOrThrow = async ({
       UIConstants.permissions.manageAnyCourse,
     ])
   ) {
-    if (!course.ownerId.equals(ctx.user._id)) {
-      throw new NotFoundException("Course", courseId);
-    } else {
-      if (
-        !checkPermission(ctx.user.permissions, [
-          UIConstants.permissions.manageCourse,
-        ])
-      ) {
-        throw new AuthorizationException();
-      }
+    if (!course.ownerId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+      throw new AuthorizationException()
     }
   }
 

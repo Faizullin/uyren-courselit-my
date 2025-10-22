@@ -157,7 +157,7 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
       setMediaView:
         (asset: AssetType) =>
           ({ commands }) => {
-            const assetId = asset.media?._id?.toString() || `asset_${Date.now()}`;
+            const assetId = asset.media?.mediaId || `asset_${Date.now()}`;
             return commands.insertContent({
               type: extensionName,
               attrs: {

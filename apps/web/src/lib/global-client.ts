@@ -1,6 +1,8 @@
 "use client";
 
-import { Profile, SiteInfo } from "@workspace/common-models";
+import { ISiteInfo } from "@workspace/common-logic/models/organization.types";
+import { IAuthProfile } from "./auth/types";
+
 
 // add type safety for window
 declare global {
@@ -22,8 +24,8 @@ export function getGlobalAppClient() {
 
 type AppClientConfig = {
   useNotificationsStream: boolean;
-  siteInfo?: SiteInfo;
-  profile?: Profile;
+  siteInfo?: ISiteInfo;
+  profile?: IAuthProfile;
   meta: Record<string, unknown>;
 };
 

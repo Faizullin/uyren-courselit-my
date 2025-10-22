@@ -2,34 +2,31 @@
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { CreateButton } from "@/components/dashboard/layout/create-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { Badge } from "@workspace/ui/components/badge";
-import {
-    Calendar as CalendarIcon,
-    Clock,
-    Edit,
-    Trash2,
-    BookOpen,
-    Users,
-} from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
 import { Calendar as ShadcnCalendar } from "@workspace/ui/components/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
     DialogFooter,
-    DialogTrigger,
+    DialogHeader,
+    DialogTitle
 } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@workspace/ui/components/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
+import { format } from "date-fns";
+import {
+    BookOpen,
+    Calendar as CalendarIcon,
+    Edit,
+    Trash2,
+    Users
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
-import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
@@ -330,7 +327,7 @@ export default function Page() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="submit">{editingItem ? "Save Changes" : "Create"}</Button>
+                            <Button type="submit">{editingItem ? "Save" : "Create"}</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

@@ -98,21 +98,21 @@ export default function Page() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Level</Label>
+            <Label className="text-sm font-medium">{t("dashboard:courses.page.filter_level")}</Label>
             <Select value={levelFilter} onValueChange={(value) => setLevelFilter(value as CourseLevelEnum | "all")}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="all">{t("dashboard:courses.page.all_levels")}</SelectItem>
                 {[CourseLevelEnum.BEGINNER, CourseLevelEnum.INTERMEDIATE, CourseLevelEnum.ADVANCED].map(
                   (level) => (
                     <SelectItem value={level} key={level}>
                       {level === CourseLevelEnum.BEGINNER
-                        ? t("courses.status.beginner")
+                        ? t("dashboard:courses.status.beginner")
                         : level === CourseLevelEnum.INTERMEDIATE
-                          ? t("courses.status.intermediate")
-                          : t("courses.status.advanced")}
+                          ? t("dashboard:courses.status.intermediate")
+                          : t("dashboard:courses.status.advanced")}
                     </SelectItem>
                   ),
                 )}
@@ -120,21 +120,21 @@ export default function Page() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Status</Label>
+            <Label className="text-sm font-medium">{t("dashboard:courses.page.filter_status")}</Label>
             <Select value={courseStatusFilter} onValueChange={(value) => setCourseStatusFilter(value as CourseStatusEnum | "all")}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="all">{t("dashboard:courses.page.all_statuses")}</SelectItem>
                 {[CourseStatusEnum.IN_PROGRESS, CourseStatusEnum.UNDER_REVIEW, CourseStatusEnum.APPROVED].map(
                   (status) => (
                     <SelectItem value={status} key={status}>
                       {status === CourseStatusEnum.IN_PROGRESS
-                        ? t("courses.status.in_progress")
+                        ? t("dashboard:courses.status.in_progress")
                         : status === CourseStatusEnum.UNDER_REVIEW
-                          ? t("courses.status.under_review")
-                          : t("courses.status.approved")}
+                          ? t("dashboard:courses.status.under_review")
+                          : t("dashboard:courses.status.approved")}
                     </SelectItem>
                   ),
                 )}
@@ -174,8 +174,8 @@ export default function Page() {
           </>
         ) : loadListQuery.data?.items?.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground text-lg">No courses found</p>
-            <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or create a new course</p>
+            <p className="text-muted-foreground text-lg">{t("dashboard:courses.page.no_courses")}</p>
+            <p className="text-sm text-muted-foreground mt-2">{t("dashboard:courses.page.no_courses_desc")}</p>
           </div>
         ) : (
           <>

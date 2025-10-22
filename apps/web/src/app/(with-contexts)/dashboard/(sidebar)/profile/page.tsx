@@ -32,7 +32,6 @@ import { z } from "zod";
 
 const breadcrumbs = [{ label: "Profile", href: "#" }];
 
-// Zod schema matching the API expectations
 const profileSchema = z.object({
   firstName: z.string().min(1, "Name is required").max(100),
   lastName: z.string().max(100).optional(),
@@ -106,8 +105,8 @@ export default function ProfilePage() {
         // Serialize ObjectIds to strings for client
         const serializedAvatar = {
           ...result.avatar,
-          orgId: result.avatar.orgId.toString(),
-          ownerId: result.avatar.ownerId.toString(),
+          orgId: result.avatar.orgId,
+          ownerId: result.avatar.ownerId,
         };
         setProfile({
           ...profile,
@@ -165,8 +164,8 @@ export default function ProfilePage() {
         // Serialize ObjectIds to strings for client
         const serializedAvatar = {
           ...result.avatar,
-          orgId: result.avatar.orgId.toString(),
-          ownerId: result.avatar.ownerId.toString(),
+          orgId: result.avatar.orgId,
+          ownerId: result.avatar.ownerId,
         };
         setProfile({
           ...profile,
@@ -393,7 +392,7 @@ export default function ProfilePage() {
               >
                 {isLoading
                   ? t("profile.saving", "Saving...")
-                  : t("common:save", "Save Changes")}
+                  : t("common:save", "Save")}
               </Button>
             </form>
           </CardContent>

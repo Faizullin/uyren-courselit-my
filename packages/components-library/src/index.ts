@@ -25,3 +25,4 @@ export {
   export * from "./dialogs/form-dialog";
   export * from "./hooks/use-dialog-control";
   export * from "./hooks/use-toast";
+  export * from "./phone-input";

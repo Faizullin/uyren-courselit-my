@@ -12,8 +12,6 @@ import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_s
 import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
 import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { IPaymentPlan, PaymentPlanTypeEnum } from "@workspace/common-logic/models/payment/payment-plan.types";
-import { SerializedCourse } from "../../_components/types";
-import { useCourseContext } from "../../_components/course-context";
 import {
   ComboBox2,
   DeleteConfirmNiceDialog,
@@ -35,6 +33,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
+import { useCourseContext } from "../../_components/course-context";
+import { SerializedCourse } from "../../_components/types";
 
 const DescriptionEditor = dynamic(() =>
   import(
@@ -241,8 +241,8 @@ export default function ProductManageClient({
   };
 
   useEffect(() => {
-    if (product?.description && typeof product.description !== 'string') {
-      setEditorContent(product.description);
+    if (product?.description) {
+      setEditorContent(product.description as unknown as ITextEditorContent);
     }
     
     const theme = product.theme as { _id: string; name: string } | undefined;
@@ -321,7 +321,6 @@ export default function ProductManageClient({
         <HeaderTopbar
           header={{
             title: "Manage",
-            subtitle: " Manage your product settings",
           }}
         />
 
@@ -434,9 +433,11 @@ export default function ProductManageClient({
               )}
             />
 
-            <Button type="submit" disabled={isSaving || isSubmitting}>
-              Save Changes
-            </Button>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSaving || isSubmitting}>
+                {isSaving || isSubmitting ? "Saving..." : "Save"}
+              </Button>
+            </div>
           </FieldGroup>
         </form>
 
@@ -471,10 +472,9 @@ export default function ProductManageClient({
                 if (!result.success) {
                   throw new Error(result.error || "Upload failed");
                 }
-                
-                const uploadedMedia = result.media?.[0];
-                if (uploadedMedia) {
-                  setFeaturedImage(uploadedMedia);
+
+                if (result.media) {
+                  setFeaturedImage(result.media as any);
                 }
                 
                 refetchCourse();
@@ -484,7 +484,7 @@ export default function ProductManageClient({
                   description: "Featured image uploaded successfully",
                 });
                 
-                return result.media || [];
+                return [result.media];
               },
               removeFile: async (mediaId: string) => {
                 const result = await removeFeaturedImage(product._id);

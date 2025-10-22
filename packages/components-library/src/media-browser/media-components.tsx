@@ -621,9 +621,15 @@ function PaginationBar({
 // UPLOAD AREA
 // ============================================================================
 
+// type SerializedAttachmentMedia = Omit<IAttachmentMedia, "_id" | "ownerId" | "orgId"> & { 
+//     _id: string,
+//     ownerId: string,
+//     orgId: string,
+// };
+
 interface UploadAreaProps {
-    onUploaded: (attachment: IAttachmentMedia) => void;
-    uploadFile?: (file: File) => Promise<IAttachmentMedia>;
+    onUploaded: (attachment: any) => void;
+    uploadFile?: (file: File) => Promise<any>;
     className?: string;
     compact?: boolean;
     acceptedTypes?: string;

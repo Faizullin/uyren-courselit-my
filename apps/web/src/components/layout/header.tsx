@@ -28,7 +28,7 @@ import { useTranslation } from "react-i18next";
 import ThemeToggle from "./theme-toggle";
 
 export default function Header() {
-  const { t, i18n } = useTranslation(["common", "dashboard"]);
+  const { t, i18n } = useTranslation(["frontend", "common", "dashboard"]);
   const { siteInfo } = useSiteInfo();
   const { profile } = useProfile();
   const { data: session, status } = useSession();
@@ -41,11 +41,11 @@ export default function Header() {
   const [currentLang, setCurrentLang] = useState(i18n.language || "en");
 
   const navigationItems = [
-    { name: t("nav_home"), href: "/" },
-    { name: t("nav_about"), href: "/about" },
-    { name: t("nav_courses"), href: "/courses" },
-    { name: t("nav_grants"), href: "/grants" },
-    // { name: t("nav_sponsorship"), href: "/sponsorship" },
+    { name: t("header.nav_home"), href: "/" },
+    { name: t("header.nav_about"), href: "/about" },
+    { name: t("header.nav_courses"), href: "/courses" },
+    { name: t("header.nav_grants"), href: "/grants" },
+    // { name: t("header.nav_sponsorship"), href: "/sponsorship" },
   ];
 
   const languages = [
@@ -186,7 +186,7 @@ export default function Header() {
                 onClick={(e) => handleNavigation("/auth/sign-in", e)}
               >
                 <Button className="bg-brand-primary hover:bg-brand-primary-hover text-white px-6 py-2 rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:scale-105">
-                  {t("nav_get_started")}
+                  {t("header.nav_get_started")}
                 </Button>
               </Link>
             ) : (
@@ -275,14 +275,14 @@ export default function Header() {
               );
             })}
             <div className="flex items-center justify-between py-2 px-2">
-              <span className="text-gray-700 dark:text-gray-200 font-medium">{t("nav_theme")}</span>
+              <span className="text-gray-700 dark:text-gray-200 font-medium">{t("header.nav_theme")}</span>
               <ThemeToggle />
             </div>
 
             {/* Mobile language selector */}
             <div className="flex items-center justify-between py-2 px-2">
               <span className="text-gray-700 dark:text-gray-300 font-medium">
-                {t("nav_language")}
+                {t("header.nav_language")}
               </span>
               <Select value={currentLang} onValueChange={changeLanguage}>
                 <SelectTrigger className="w-20 h-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
@@ -304,7 +304,7 @@ export default function Header() {
                 onClick={(e) => handleNavigation("/auth/sign-in", e)}
               >
                 <Button className="w-full mt-4 bg-brand-primary hover:bg-brand-primary-hover text-white py-2 rounded-lg font-medium transition-all duration-300">
-                  {t("nav_get_started")}
+                  {t("header.nav_get_started")}
                 </Button>
               </Link>
             ) : (
@@ -313,7 +313,7 @@ export default function Header() {
                 onClick={(e) => handleNavigation("/dashboard", e)}
               >
                 <Button className="w-full mt-4 bg-brand-primary hover:bg-brand-primary-hover text-white py-2 rounded-lg font-medium transition-all duration-300">
-                  {t("nav_dashboard")}
+                  {t("header.nav_dashboard")}
                 </Button>
               </Link>
             )}

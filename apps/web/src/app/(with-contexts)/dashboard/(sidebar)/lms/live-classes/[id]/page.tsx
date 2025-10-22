@@ -101,20 +101,20 @@ export default function Page() {
             allowScreenShare: data.allowScreenShare,
             allowParticipantVideo: data.allowParticipantVideo,
         };
-        if (data.cohortId) updateData.cohortId = data.cohortId;
-        if (data.meetingUrl) updateData.meetingUrl = data.meetingUrl;
-        if (data.maxParticipants) updateData.maxParticipants = data.maxParticipants;
+        // if (data.cohortId) updateData.cohortId = data.cohortId; TODO: Add cohort id to the live class 
+        // if (data.meetingUrl) updateData.meetingUrl = data.meetingUrl;
+        // if (data.maxParticipants) updateData.maxParticipants = data.maxParticipants;
 
         await updateMutation.mutateAsync({ id: params.id, data: updateData });
     }, [updateMutation, params.id]);
 
-    const searchCohorts = useCallback(async (search: string, offset: number, size: number): Promise<CohortItem[]> => {
-        const result = await trpcUtils.lmsModule.cohortModule.cohort.list.fetch({
-            pagination: { skip: offset, take: size },
-            search: search ? { q: search } : undefined,
-        });
-        return result.items.map(cohort => ({ _id: cohort._id, title: cohort.title }));
-    }, [trpcUtils]);
+    // const searchCohorts = useCallback(async (search: string, offset: number, size: number): Promise<CohortItem[]> => {
+    //     const result = await trpcUtils.lmsModule.cohortModule.cohort.list.fetch({
+    //         pagination: { skip: offset, take: size },
+    //         search: search ? { q: search } : undefined,
+    //     });
+    //     return result.items.map(cohort => ({ _id: cohort._id, title: cohort.title }));
+    // }, [trpcUtils]);
 
     const breadcrumbs = useMemo(() => [
         { label: t("common:dashboard.liveClasses.title"), href: "/dashboard/lms/live-classes" },
@@ -398,7 +398,7 @@ export default function Page() {
                             </div>
                             <Button type="submit" disabled={updateMutation.isPending || form.formState.isSubmitting}>
                                 <Save className="h-4 w-4 mr-2" />
-                                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                                {updateMutation.isPending ? "Saving..." : "Save"}
                             </Button>
                         </FieldGroup>
                     </form>

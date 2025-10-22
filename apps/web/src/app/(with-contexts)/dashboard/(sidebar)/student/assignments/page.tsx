@@ -13,6 +13,8 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { format, differenceInDays, isPast } from "date-fns";
 import { cn } from "@workspace/ui/lib/utils";
+import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
+
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
@@ -29,9 +31,10 @@ export default function Page() {
     const isLoading = loadAssignmentSubmissionsQuery.isLoading;
 
     // Group by status
-    const pending = submissions.filter((s: any) => s.status === "draft" || s.status === "not_submitted");
-    const submitted = submissions.filter((s: any) => s.status === "submitted");
-    const graded = submissions.filter((s: any) => s.status === "graded");
+    const submitted = submissions.filter((s) => s.status === AssignmentSubmissionStatusEnum.SUBMITTED);
+    const graded = submissions.filter((s) => s.status === AssignmentSubmissionStatusEnum.GRADED);
+    // rest
+    const pending = submissions.filter((s) => (!submitted.includes(s) && !graded.includes(s)));
 
     return (
         <DashboardContent breadcrumbs={breadcrumbs}>

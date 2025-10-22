@@ -9,13 +9,8 @@ import { UserModel } from "@workspace/common-logic/models/user.model";
 import { generateUniqueId } from "@workspace/utils";
 import mongoose from "mongoose";
 
-interface UploadAvatarResult {
-    success: boolean;
-    avatar?: IAttachmentMedia;
-    error?: string;
-}
 
-export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResult> {
+export async function uploadAvatar(formData: FormData) {
     try {
         const ctx = await getActionContext();
         const file = formData.get("file") as File;
@@ -38,11 +33,28 @@ export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResu
             },
             ctx.domainData.domainObj as IDomainHydratedDocument,
         );
-
-        user.avatar = attachment.toObject();
+        const media = attachment.toObject();
+        user.avatar = media;
         await user.save();
-
-        return { success: true, avatar: attachment.toObject() };
+        return {
+            success: true,
+            avatar: {
+                _id: media._id.toString(),
+                mediaId: media.mediaId,
+                orgId: media.orgId.toString(),
+                storageProvider: media.storageProvider,
+                url: media.url,
+                originalFileName: media.originalFileName,
+                mimeType: media.mimeType,
+                size: media.size,
+                access: media.access,
+                thumbnail: media.thumbnail,
+                caption: media.caption,
+                file: media.file,
+                metadata: media.metadata,
+                ownerId: media.ownerId.toString(),
+            },
+        };
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error("Avatar upload error:", err);
@@ -50,7 +62,7 @@ export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResu
     }
 }
 
-export async function removeAvatar(): Promise<UploadAvatarResult> {
+export async function removeAvatar() {
     try {
         const ctx = await getActionContext();
         const user = await UserModel.findOne({ _id: ctx.user._id, orgId: ctx.domainData.domainObj.orgId });
@@ -70,7 +82,7 @@ export async function removeAvatar(): Promise<UploadAvatarResult> {
     }
 }
 
-export async function setGoogleAvatar(photoURL: string): Promise<UploadAvatarResult> {
+export async function setGoogleAvatar(photoURL: string) {
     try {
         const ctx = await getActionContext();
         const user = await UserModel.findOne({ _id: ctx.user._id, orgId: ctx.domainData.domainObj.orgId });
@@ -90,10 +102,22 @@ export async function setGoogleAvatar(photoURL: string): Promise<UploadAvatarRes
             caption: "Google profile picture",
         };
 
-        user.avatar = googleAvatar;
+        const media = googleAvatar;
+        user.avatar = media;
         await user.save();
 
-        return { success: true, avatar: googleAvatar };
+        return {
+            success: true,
+            avatar: {
+                mediaId: media.mediaId,
+                orgId: media.orgId.toString(),
+                storageProvider: media.storageProvider,
+                url: media.url,
+                originalFileName: media.originalFileName,
+                mimeType: media.mimeType,
+                ownerId: media.ownerId.toString(),
+            },
+        };
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error("Google avatar set error:", err);

@@ -1,52 +1,140 @@
 {
   "sidebar": {
-    "overview": "Обзор",
-    "products": "Продукты",
+    "instructor_dashboard": "Панель Преподавателя",
+    "instructor": "Преподаватель",
+    "student_dashboard": "Студент",
+    "my_courses": "Мои Курсы",
+    "my_assignments": "Мои Задания",
+    "my_schedule": "Мое Расписание",
+    "my_grades": "Мои Оценки",
     "lms": "LMS",
-    "communities": "Сообщества",
+    "admin": "Админ",
     "users": "Пользователи",
+    "tags": "Теги",
     "settings": "Настройки",
     "studio": "Студия",
-    "my_content": "Мой контент",
-    "my_progress": "Мой прогресс",
-    "all_users": "Все пользователи",
-    "branding": "Брендинг",
-    "payment": "Платежи",
-    "mails": "Почта",
-    "code_injection": "Внедрение кода",
-    "api_keys": "API ключи",
-    "website_settings": "Настройки сайта",
-    "schools": "Школы"
+    "notifications": "Уведомления",
+    "profile": "Профиль"
   },
-  "overview": {
-    "title": "Добро пожаловать",
-    "sales": "Продажи",
-    "customers": "Клиенты",
-    "select_time_range": "Выберите период времени",
-    "time_ranges": {
-      "1d": "1 день",
-      "7d": "1 неделя",
-      "30d": "30 дней",
-      "90d": "90 дней",
-      "1y": "1 год",
-      "lifetime": "За все время"
+  "instructor": {
+    "subtitle": "Управляйте курсами и отслеживайте прогресс",
+    "stats": {
+      "total_courses": "Всего Курсов",
+      "published": "опубликовано",
+      "total_students": "Всего Студентов",
+      "across_all_courses": "По всем курсам",
+      "average_rating": "Средний Рейтинг",
+      "out_of_5": "Из 5.0",
+      "no_ratings_yet": "Пока нет оценок",
+      "drafts": "Черновики",
+      "need_publishing": "Требуют публикации"
+    },
+    "my_courses": {
+      "title": "Мои Курсы",
+      "create_course": "Создать Курс",
+      "no_courses_title": "Пока нет курсов",
+      "no_courses_desc": "Создайте свой первый курс для начала",
+      "no_description": "Нет описания",
+      "published": "Опубликовано",
+      "draft": "Черновик",
+      "chapters": "разделов",
+      "students": "студентов",
+      "view_all_courses": "Посмотреть Все Курсы"
+    },
+    "quick_actions": {
+      "title": "Быстрые Действия",
+      "manage_courses": "Управление Курсами",
+      "view_assignments": "Просмотр Заданий",
+      "live_classes": "Прямые Трансляции",
+      "master_schedule": "Основное Расписание"
+    },
+    "upcoming_events": {
+      "title": "Предстоящие События",
+      "no_events": "Нет предстоящих событий",
+      "view_full_calendar": "Посмотреть Полный Календарь"
+    }
+  },
+  "courses": {
+    "page": {
+      "filter_level": "Уровень",
+      "all_levels": "Все Уровни",
+      "filter_status": "Статус",
+      "all_statuses": "Все Статусы",
+      "no_courses": "Курсы не найдены",
+      "no_courses_desc": "Попробуйте изменить фильтры или создайте новый курс"
+    },
+    "status": {
+      "beginner": "Начальный",
+      "intermediate": "Средний",
+      "advanced": "Продвинутый",
+      "in_progress": "В Процессе",
+      "under_review": "На Рассмотрении",
+      "approved": "Утверждено"
+    },
+    "form": {
+      "course_title": "Название Курса",
+      "title_placeholder": "Введите название курса",
+      "course_code": "Код Курса",
+      "course_code_placeholder": "например, CS101, MATH201",
+      "level": "Уровень",
+      "level_placeholder": "Выберите уровень курса",
+      "language": "Язык",
+      "language_placeholder": "Выберите язык",
+      "create_course": "Создать Курс",
+      "create_new_course": "Создать Новый Курс"
+    },
+    "validation": {
+      "title_required": "Название обязательно",
+      "title_max": "Название должно быть менее 255 символов",
+      "course_code_required": "Код курса обязателен",
+      "course_code_max": "Код курса должен быть менее 50 символов",
+      "language_required": "Язык обязателен"
+    },
+    "detail": {
+      "breadcrumb_manage": "Управление Курсами",
+      "badge_course": "Курс",
+      "published": "Опубликовано",
+      "draft": "Черновик",
+      "manage_link": "Управление",
+      "select_time_range": "Выберите период времени",
+      "edit_content": "Редактировать Контент",
+      "actions": "Действия",
+      "manage_course": "Управление Курсом",
+      "cohort_groups": "Группы Когорт",
+      "preview_course": "Предпросмотр Курса",
+      "view_all": "Посмотреть Все",
+      "no_cohorts_yet": "Пока нет групп когорт.",
+      "create_one": "Создать",
+      "no_instructor": "Нет преподавателя"
     }
   },
   "lms": {
     "title": "Система управления обучением",
     "subtitle": "Управляйте образовательным контентом, оценками и прогрессом студентов",
     "modules": {
+      "courses": {
+        "title": "Курсы",
+        "description": "Создавайте и управляйте вашими курсами"
+      },
+      "cohorts": {
+        "title": "Когорты",
+        "description": "Организуйте студентов в группы и когорты"
+      },
       "quizzes": {
         "title": "Викторины",
         "description": "Создавайте и управляйте интерактивными викторинами для проверки знаний студентов"
       },
-      "reviews": {
-        "title": "Отзывы",
-        "description": "Управляйте отзывами и рекомендациями клиентов для ваших продуктов и курсов"
-      },
       "assignments": {
         "title": "Задания",
         "description": "Отслеживайте прогресс студентов с помощью структурированных заданий и отправок"
+      },
+      "live_classes": {
+        "title": "Прямые Трансляции",
+        "description": "Планируйте и управляйте виртуальными занятиями в прямом эфире"
+      },
+      "reviews": {
+        "title": "Отзывы",
+        "description": "Управляйте отзывами и рекомендациями клиентов для ваших продуктов и курсов"
       },
       "themes": {
         "title": "Темы",
@@ -69,7 +157,6 @@
   "my_progress": {
     "title": "Мой прогресс",
     "subtitle": "Отслеживайте свой учебный прогресс и достижения",
-    "overview": "Обзор",
     "courses": "Курсы",
     "assignments": "Задания",
     "quizzes": "Викторины",
@@ -257,5 +344,8 @@
     "avatar_reset": "Аватар сброшен",
     "avatar_reset_desc": "Фото профиля было восстановлено из Firebase",
     "reset_picture_error": "Не удалось сбросить изображение из Firebase"
+  },
+  "create_button": {
+    "new": "Новый"
   }
 }

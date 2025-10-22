@@ -352,11 +352,8 @@ export default function CalendarEventDialog() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={ScheduleTypeEnum.LIVE_SESSION}>Live Session</SelectItem>
-                      <SelectItem value={ScheduleTypeEnum.LESSON}>Lesson</SelectItem>
-                      <SelectItem value={ScheduleTypeEnum.COURSE}>Course</SelectItem>
                       <SelectItem value={ScheduleTypeEnum.QUIZ}>Quiz</SelectItem>
                       <SelectItem value={ScheduleTypeEnum.ASSIGNMENT}>Assignment</SelectItem>
-                      <SelectItem value={ScheduleTypeEnum.EXAM}>Exam</SelectItem>
                       <SelectItem value={ScheduleTypeEnum.DEADLINE}>Deadline</SelectItem>
                     </SelectContent>
                   </Select>

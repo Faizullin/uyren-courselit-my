@@ -1,7 +1,7 @@
 "use client";
 
 import { ScrollAnimation } from "@/components/public/scroll-animation";
-import { IWebsiteSettings } from "@workspace/common-logic/models/pages/website-settings";
+import { IWebsiteSettings } from "@workspace/common-logic/models/pages/website-settings.types";
 import { cn } from "@workspace/ui/lib/utils";
 import { Star } from "lucide-react";
 import Image from "next/image";
@@ -16,13 +16,13 @@ type TestimonialItemType = Pick<
 export function TestimonialsSection(props: {
   testimonials: TestimonialItemType[];
 }) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   const testimonials = useMemo(() => {
     const defaultData = [
       {
-        quote: t("testimonials_1_quote"),
+        quote: t("home.testimonials_1_quote"),
         author: {
           userId: "Aigerim K.",
           name: "Aigerim K.",
@@ -33,7 +33,7 @@ export function TestimonialsSection(props: {
         rotation: "-rotate-12",
       },
       {
-        quote: t("testimonials_2_quote"),
+        quote: t("home.testimonials_2_quote"),
         author: {
           userId: "Daniyar T.",
           name: "Daniyar T.",
@@ -44,7 +44,7 @@ export function TestimonialsSection(props: {
         rotation: "rotate-6",
       },
       {
-        quote: t("testimonials_3_quote"),
+        quote: t("home.testimonials_3_quote"),
         author: {
           userId: "Aida S.",
           name: "Aida S.",
@@ -55,7 +55,7 @@ export function TestimonialsSection(props: {
         rotation: "-rotate-3",
       },
       {
-        quote: t("testimonials_4_quote"),
+        quote: t("home.testimonials_4_quote"),
         author: {
           userId: "Nurlan B.",
           name: "Nurlan B.",
@@ -66,7 +66,7 @@ export function TestimonialsSection(props: {
         rotation: "rotate-8",
       },
       {
-        quote: t("testimonials_5_quote"),
+        quote: t("home.testimonials_5_quote"),
         author: {
           userId: "Zhanel M.",
           name: "Zhanel M.",
@@ -98,10 +98,10 @@ export function TestimonialsSection(props: {
       <div className="container mx-auto px-4">
         <ScrollAnimation variant="fadeUp" className="text-center mb-16">
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            {t("testimonials_title")}
+            {t("home.testimonials_title")}
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            {t("testimonials_subtitle")}
+            {t("home.testimonials_subtitle")}
           </p>
         </ScrollAnimation>
 

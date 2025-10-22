@@ -50,7 +50,7 @@ export async function uploadLogo(formData: FormData): Promise<UploadMediaResult>
     if (!domain.siteInfo) domain.siteInfo = {} as ISiteInfo;
     domain.siteInfo.logo = attachment.toObject();
     await domain.save();
-    await DomainManager.removeFromCache(domain);
+    await DomainManager.removeFromCache(domain.toJSON() as any);
 
     return { success: true, media: [attachment.toObject()] };
   } catch (error: any) {
@@ -70,7 +70,7 @@ export async function removeLogo(mediaId: string): Promise<RemoveMediaResult> {
 
     domain.siteInfo.logo = undefined;
     await domain.save();
-    await DomainManager.removeFromCache(domain);
+    await DomainManager.removeFromCache(domain.toJSON() as any);
 
     return { success: true };
   } catch (error: any) {

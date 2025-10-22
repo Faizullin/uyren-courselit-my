@@ -21,7 +21,7 @@ export async function clearDomainManagerCache() {
     if (!domainData.domainObj) {
       throw new Error("Domain not found when execute getDomainData()");
     }
-    const response = await DomainManager.removeFromCache(domainData.domainObj);
+    const response = await DomainManager.removeFromCache(domainData.domainObj as any);
 
     return {
       success: true,

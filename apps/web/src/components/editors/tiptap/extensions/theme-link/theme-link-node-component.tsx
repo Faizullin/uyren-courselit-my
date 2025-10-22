@@ -167,7 +167,7 @@ export const ThemeSelectNiceDialog = NiceModal.create<
             <SelectTrigger id="theme">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="item-aligned">
+            <SelectContent>
               {availableThemes.map((theme) => (
                 <SelectItem key={theme.id} value={theme.id}>
                   {theme.name}

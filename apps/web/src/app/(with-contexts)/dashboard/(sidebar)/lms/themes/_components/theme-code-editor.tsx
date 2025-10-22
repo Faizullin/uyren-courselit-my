@@ -622,7 +622,7 @@ function AssetEditor({ selectedAsset, onSave }: AssetEditorProps) {
                 className="w-full"
                 disabled={form.formState.isSubmitting}
               >
-                Save Changes
+                Save
               </Button>
             </form>
           </TabsContent>
@@ -652,7 +652,7 @@ function AssetEditor({ selectedAsset, onSave }: AssetEditorProps) {
                   className="w-full"
                   disabled={form.formState.isSubmitting}
                 >
-                  Save Changes
+                  Save
                 </Button>
               </form>
             ) : (

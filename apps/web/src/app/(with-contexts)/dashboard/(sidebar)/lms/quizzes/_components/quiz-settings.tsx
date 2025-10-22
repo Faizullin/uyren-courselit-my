@@ -351,29 +351,27 @@ export default function QuizSettings() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="max-attempts">Max Attempts</FieldLabel>
-                      <div>
-                        <Select
-                          name={field.name}
-                          value={field.value.toString()}
-                          onValueChange={(value) =>
-                            field.onChange(parseInt(value))
-                          }
+                      <Select
+                        name={field.name}
+                        value={field.value.toString()}
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
+                      >
+                        <SelectTrigger
+                          id="max-attempts"
+                          className="w-full"
+                          aria-invalid={fieldState.invalid}
                         >
-                          <SelectTrigger
-                            id="max-attempts"
-                            className="w-full"
-                            aria-invalid={fieldState.invalid}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent position="item-aligned">
-                            <SelectItem value="1">1 Attempt</SelectItem>
-                            <SelectItem value="2">2 Attempts</SelectItem>
-                            <SelectItem value="3">3 Attempts</SelectItem>
-                            <SelectItem value="-1">Unlimited</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 Attempt</SelectItem>
+                          <SelectItem value="2">2 Attempts</SelectItem>
+                          <SelectItem value="3">3 Attempts</SelectItem>
+                          <SelectItem value="-1">Unlimited</SelectItem>
+                        </SelectContent>
+                      </Select>
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
                       )}

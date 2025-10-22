@@ -12,7 +12,7 @@ interface CourseBreadcrumbsProps {
 }
 
 export default function CourseBreadcrumbs({ courseId }: CourseBreadcrumbsProps) {
-    const { t } = useTranslation("common");
+    const { t } = useTranslation("frontend");
     const course = useCourseData();
     const params = useParams();
     const pathname = usePathname();
@@ -36,14 +36,14 @@ export default function CourseBreadcrumbs({ courseId }: CourseBreadcrumbsProps) 
                     href="/"
                     className="hover:text-brand-primary transition-colors"
                 >
-                    {t("home")}
+                    {t("course_detail.breadcrumb_home")}
                 </Link>
                 <span>/</span>
                 <Link
                     href="/courses"
                     className="hover:text-brand-primary transition-colors"
                 >
-                    {t("courses")}
+                    {t("course_detail.breadcrumb_courses")}
                 </Link>
                 <span>/</span>
                 <Link

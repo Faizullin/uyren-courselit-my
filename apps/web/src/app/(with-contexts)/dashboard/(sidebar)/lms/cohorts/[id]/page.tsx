@@ -381,27 +381,25 @@ export default function Page() {
                                             <FieldLabel htmlFor="cohort-status">
                                                 Status
                                             </FieldLabel>
-                                            <div>
-                                                <Select
-                                                    name={field.name}
-                                                    value={field.value}
-                                                    onValueChange={field.onChange}
+                                            <Select
+                                                name={field.name}
+                                                value={field.value}
+                                                onValueChange={field.onChange}
+                                            >
+                                                <SelectTrigger
+                                                    id="cohort-status"
+                                                    aria-invalid={fieldState.invalid}
                                                 >
-                                                    <SelectTrigger
-                                                        id="cohort-status"
-                                                        aria-invalid={fieldState.invalid}
-                                                    >
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent position="item-aligned">
-                                                        {Object.values(CohortStatusEnum).map((status) => (
-                                                            <SelectItem key={status} value={status}>
-                                                                {status}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.values(CohortStatusEnum).map((status) => (
+                                                        <SelectItem key={status} value={status}>
+                                                            {status}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             {fieldState.invalid && (
                                                 <FieldError errors={[fieldState.error]} />
                                             )}
@@ -500,7 +498,7 @@ export default function Page() {
                                     
                                 <Button type="submit" disabled={updateMutation.isPending || form.formState.isSubmitting}>
                                     <Save className="h-4 w-4 mr-2" />
-                                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                                    {updateMutation.isPending ? "Saving..." : "Save"}
                                 </Button>
                             </div>
                         </FieldGroup>

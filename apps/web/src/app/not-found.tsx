@@ -1,27 +1,35 @@
 "use client";
 
-import Link from "next/link";
-import { Home } from "lucide-react";
+import { ErrorComponent } from "@/components/error/error-component";
 import { Button } from "@workspace/ui/components/button";
+import { FileQuestion, Home } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 export default function NotFound() {
+  const { t } = useTranslation(["error"]);
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="text-center max-w-md">
-        <h1 className="text-8xl font-bold text-brand-primary mb-4">404</h1>
-        <h2 className="text-2xl font-bold text-foreground mb-4">
-          Page Not Found
-        </h2>
-        <p className="text-muted-foreground mb-8">
-          The page you're looking for doesn't exist.
-        </p>
-        <Link href="/">
-          <Button className="bg-brand-primary hover:bg-brand-primary-hover text-white">
-            <Home className="mr-2 h-4 w-4" />
-            Go Home
-          </Button>
-        </Link>
-      </div>
-    </div>
+    <ErrorComponent>
+      <ErrorComponent.Card>
+        <ErrorComponent.CardHeader>
+          <ErrorComponent.Icon>
+            <FileQuestion className="h-6 w-6 text-destructive" />
+          </ErrorComponent.Icon>
+          <ErrorComponent.Title>{t("error:error_404_title")}</ErrorComponent.Title>
+          <ErrorComponent.Description>
+            {t("error:error_404_description")}
+          </ErrorComponent.Description>
+        </ErrorComponent.CardHeader>
+        <ErrorComponent.CardBody>
+          <Link href="/">
+            <Button className="gap-2">
+              <Home className="h-4 w-4" />
+              {t("error:go_to_home")}
+            </Button>
+          </Link>
+        </ErrorComponent.CardBody>
+      </ErrorComponent.Card>
+    </ErrorComponent>
   );
 }

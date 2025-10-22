@@ -29,7 +29,7 @@ import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { Archive, Edit, MoreHorizontal, Star, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ReviewFormDialog } from "./_components/review-form-dialog";
+import { ReviewFormNiceDialog } from "./_components/review-form-nice-dialog";
 
 const breadcrumbs = [
   { label: "LMS", href: "#" },
@@ -71,7 +71,7 @@ export default function Page() {
   );
 
   const handleCreateReview = useCallback(async () => {
-    const result = await NiceModal.show(ReviewFormDialog, {
+    const result = await NiceModal.show(ReviewFormNiceDialog, {
       mode: "create",
     });
     if (result.reason === "submit") {
@@ -80,7 +80,7 @@ export default function Page() {
   }, []);
 
   const handleEditReview = useCallback(async (review: ItemType) => {
-    const result = await NiceModal.show(ReviewFormDialog, {
+    const result = await NiceModal.show(ReviewFormNiceDialog, {
       mode: "edit",
       id: review._id,
     });

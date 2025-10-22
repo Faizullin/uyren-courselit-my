@@ -244,7 +244,7 @@ export function MyForm() {
 </Button>
 
 <Button type="submit" disabled={isSubmitting}>
-  Save Changes
+  Save
 </Button>
 ```
 

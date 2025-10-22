@@ -1,4 +1,4 @@
-import { IAttachmentMedia } from "../models/media";
+import { IAttachmentMedia } from "../models/media.types";
 
 interface IAsset {
     url: string;

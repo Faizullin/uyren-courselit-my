@@ -45,7 +45,7 @@ function InsertMediaDialog(props: {
             });
 
             if (result.success && result.items) {
-                setItems(result.items);
+                setItems(result.items as any);
                 setTotal(result.total || 0);
             } else {
                 toast({

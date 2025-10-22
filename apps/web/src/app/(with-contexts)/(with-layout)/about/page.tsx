@@ -12,52 +12,52 @@ import { Trans, useTranslation } from "react-i18next";
 import Image from "next/image";
 
 export default function Page() {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set());
   const timelineRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const timelineItems = [
     {
-      year: t("timeline_team_formation_year", "July 2025"),
-      title: t("timeline_team_formation_title"),
-      description: t("timeline_team_formation_desc"),
+      year: t("about.timeline_team_formation_year", "July 2025"),
+      title: t("about.timeline_team_formation_title"),
+      description: t("about.timeline_team_formation_desc"),
       image:
         "/courselit_backdrop.webp?height=250&width=350&text=Team+Formation+July+2025",
       colorClass: "bg-orange-600",
       side: "left",
     },
     {
-      year: t("timeline_nuris_year", "August 2025"),
-      title: t("timeline_nuris_title"),
-      description: t("timeline_nuris_desc"),
+      year: t("about.timeline_nuris_year", "August 2025"),
+      title: t("about.timeline_nuris_title"),
+      description: t("about.timeline_nuris_desc"),
       image:
         "/courselit_backdrop.webp?height=250&width=350&text=NURIS+Incubation+August+2025",
       colorClass: "bg-blue-600",
       side: "right",
     },
     {
-      year: t("timeline_partnerships_year", "Late 2025"),
-      title: t("timeline_partnerships_title"),
-      description: t("timeline_partnerships_desc"),
+      year: t("about.timeline_partnerships_year", "Late 2025"),
+      title: t("about.timeline_partnerships_title"),
+      description: t("about.timeline_partnerships_desc"),
       image:
         "/courselit_backdrop.webp?height=250&width=350&text=School+Partnerships+Late+2025",
       colorClass: "bg-green-600",
       side: "left",
     },
     {
-      year: t("timeline_scaling_year", "2026"),
-      title: t("timeline_scaling_title"),
-      description: t("timeline_scaling_desc"),
+      year: t("about.timeline_scaling_year", "2026"),
+      title: t("about.timeline_scaling_title"),
+      description: t("about.timeline_scaling_desc"),
       image:
         "/courselit_backdrop.webp?height=250&width=350&text=Scaling+2026",
       colorClass: "bg-purple-600",
       side: "right",
     },
     {
-      year: t("timeline_future_year", "Looking Ahead"),
-      title: t("timeline_future_title"),
-      description: t("timeline_future_desc"),
+      year: t("about.timeline_future_year", "Looking Ahead"),
+      title: t("about.timeline_future_title"),
+      description: t("about.timeline_future_desc"),
       image:
         "/courselit_backdrop.webp?height=250&width=350&text=Future+Growth",
       colorClass: "bg-indigo-600",
@@ -123,7 +123,7 @@ export default function Page() {
           >
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-8">
               <Trans
-                i18nKey="about_hero_title"
+                i18nKey="about.hero_title"
                 t={t}
                 components={{
                   "primary-label": <span className="text-brand-primary" />,
@@ -131,14 +131,14 @@ export default function Page() {
               />
             </h1>
             <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-6 max-w-4xl mx-auto">
-              {t("about_hero_subtitle")}
+              {t("about.hero_subtitle")}
             </p>
             <p className="text-base md:text-lg text-gray-400 mb-4">
-              {t("about_hero_note")}
+              {t("about.hero_note")}
             </p>
             <div className="inline-block bg-brand-primary/20 border border-brand-primary/30 rounded-full px-6 py-2">
               <p className="text-brand-primary font-medium text-sm md:text-base">
-                {t("about_hero_grants")}
+                {t("about.hero_grants")}
               </p>
             </div>
           </ScrollAnimation>
@@ -153,10 +153,10 @@ export default function Page() {
             className="text-center mb-12 md:mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              {t("about_history_title")}
+              {t("about.history_title")}
             </h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              {t("about_history_subtitle")}
+              {t("about.history_subtitle")}
             </p>
           </ScrollAnimation>
 
@@ -288,11 +288,11 @@ export default function Page() {
               <div className="flex items-center space-x-3 mb-4 md:mb-6">
                 <Target className="h-6 md:h-8 w-6 md:w-8 text-brand-primary" />
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {t("about_mission_title")}
+                  {t("about.mission_title")}
                 </h2>
               </div>
               <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed">
-                {t("about_mission_desc")}
+                {t("about.mission_desc")}
               </p>
             </div>
 
@@ -300,11 +300,11 @@ export default function Page() {
               <div className="flex items-center space-x-3 mb-4 md:mb-6">
                 <Rocket className="h-6 md:h-8 w-6 md:w-8 text-blue-600" />
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {t("about_vision_title")}
+                  {t("about.vision_title")}
                 </h2>
               </div>
               <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed">
-                {t("about_vision_desc")}
+                {t("about.vision_desc")}
               </p>
             </div>
           </ScrollGroup>

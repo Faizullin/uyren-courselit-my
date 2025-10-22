@@ -35,7 +35,7 @@ export default function CourseEnrollmentCard({
   course,
   readOnlyMode = false,
 }: CourseEnrollmentCardProps) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const { profile } = useProfile();
   const router = useRouter();
   const { toast } = useToast();
@@ -52,8 +52,8 @@ export default function CourseEnrollmentCard({
     onSuccess: () => {
       if (!course) return null;
       toast({
-        title: t("enrollment_success") || "Successfully enrolled!",
-        description: t("enrollment_success_desc") || "You can now access all course content.",
+        title: t("course_detail.enrollment_success"),
+        description: t("course_detail.enrollment_success_desc"),
       });
       trpcUtils.lmsModule.enrollment.getMembership.invalidate({ courseId: course._id });
       
@@ -66,7 +66,7 @@ export default function CourseEnrollmentCard({
     },
     onError: (error) => {
       toast({
-        title: t("enrollment_failed") || "Enrollment failed",
+        title: t("course_detail.enrollment_failed"),
         description: error.message,
         variant: "destructive",
       });
@@ -92,8 +92,8 @@ export default function CourseEnrollmentCard({
   const handleEnroll = () => {
     if (!profile?.id) {
       toast({
-        title: t("login_required") || "Login required",
-        description: t("login_required_enroll") || "Please log in to enroll in this course.",
+        title: t("course_detail.login_required"),
+        description: t("course_detail.login_required_desc"),
       });
       setTimeout(() => {
         router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
@@ -146,7 +146,7 @@ export default function CourseEnrollmentCard({
               >
                 <Button variant="default" size="default" className="w-full">
                   <BookText className="h-4 w-4 mr-2" />
-                  {t("continue_learning") || "Continue Learning"}
+                  {t("course_detail.continue_learning")}
                 </Button>
               </Link>
             ) : (
@@ -164,8 +164,8 @@ export default function CourseEnrollmentCard({
                     >
                       <BookText className="h-4 w-4 mr-2" />
                       {enrollMutation.isPending 
-                        ? (t("enrolling") || "Enrolling...") 
-                        : (t("start_learning") || "Start Learning")}
+                        ? t("course_detail.enrolling") 
+                        : t("course_detail.start_learning")}
                     </Button>
                   )
                 ) : defaultPaymentPlan ? (
@@ -176,7 +176,7 @@ export default function CourseEnrollmentCard({
                     className="w-full"
                     disabled
                   >
-                    {t("buy_for") || "Buy for"} {getPriceDisplay()}
+                    {t("course_detail.buy_for")} {getPriceDisplay()}
                   </Button>
                 ) : (
                   /* No Payment Plan - Default free enroll */
@@ -190,8 +190,8 @@ export default function CourseEnrollmentCard({
                     >
                       <BookText className="h-4 w-4 mr-2" />
                       {enrollMutation.isPending 
-                        ? (t("enrolling") || "Enrolling...") 
-                        : (t("start_learning") || "Start Learning")}
+                        ? t("course_detail.enrolling") 
+                        : t("course_detail.start_learning")}
                     </Button>
                   )
                 )}
@@ -204,7 +204,7 @@ export default function CourseEnrollmentCard({
                 <Link href={`/dashboard/lms/courses/${course._id}/`}>
                   <Button variant="outline" size="default" className="w-full">
                     <Pencil className="h-4 w-4 mr-2" />
-                    {t("edit")}
+                    {t("course_detail.edit")}
                   </Button>
                 </Link>
               </>
@@ -215,14 +215,14 @@ export default function CourseEnrollmentCard({
         {/* Course Stats */}
         <div className="space-y-4">
           <div className="font-medium text-gray-900 dark:text-gray-100">
-            {t("course_includes") || "This course includes:"}
+            {t("course_detail.course_includes")}
           </div>
 
           {/* Lessons Count */}
           <div className="flex items-center text-gray-700 dark:text-gray-300">
             <BookOpen className="h-4 w-4 stroke-1.5" />
             <span className="ml-2">
-              {course?.statsLessonCount} {t("lessons") || "Lessons"}
+              {course?.statsLessonCount} {t("course_detail.lessons")}
             </span>
           </div>
 
@@ -231,7 +231,7 @@ export default function CourseEnrollmentCard({
             <div className="flex items-center text-gray-700 dark:text-gray-300">
               <Star className="h-4 w-4 stroke-1.5 fill-yellow-500 text-transparent" />
               <span className="ml-2">
-                {course.statsAverageRating} {t("rating") || "Rating"}
+                {course.statsAverageRating} {t("course_detail.rating")}
               </span>
             </div>
           )}

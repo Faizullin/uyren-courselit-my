@@ -36,7 +36,7 @@ export default function CourseLessonsSidebar({
   courseId,
   isEnrolled = false,
 }: CourseLessonsSidebarProps) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const { profile } = useProfile();  
   const loadCourseDetailedQuery = trpc.lmsModule.courseModule.course.publicGetByIdDetailed.useQuery(
     {
@@ -134,11 +134,11 @@ export default function CourseLessonsSidebar({
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">
-            {t("course_content") || "Course Content"}
+            {t("course_detail.course_content")}
           </CardTitle>
           <CardDescription>
-            {course?.chapters?.length || 0} {t("chapters") || "Chapters"} •{" "}
-            {course?.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0} {t("lessons") || "Lessons"}
+            {course?.chapters?.length || 0} {t("course_detail.chapters")} •{" "}
+            {course?.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0} {t("course_detail.lessons")}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -171,7 +171,7 @@ export default function CourseLessonsSidebar({
                     </div>
                     <Badge variant="secondary" className="text-xs">
                       {chapter.lessons?.length || 0}{" "}
-                      {t("course_sidebar_lessons")}
+                      {t("course_detail.lessons")}
                     </Badge>
                   </button>
 
@@ -214,7 +214,7 @@ export default function CourseLessonsSidebar({
                                           : ""
                                       }`}
                                     >
-                                      {lesson.title || t("lesson") || "Lesson"}
+                                      {lesson.title || t("course_detail.lesson")}
                                     </span>
                                   </div>
                                 </div>
@@ -229,7 +229,7 @@ export default function CourseLessonsSidebar({
               )) || (
                 <div className="p-6 text-center text-muted-foreground">
                   <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>{t("course_sidebar_content_coming_soon")}</p>
+                  <p>{t("course_detail.content_coming_soon")}</p>
                 </div>
               )}
             </div>

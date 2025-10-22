@@ -11,7 +11,7 @@ import {
   ScrollAnimation,
   ScrollGroup,
 } from "@/components/public/scroll-animation";
-import { IWebsiteSettings } from "@workspace/common-logic/models/pages/website-settings";
+import { IWebsiteSettings } from "@workspace/common-logic/models/pages/website-settings.types";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -30,37 +30,37 @@ interface HomePageClientProps {
 }
 
 export default function HomePageClient({ websiteSettings }: HomePageClientProps) {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("frontend");
   const { siteInfo } = useSiteInfo();
 
   const features = [
     {
       icon: GearsIcon,
-      title: t("feature_systematic_title"),
-      description: t("feature_systematic_desc"),
+      title: t("home.feature_systematic_title"),
+      description: t("home.feature_systematic_desc"),
     },
     {
       icon: PythonIcon,
-      title: t("feature_practice_title"),
-      description: t("feature_practice_desc"),
+      title: t("home.feature_practice_title"),
+      description: t("home.feature_practice_desc"),
     },
     {
       icon: ChartLineUpIcon,
-      title: t("feature_growth_title"),
-      description: t("feature_growth_desc"),
+      title: t("home.feature_growth_title"),
+      description: t("home.feature_growth_desc"),
     },
     {
       icon: SupportIcon,
-      title: t("feature_feedback_title"),
-      description: t("feature_feedback_desc"),
+      title: t("home.feature_feedback_title"),
+      description: t("home.feature_feedback_desc"),
     },
   ];
 
   const stats = [
-    { number: "10+", label: t("stats_years_experience") },
-    { number: "200+", label: t("stats_students_enrolled") },
-    { number: "40+", label: t("stats_popular_courses") },
-    { number: "40+", label: t("stats_ai_powered_courses") },
+    { number: "10+", label: t("home.stats_years_experience") },
+    { number: "200+", label: t("home.stats_students_enrolled") },
+    { number: "40+", label: t("home.stats_popular_courses") },
+    { number: "40+", label: t("home.stats_ai_powered_courses") },
   ];
 
   // Use featured courses from settings or fallback to hardcoded ones
@@ -107,11 +107,11 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
             <ScrollAnimation variant="fadeUp" delay={0.2}>
               <div className="space-y-6">
                 <Badge className="mb-4 bg-orange-100 text-orange-800 hover:bg-orange-200 text-sm font-semibold px-4 py-2">
-                  {t("badge_ai_platform")}
+                  {t("home.badge_ai_platform")}
                 </Badge>
                 <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight">
                   <Trans
-                    i18nKey="hero_title"
+                    i18nKey="home.hero_title"
                     t={t}
                     components={{
                       "primary-label": (
@@ -121,7 +121,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                   />
                 </h1>
                 <p className="text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl">
-                  {t("hero_subtitle")}
+                  {t("home.hero_subtitle")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Link href="/courses">
@@ -129,7 +129,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                       size="lg"
                       className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-4 text-lg font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
                     >
-                      {t("hero_start_learning")}
+                      {t("home.hero_start_learning")}
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </Link>
@@ -139,7 +139,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                     className="border-2 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white px-8 py-4 text-lg font-bold rounded-full transition-all duration-300 bg-transparent flex items-center"
                   >
                     <Play className="mr-2 h-5 w-5" />
-                    {t("hero_watch_lecture")}
+                    {t("home.hero_watch_lecture")}
                   </Button>
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
               <div className="text-center mb-12">
                 <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-4">
                   <Trans
-                    i18nKey="features_title"
+                    i18nKey="home.features_title"
                     t={t}
                     components={{
                       "primary-label": <span className="text-brand-primary" />,
@@ -201,7 +201,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                   />
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                  {t("features_subtitle")}
+                  {t("home.features_subtitle")}
                 </p>
               </div>
             </ScrollAnimation>
@@ -241,7 +241,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
             <div className="text-center mb-12">
               <h2 className="text-3xl lg:text-5xl font-bold text-foreground mb-4">
                 <Trans
-                  i18nKey="courses_title"
+                  i18nKey="home.courses_title"
                   t={t}
                   components={{
                     "primary-label": <span className="text-brand-primary" />,
@@ -288,7 +288,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                               className="w-4 h-4 object-contain"
                             />
                             <p className="text-xs text-muted-foreground">
-                              {t("courses_provider")}
+                              {t("home.courses_provider")}
                             </p>
                           </div>
 
@@ -342,7 +342,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                   size="lg"
                   className="bg-transparent border-2 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white px-8 py-4 text-lg font-bold rounded-full transition-all duration-300"
                 >
-                  {t("courses_explore_more")}
+                  {t("home.courses_explore_more")}
                 </Button>
               </Link>
             </div>
@@ -358,10 +358,10 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
           <ScrollAnimation variant="fadeUp">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-                {t("cta_title")}
+                {t("home.cta_title")}
               </h2>
               <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-                {t("cta_subtitle")}
+                {t("home.cta_subtitle")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/courses">
@@ -369,7 +369,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                     size="lg"
                     className="bg-brand-primary hover:bg-brand-primary-hover text-white px-8 py-4 text-lg font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    {t("cta_start_learning")}
+                    {t("home.cta_start_learning")}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -379,7 +379,7 @@ export default function HomePageClient({ websiteSettings }: HomePageClientProps)
                     size="lg"
                     className="border-2 border-white text-white hover:bg-white hover:text-black dark:border-gray-300 dark:text-gray-300 dark:hover:bg-gray-300 dark:hover:text-black px-8 py-4 text-lg font-bold rounded-full transition-all duration-300 bg-transparent"
                   >
-                    {t("cta_contact_us")}
+                    {t("home.cta_contact_us")}
                   </Button>
                 </Link>
               </div>

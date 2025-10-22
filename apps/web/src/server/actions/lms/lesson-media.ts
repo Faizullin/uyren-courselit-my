@@ -7,37 +7,16 @@ import { paginate } from "@/server/api/core/utils";
 import { CloudinaryService } from "@/server/services/cloudinary";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
+import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { AttachmentModel } from "@workspace/common-logic/models/media.model";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
-import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
 
-interface UploadMediaResult {
-    success: boolean;
-    media?: IAttachmentMedia;
-    error?: string;
-}
 
-interface RemoveMediaResult {
-    success: boolean;
-    error?: string;
-}
-
-interface ListMediaResult {
-    success: boolean;
-    items?: IAttachmentMedia[];
-    meta?: {
-        skip: number;
-        take: number;
-    };
-    total?: number;
-    error?: string;
-}
-
-export async function uploadLessonMedia(lessonId: string, formData: FormData): Promise<UploadMediaResult> {
+export async function uploadLessonMedia(lessonId: string, formData: FormData) {
     try {
         const ctx = await getActionContext();
         const file = formData.get("file") as File;
@@ -59,10 +38,29 @@ export async function uploadLessonMedia(lessonId: string, formData: FormData): P
             ctx.domainData.domainObj as IDomainHydratedDocument,
         );
 
-        lesson.media = attachment.toObject();
+        const media = attachment.toObject();
+        lesson.media = media;
         await lesson.save();
 
-        return { success: true, media: attachment.toObject() };
+        return {
+            success: true,
+            media: {
+                _id: media._id.toString(),
+                mediaId: media.mediaId,
+                orgId: media.orgId.toString(),
+                storageProvider: media.storageProvider,
+                url: media.url,
+                originalFileName: media.originalFileName,
+                mimeType: media.mimeType,
+                size: media.size,
+                access: media.access,
+                thumbnail: media.thumbnail,
+                caption: media.caption,
+                file: media.file,
+                metadata: media.metadata,
+                ownerId: media.ownerId.toString(),
+            }
+        };
     } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         console.error("Lesson media upload error:", err);
@@ -70,7 +68,7 @@ export async function uploadLessonMedia(lessonId: string, formData: FormData): P
     }
 }
 
-export async function removeLessonMedia(lessonId: string): Promise<RemoveMediaResult> {
+export async function removeLessonMedia(lessonId: string) {
     try {
         const ctx = await getActionContext();
         const lesson = await LessonModel.findOne({ _id: lessonId, orgId: ctx.domainData.domainObj.orgId });
@@ -97,18 +95,18 @@ const ExtendedListInputSchema = ListInputSchema.extend({
         mimeType: z.string().optional(),
     }),
 });
-export async function listLessonMedia(input: z.infer<typeof ListInputSchema>): Promise<ListMediaResult> {
+export async function listLessonMedia(input: z.infer<typeof ListInputSchema>) {
     try {
         const ctx = await getActionContext();
         const validatedInput = ExtendedListInputSchema.parse(input);
         const paginationMeta = paginate(validatedInput.pagination);
 
         // Check course access (courseId is now required)
-        const course = await CourseModel.findOne({ 
-            _id: validatedInput.filter.courseId, 
-            orgId: ctx.domainData.domainObj.orgId 
+        const course = await CourseModel.findOne({
+            _id: validatedInput.filter.courseId,
+            orgId: ctx.domainData.domainObj.orgId
         });
-        
+
         if (!course) throw new NotFoundException("Course", validatedInput.filter.courseId);
 
         const isAdmin = checkPermission(ctx.user.permissions, [UIConstants.permissions.manageAnyCourse]);
@@ -131,11 +129,11 @@ export async function listLessonMedia(input: z.infer<typeof ListInputSchema>): P
             query["entity.entityId"] = new mongoose.Types.ObjectId(validatedInput.filter.lessonId);
         } else {
             // Otherwise, get all lessons for the course
-            const lessons = await LessonModel.find({ 
+            const lessons = await LessonModel.find({
                 courseId: course._id,
-                orgId: ctx.domainData.domainObj.orgId 
+                orgId: ctx.domainData.domainObj.orgId
             }).select("_id").lean();
-            
+
             const lessonIds = lessons.map(l => l._id);
             query["entity.entityId"] = { $in: lessonIds };
         }
@@ -167,7 +165,7 @@ export async function listLessonMedia(input: z.infer<typeof ListInputSchema>): P
             success: true,
             items: items.map(item => ({
                 mediaId: item.mediaId,
-                orgId: item.orgId,
+                orgId: item.orgId.toString(),
                 storageProvider: item.storageProvider,
                 url: item.url,
                 originalFileName: item.originalFileName,
@@ -178,7 +176,7 @@ export async function listLessonMedia(input: z.infer<typeof ListInputSchema>): P
                 caption: item.caption,
                 file: item.file,
                 metadata: item.metadata,
-                ownerId: item.ownerId,
+                ownerId: item.ownerId.toString(),
             })),
             meta: paginationMeta,
             total: total,

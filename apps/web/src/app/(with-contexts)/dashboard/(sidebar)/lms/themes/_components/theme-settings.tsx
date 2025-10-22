@@ -165,7 +165,7 @@ export default function ThemeSettings() {
                 disabled={isSaving || !form.formState.isDirty}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Saving..." : mode === "create" ? "Create Theme" : "Save Changes"}
+                {isSaving ? "Saving..." : mode === "create" ? "Create Theme" : "Save"}
               </Button>
             </div>
           </FieldGroup>

@@ -19,7 +19,6 @@ const ExternalApiKeySchema = new mongoose.Schema<IExternalApiKey>(
     publicKey: {
       type: String,
       required: true,
-      index: true,
     },
     secretKeyHash: {
       type: String,

@@ -181,7 +181,7 @@ export const domainRouter = router({
         await ensureUniqueCustomDomain(input.data.customDomain, input.id);
       }
 
-      await DomainManager.removeFromCache(existing.toObject());
+      await DomainManager.removeFromCache(existing.toJSON() as any);
 
       if (input.data.siteInfo) {
         if (!existing.siteInfo) {
@@ -195,7 +195,7 @@ export const domainRouter = router({
         (existing as any)[key] = (input.data as any)[key];
       });
 
-      await DomainManager.removeFromCache(existing.toObject());
+      await DomainManager.removeFromCache(existing.toJSON() as any);
       const saved = await existing.save();
 
       return jsonify(saved.toObject());
@@ -210,8 +210,7 @@ export const domainRouter = router({
         throw new NotFoundException("Domain", input.id);
       }
 
-      const deletedObj = existing.toObject();
-      await DomainManager.removeFromCache(deletedObj);
+      await DomainManager.removeFromCache(existing.toJSON() as any);
 
       await DomainModel.deleteOne({ _id: input.id });
 

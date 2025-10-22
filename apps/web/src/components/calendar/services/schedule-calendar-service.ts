@@ -96,16 +96,10 @@ export class ScheduleCalendarService extends CalendarService<
   getColorByEvent(event: ScheduleCalendarEvent): string {
     switch (event.type) {
       case ScheduleTypeEnum.LIVE_SESSION:
-        return "blue";
-      case ScheduleTypeEnum.LESSON:
-        return "indigo";
-      case ScheduleTypeEnum.COURSE:
         return "purple";
       case ScheduleTypeEnum.QUIZ:
         return "green";
       case ScheduleTypeEnum.ASSIGNMENT:
-        return "orange";
-      case ScheduleTypeEnum.EXAM:
         return "red";
       case ScheduleTypeEnum.DEADLINE:
         return "yellow";

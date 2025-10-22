@@ -1,6 +1,5 @@
 "use client";
 
-import { SiteInfo } from "@workspace/common-models";
 import {
   createContext,
   Dispatch,
@@ -12,10 +11,11 @@ import {
 } from "react";
 import { defaultState } from "./default-state";
 import { getGlobalAppClient } from "@/lib/global-client";
+import { ISiteInfo } from "@workspace/common-logic/models/organization.types";
 
 type SiteInfoContextType = {
-  siteInfo: SiteInfo;
-  setSiteInfo: Dispatch<SetStateAction<SiteInfo>>;
+  siteInfo: ISiteInfo;
+  setSiteInfo: Dispatch<SetStateAction<ISiteInfo>>;
 };
 
 const SiteInfoContext = createContext<SiteInfoContextType>({
@@ -28,8 +28,8 @@ const SiteInfoContext = createContext<SiteInfoContextType>({
 export const SiteInfoProvider = ({
   children,
   initialSiteInfo,
-}: PropsWithChildren<{ initialSiteInfo?: SiteInfo }>) => {
-  const [siteInfo, setSiteInfo] = useState<SiteInfo>(
+}: PropsWithChildren<{ initialSiteInfo?:  ISiteInfo }>) => {
+  const [siteInfo, setSiteInfo] = useState<ISiteInfo>(
     initialSiteInfo || defaultState.siteinfo,
   );
 

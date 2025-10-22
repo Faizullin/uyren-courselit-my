@@ -132,7 +132,7 @@ export default function LessonPage() {
   useEffect(() => {
     if (lesson) {
       const content = lesson.content;
-      setEditorContent(content);
+      setEditorContent(content as unknown as ITextEditorContent);
       form.reset({
         title: lesson.title,
         type: lesson.type,

@@ -14,15 +14,14 @@ import {
   useEffect,
   useState,
 } from "react";
-import { defaultState } from "./default-state";
 
 type ProfileContextType = {
-  profile: IAuthProfile;
-  setProfile: Dispatch<SetStateAction<IAuthProfile>>;
+  profile?: IAuthProfile;
+  setProfile: Dispatch<SetStateAction<IAuthProfile | undefined>>;
 };
 
 export const ProfileContext = createContext<ProfileContextType>({
-  profile: defaultState.profile,
+  profile: undefined,
   setProfile: () => {
     throw new Error("setProfile function not implemented");
   },
@@ -34,7 +33,7 @@ export const ProfileProvider = ({
   // defaultProfile: ProfileType;
 }>) => {
   const session = useSession();
-  const [profile, setProfile] = useState<IAuthProfile>(defaultState.profile);
+  const [profile, setProfile] = useState<IAuthProfile | undefined>(undefined);
   const { toast } = useToast();
 
   const loadUserProfileQuery =

@@ -356,11 +356,8 @@ export const courseRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const course = await getCourseOrThrow({ ctx, courseId: input.id });
-      if (!course.ownerId.equals(ctx.user._id)) {
-        throw new AuthorizationException();
-      }
       const updatedCourse = await CourseModel.findOneAndUpdate(
-        { _id: input.id, orgId: ctx.domainData.domainObj.orgId },
+        { _id: course.id, orgId: ctx.domainData.domainObj.orgId },
         { $set: input.data },
         { new: true },
       );

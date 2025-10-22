@@ -154,7 +154,7 @@ export const siteInfoRouter = router({
         (domain.siteInfo as any)[key] = (input.data as any)[key];
       });
 
-      await DomainManager.removeFromCache(domain);
+      await DomainManager.removeFromCache(domain.toJSON() as any);
       const saved = await domain.save();
 
       return jsonify(saved.toObject().siteInfo);
@@ -176,7 +176,7 @@ export const siteInfoRouter = router({
       domain.siteInfo.currencyISOCode = input.data.currencyISOCode;
       
       const saved = await domain.save();
-      await DomainManager.removeFromCache(domain);
+      await DomainManager.removeFromCache(domain.toJSON() as any);
       return jsonify(saved.toObject().siteInfo);
     }),
 
@@ -209,7 +209,7 @@ export const siteInfoRouter = router({
       }
       
       const saved = await domain.save();
-      await DomainManager.removeFromCache(domain);
+      await DomainManager.removeFromCache(domain.toJSON() as any);
       return jsonify(saved.toObject().siteInfo);
     }),
 });

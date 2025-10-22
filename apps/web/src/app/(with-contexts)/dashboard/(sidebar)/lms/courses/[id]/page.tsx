@@ -1,8 +1,6 @@
 "use client";
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
-import { useActivities } from "@/hooks/use-activities";
-import { ActivityTypeEnum } from "@workspace/common-logic/lib/ui/activity";
 import { trpc } from "@/utils/trpc";
 import { useToast } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
@@ -27,25 +25,25 @@ import { truncate } from "@workspace/utils";
 import {
   BookOpen,
   ChevronDown,
-  DollarSign,
   Eye,
-  GraduationCap,
   Settings,
   Users
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 // import MetricCard from "./_components/metric-card";
 // import SalesCard from "./_components/sales-card";
 import { useCourseContext } from "./_components/course-context";
 
 export default function Page() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const [timeRange, setTimeRange] = useState("7d");
   const { toast } = useToast();
   const { course, isLoading: courseLoading } = useCourseContext();
 
   const breadcrumbs = [
-    { label: "Manage Courses", href: "/dashboard/lms/courses" },
+    { label: t("dashboard:courses.detail.breadcrumb_manage"), href: "/dashboard/lms/courses" },
     {
       label: course ? truncate(course.title || "", 20) || "..." : "...",
       href: "#",
@@ -88,12 +86,12 @@ export default function Page() {
     <DashboardContent breadcrumbs={breadcrumbs}>
       {!course?.published && (
         <div className="bg-red-400 p-2 mb-4 text-sm text-white rounded-md">
-          {course?.published ? "Published" : "Draft"}{" "}
+          {course?.published ? t("dashboard:courses.detail.published") : t("dashboard:courses.detail.draft")}{" "}
           <Link
             href={`/dashboard/lms/courses/${course._id}/manage#publish`}
             className="underline"
           >
-            Manage
+            {t("dashboard:courses.detail.manage_link")}
           </Link>
         </div>
       )}
@@ -108,10 +106,10 @@ export default function Page() {
                 <>
                   <Badge variant="secondary">
                     <BookOpen className="h-4 w-4 mr-1" />
-                    Course
+                    {t("dashboard:courses.detail.badge_course")}
                   </Badge>
                   <Badge variant="outline">
-                    {course.published ? "Published" : "Draft"}
+                    {course.published ? t("dashboard:courses.detail.published") : t("dashboard:courses.detail.draft")}
                   </Badge>
                 </>
               ) : (
@@ -122,7 +120,7 @@ export default function Page() {
           <div className="flex flex-wrap gap-2 items-center">
             <Select value={timeRange} onValueChange={setTimeRange} >
               <SelectTrigger className="w-[140px]" size="sm">
-                <SelectValue placeholder="Select time range" />
+                <SelectValue placeholder={t("dashboard:courses.detail.select_time_range")} />
               </SelectTrigger>
               <SelectContent>
                 {TIME_RANGES.map((range) => (
@@ -134,13 +132,13 @@ export default function Page() {
             </Select>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/dashboard/lms/courses/${course._id}/content`}>
-                Edit Content
+                {t("dashboard:courses.detail.edit_content")}
               </Link>
             </Button>
             <DropdownMenu >
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
-                  Actions
+                  {t("dashboard:courses.detail.actions")}
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -148,20 +146,20 @@ export default function Page() {
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/courses/${course._id}/manage`}>
                     <Settings className="mr-2 h-4 w-4" />
-                    Manage Course
+                    {t("dashboard:courses.detail.manage_course")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
                     <Users className="mr-2 h-4 w-4" />
-                    Cohort Groups
+                    {t("dashboard:courses.detail.cohort_groups")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/courses/${course._id}`}>
                     <Eye className="mr-2 h-4 w-4" />
-                    Preview Course
+                    {t("dashboard:courses.detail.preview_course")}
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -201,10 +199,10 @@ export default function Page() {
 
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Cohort Groups</CardTitle>
+          <CardTitle>{t("dashboard:courses.detail.cohort_groups")}</CardTitle>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
-              View All
+              {t("dashboard:courses.detail.view_all")}
             </Link>
           </Button>
         </CardHeader>
@@ -216,9 +214,9 @@ export default function Page() {
             </div>
           ) : loadCohortsQuery.data?.items.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No cohort groups yet.{" "}
+              {t("dashboard:courses.detail.no_cohorts_yet")}{" "}
               <Link href={`/dashboard/lms/courses/${course._id}/cohorts`} className="text-primary hover:underline">
-                Create one
+                {t("dashboard:courses.detail.create_one")}
               </Link>
             </div>
           ) : (
@@ -234,7 +232,7 @@ export default function Page() {
                     <div className="flex-1">
                       <div className="font-medium">{cohort.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {cohort.instructor?.fullName || "No instructor"}
+                        {cohort.instructor?.fullName || t("dashboard:courses.detail.no_instructor")}
                       </div>
                     </div>
                     <Badge variant="secondary">{cohort.status}</Badge>

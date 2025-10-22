@@ -361,7 +361,7 @@ export default function PaymentPlanList({
                         <SelectTrigger aria-invalid={fieldState.invalid}>
                           <SelectValue placeholder="Select a plan type" />
                         </SelectTrigger>
-                        <SelectContent position="item-aligned">
+                        <SelectContent>
                           {allowedPlanTypes.includes(PaymentPlanTypeEnum.FREE) && (
                             <SelectItem value={PaymentPlanTypeEnum.FREE}>
                               Free

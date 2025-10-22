@@ -1,52 +1,140 @@
 {
   "sidebar": {
-    "overview": "Шолу",
-    "products": "Өнімдер",
+    "instructor_dashboard": "Оқытушы Панелі",
+    "instructor": "Оқытушы",
+    "student_dashboard": "Студент",
+    "my_courses": "Менің Курстарым",
+    "my_assignments": "Менің Тапсырмаларым",
+    "my_schedule": "Менің Кестем",
+    "my_grades": "Менің Бағаларым",
     "lms": "LMS",
-    "communities": "Қауымдастықтар",
+    "admin": "Әкімші",
     "users": "Пайдаланушылар",
+    "tags": "Тегтер",
     "settings": "Баптаулар",
     "studio": "Студия",
-    "my_content": "Менің мазмұным",
-    "my_progress": "Менің прогрессім",
-    "all_users": "Барлық пайдаланушылар",
-    "branding": "Брендинг",
-    "payment": "Төлем",
-    "mails": "Хаттар",
-    "code_injection": "Код енгізу",
-    "api_keys": "API кілттері",
-    "website_settings": "Веб-сайт баптаулары",
-    "schools": "Мектептер"
+    "notifications": "Хабарландырулар",
+    "profile": "Профиль"
   },
-  "overview": {
-    "title": "Қош келдіңіз",
-    "sales": "Сатулар",
-    "customers": "Тұтынушылар",
-    "select_time_range": "Уақыт диапазонын таңдаңыз",
-    "time_ranges": {
-      "1d": "1 күн",
-      "7d": "1 апта",
-      "30d": "30 күн", 
-      "90d": "90 күн",
-      "1y": "1 жыл",
-      "lifetime": "Өмір бойы"
+  "instructor": {
+    "subtitle": "Курстарыңызды басқарыңыз және прогрессті қадағалаңыз",
+    "stats": {
+      "total_courses": "Барлық Курстар",
+      "published": "жарияланған",
+      "total_students": "Барлық Студенттер",
+      "across_all_courses": "Барлық курстарда",
+      "average_rating": "Орташа Рейтинг",
+      "out_of_5": "5.0-ден",
+      "no_ratings_yet": "Әзірге рейтинг жоқ",
+      "drafts": "Жобалар",
+      "need_publishing": "Жариялау қажет"
+    },
+    "my_courses": {
+      "title": "Менің Курстарым",
+      "create_course": "Курс Жасау",
+      "no_courses_title": "Әзірге курстар жоқ",
+      "no_courses_desc": "Бастау үшін алғашқы курсты жасаңыз",
+      "no_description": "Сипаттама жоқ",
+      "published": "Жарияланған",
+      "draft": "Жоба",
+      "chapters": "тараулар",
+      "students": "студенттер",
+      "view_all_courses": "Барлық Курстарды Көру"
+    },
+    "quick_actions": {
+      "title": "Жылдам Әрекеттер",
+      "manage_courses": "Курстарды Басқару",
+      "view_assignments": "Тапсырмаларды Көру",
+      "live_classes": "Тікелей Сабақтар",
+      "master_schedule": "Негізгі Кесте"
+    },
+    "upcoming_events": {
+      "title": "Алдағы Оқиғалар",
+      "no_events": "Алдағы оқиғалар жоқ",
+      "view_full_calendar": "Толық Күнтізбені Көру"
+    }
+  },
+  "courses": {
+    "page": {
+      "filter_level": "Деңгей",
+      "all_levels": "Барлық Деңгейлер",
+      "filter_status": "Күйі",
+      "all_statuses": "Барлық Күйлер",
+      "no_courses": "Курстар табылмады",
+      "no_courses_desc": "Сүзгілерді реттеңіз немесе жаңа курс жасаңыз"
+    },
+    "status": {
+      "beginner": "Бастауыш",
+      "intermediate": "Орта",
+      "advanced": "Жоғары",
+      "in_progress": "Орындалуда",
+      "under_review": "Қарауда",
+      "approved": "Бекітілген"
+    },
+    "form": {
+      "course_title": "Курс Атауы",
+      "title_placeholder": "Курс атауын енгізіңіз",
+      "course_code": "Курс Коды",
+      "course_code_placeholder": "мысалы, CS101, MATH201",
+      "level": "Деңгей",
+      "level_placeholder": "Курс деңгейін таңдаңыз",
+      "language": "Тіл",
+      "language_placeholder": "Тілді таңдаңыз",
+      "create_course": "Курс Жасау",
+      "create_new_course": "Жаңа Курс Жасау"
+    },
+    "validation": {
+      "title_required": "Атау міндетті",
+      "title_max": "Атау 255 таңбадан аз болуы керек",
+      "course_code_required": "Курс коды міндетті",
+      "course_code_max": "Курс коды 50 таңбадан аз болуы керек",
+      "language_required": "Тіл міндетті"
+    },
+    "detail": {
+      "breadcrumb_manage": "Курстарды Басқару",
+      "badge_course": "Курс",
+      "published": "Жарияланған",
+      "draft": "Жоба",
+      "manage_link": "Басқару",
+      "select_time_range": "Уақыт диапазонын таңдаңыз",
+      "edit_content": "Мазмұнды Өңдеу",
+      "actions": "Әрекеттер",
+      "manage_course": "Курсты Басқару",
+      "cohort_groups": "Когорт Топтары",
+      "preview_course": "Курсты Алдын-ала Көру",
+      "view_all": "Барлығын Көру",
+      "no_cohorts_yet": "Әзірге когорт топтары жоқ.",
+      "create_one": "Жасау",
+      "no_instructor": "Оқытушы жоқ"
     }
   },
   "lms": {
     "title": "Оқытуды басқару жүйесі",
     "subtitle": "Білім беру мазмұныңызды, бағалауларды және студенттердің прогрессін басқарыңыз",
     "modules": {
+      "courses": {
+        "title": "Курстар",
+        "description": "Курстарыңызды жасаңыз және басқарыңыз"
+      },
+      "cohorts": {
+        "title": "Когорттар",
+        "description": "Студенттерді топтарға және когорттарға ұйымдастырыңыз"
+      },
       "quizzes": {
         "title": "Викториналар",
         "description": "Студенттердің білімін тексеру үшін интерактивті викториналар жасаңыз және басқарыңыз"
       },
-      "reviews": {
-        "title": "Пікірлер",
-        "description": "Өнімдеріңіз және курстарыңыз үшін тұтынушылардың пікірлері мен рекомендацияларын басқарыңыз"
-      },
       "assignments": {
         "title": "Тапсырмалар",
         "description": "Студенттердің прогрессін құрылымдық тапсырмалар мен жіберулер арқылы бақылаңыз"
+      },
+      "live_classes": {
+        "title": "Тікелей Сабақтар",
+        "description": "Тікелей виртуалды сабақтарды жоспарлаңыз және басқарыңыз"
+      },
+      "reviews": {
+        "title": "Пікірлер",
+        "description": "Өнімдеріңіз және курстарыңыз үшін тұтынушылардың пікірлері мен рекомендацияларын басқарыңыз"
       },
       "themes": {
         "title": "Тақырыптар",
@@ -69,7 +157,6 @@
   "my_progress": {
     "title": "Менің прогрессім",
     "subtitle": "Оқу прогрессіңізді және жетістіктеріңізді бақылаңыз",
-    "overview": "Шолу",
     "courses": "Курстар",
     "assignments": "Тапсырмалар",
     "quizzes": "Викториналар",
@@ -257,5 +344,8 @@
     "avatar_reset": "Аватар Қалпына Келтірілді",
     "avatar_reset_desc": "Профиль суреті Firebase-тен қалпына келтірілді",
     "reset_picture_error": "Firebase-тен суретті қалпына келтіру сәтсіз"
+  },
+  "create_button": {
+    "new": "Жаңа"
   }
 }

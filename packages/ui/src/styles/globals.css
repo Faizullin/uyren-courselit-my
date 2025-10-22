@@ -6,7 +6,6 @@
 /* forpackages.componet-library */
 @source "../../../components-library/src/**/*.{ts,tsx}";
 
-
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -45,7 +44,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  
+
   /* Brand Colors */
   --brand-primary: 241 81 27; /* #f1511b */
   --brand-primary-hover: 230 74 25; /* #e64a19 */
@@ -89,7 +88,6 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
-  
 
   --brand-primary: 255 138 101; /* Lighter, more muted orange for dark mode */
   --brand-primary-hover: 255 152 120; /* Lighter hover state */
@@ -136,7 +134,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
+
   /* Brand Colors */
   --color-brand-primary: rgb(var(--brand-primary));
   --color-brand-primary-hover: rgb(var(--brand-primary-hover));

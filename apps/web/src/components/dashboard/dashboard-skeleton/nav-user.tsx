@@ -32,7 +32,7 @@ export function NavUser() {
   const transformedData = useMemo(() => {
     if (!profile) return null;
 
-    const alias = profile.name
+    const alias = profile.username
       ?.split(" ")
       .slice(0, 2)
       .map((x) => x[0]?.toUpperCase())
@@ -43,7 +43,7 @@ export function NavUser() {
     return {
       alias,
       avatar,
-      name: profile.name,
+      name: profile.username,
       email: profile.email,
     };
   }, [profile]);

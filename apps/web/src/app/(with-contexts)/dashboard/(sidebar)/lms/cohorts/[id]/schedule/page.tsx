@@ -43,123 +43,123 @@ export default function CohortSchedulePage() {
   }, [profile]);
 
   // Create service instance with tRPC functions
-  const calendarService = useMemo(() => {
-    return new ScheduleCalendarService({
-      cohortId: cohortId,
-      allowEdit: canManageSchedule,
-      allowDelete: canManageSchedule,
-      allowCreate: canManageSchedule,
-      weekStartsOn: 1, // Monday
+  // const calendarService = useMemo(() => {
+  //   return new ScheduleCalendarService({
+  //     cohortId: cohortId,
+  //     allowEdit: canManageSchedule,
+  //     allowDelete: canManageSchedule,
+  //     allowCreate: canManageSchedule,
+  //     weekStartsOn: 1, // Monday
       
-      // Inject tRPC functions
-      fetchEvents: async (filters) => {
-        const result = await trpcUtils.lmsModule.cohortModule.cohort.getSchedule.fetch({
-          cohortId: filters.cohortId!,
-          startDate: filters.startDate.toISOString(),
-          endDate: filters.endDate.toISOString(),
-        });
+  //     // Inject tRPC functions
+  //     fetchEvents: async (filters) => {
+  //       const result = await trpcUtils.lmsModule.cohortModule.cohort.getSchedule.fetch({
+  //         cohortId: filters.cohortId!,
+  //         startDate: filters.startDate.toISOString(),
+  //         endDate: filters.endDate.toISOString(),
+  //       });
 
-        // Transform backend data to CalendarEvent format
-        return result.map((event) => ({
-          id: event._id,
-          title: event.title,
-          start: new Date(event.startDate),
-          end: new Date(event.endDate),
-          color: '', // Will be set by service.getColorByEvent()
-          type: event.type,
-          allDay: event.allDay,
-          instructor: event.instructor ? {
-            _id: event.instructor._id,
-            fullName: event.instructor.fullName || 'Unknown Instructor'
-          } : undefined,
-          location: event.location ? {
-            name: event.location.name,
-            online: event.location.online || false,
-            meetingUrl: event.location.meetingUrl,
-          } : undefined,
-          description: event.description,
-          status: event.status,
-        }));
-      },
+  //       // Transform backend data to CalendarEvent format
+  //       return result.map((event) => ({
+  //         id: event._id,
+  //         title: event.title,
+  //         start: new Date(event.startDate),
+  //         end: new Date(event.endDate),
+  //         color: '', // Will be set by service.getColorByEvent()
+  //         type: event.type,
+  //         allDay: event.allDay,
+  //         instructor: event.instructor ? {
+  //           _id: event.instructor._id,
+  //           fullName: event.instructor.fullName || 'Unknown Instructor'
+  //         } : undefined,
+  //         location: event.location ? {
+  //           name: event.location.name,
+  //           online: event.location.online || false,
+  //           meetingUrl: event.location.meetingUrl,
+  //         } : undefined,
+  //         description: event.description,
+  //         status: event.status,
+  //       }));
+  //     },
 
-      createEventFn: async (data) => {
-        const result = await trpcUtils.client.lmsModule.schedule.create.mutate({
-          data: {
-            ...data,
-            entityType: "cohort",
-            entityId: cohortId,
-            cohortId: cohortId,
-          },
-        });
+  //     createEventFn: async (data) => {
+  //       const result = await trpcUtils.client.lmsModule.schedule.create.mutate({
+  //         data: {
+  //           ...data,
+  //           entityType: "cohort",
+  //           entityId: cohortId,
+  //           cohortId: cohortId,
+  //         },
+  //       });
 
-        return {
-          id: result._id,
-          title: result.title,
-          start: new Date(result.startDate),
-          end: new Date(result.endDate),
-          color: '',
-          type: result.type,
-        };
-      },
+  //       return {
+  //         id: result._id,
+  //         title: result.title,
+  //         start: new Date(result.startDate),
+  //         end: new Date(result.endDate),
+  //         color: '',
+  //         type: result.type,
+  //       };
+  //     },
 
-      updateEventFn: async (id, data) => {
-        const result = await trpcUtils.client.lmsModule.schedule.update.mutate({
-          id,
-          data,
-        });
+  //     updateEventFn: async (id, data) => {
+  //       const result = await trpcUtils.client.lmsModule.schedule.update.mutate({
+  //         id,
+  //         data,
+  //       });
 
-        return {
-          id: result._id,
-          title: result.title,
-          start: new Date(result.startDate),
-          end: new Date(result.endDate),
-          color: '',
-          type: result.type,
-        };
-      },
+  //       return {
+  //         id: result._id,
+  //         title: result.title,
+  //         start: new Date(result.startDate),
+  //         end: new Date(result.endDate),
+  //         color: '',
+  //         type: result.type,
+  //       };
+  //     },
 
-      deleteEventFn: async (id) => {
-        await trpcUtils.client.lmsModule.schedule.delete.mutate({ id });
-      },
+  //     deleteEventFn: async (id) => {
+  //       await trpcUtils.client.lmsModule.schedule.delete.mutate({ id });
+  //     },
 
-      getEventByIdFn: async (id) => {
-        const result = await trpcUtils.lmsModule.schedule.getById.fetch({ id });
+  //     getEventByIdFn: async (id) => {
+  //       const result = await trpcUtils.lmsModule.schedule.getById.fetch({ id });
         
-        return {
-          id: result._id,
-          title: result.title,
-          start: new Date(result.startDate),
-          end: new Date(result.endDate),
-          color: '',
-          type: result.type,
-          allDay: result.allDay,
-          instructor: result.instructor ? {
-            _id: result.instructor._id,
-            fullName: result.instructor.fullName || 'Unknown Instructor'
-          } : undefined,
-          instructorId: result.instructorId?.toString(),
-          cohortId: result.cohortId?.toString(),
-          location: result.location ? {
-            name: result.location.name || '',
-            online: result.location.online ?? false,
-            meetingUrl: result.location.meetingUrl,
-          } : undefined,
-          recurrence: result.recurrence ? {
-            type: result.recurrence.type,
-            interval: result.recurrence.interval,
-            daysOfWeek: result.recurrence.daysOfWeek,
-            endDate: result.recurrence.endDate,
-          } : undefined,
-          reminders: result.reminders ? {
-            enabled: result.reminders.enabled,
-            minutesBefore: result.reminders.minutesBefore,
-          } : undefined,
-          description: result.description,
-          status: result.status,
-        };
-      },
-    });
-  }, [cohortId, canManageSchedule, trpcUtils]);
+  //       return {
+  //         id: result._id,
+  //         title: result.title,
+  //         start: new Date(result.startDate),
+  //         end: new Date(result.endDate),
+  //         color: '',
+  //         type: result.type,
+  //         allDay: result.allDay,
+  //         instructor: result.instructor ? {
+  //           _id: result.instructor._id,
+  //           fullName: result.instructor.fullName || 'Unknown Instructor'
+  //         } : undefined,
+  //         instructorId: result.instructorId?.toString(),
+  //         cohortId: result.cohortId?.toString(),
+  //         location: result.location ? {
+  //           name: result.location.name || '',
+  //           online: result.location.online ?? false,
+  //           meetingUrl: result.location.meetingUrl,
+  //         } : undefined,
+  //         recurrence: result.recurrence ? {
+  //           type: result.recurrence.type,
+  //           interval: result.recurrence.interval,
+  //           daysOfWeek: result.recurrence.daysOfWeek,
+  //           endDate: result.recurrence.endDate,
+  //         } : undefined,
+  //         reminders: result.reminders ? {
+  //           enabled: result.reminders.enabled,
+  //           minutesBefore: result.reminders.minutesBefore,
+  //         } : undefined,
+  //         description: result.description,
+  //         status: result.status,
+  //       };
+  //     },
+  //   });
+  // }, [cohortId, canManageSchedule, trpcUtils]);
 
   if (cohortQuery.isLoading) {
     return (

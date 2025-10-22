@@ -1,3 +1,5 @@
+"use client";
+
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
 import { useTranslation } from "react-i18next";

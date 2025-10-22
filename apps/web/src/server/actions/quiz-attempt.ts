@@ -1,26 +1,21 @@
 "use server";
 
-import { authOptions } from "@/lib/auth/options";
 import {
-  AuthenticationException,
   ConflictException,
   NotFoundException,
-  ValidationException,
+  ValidationException
 } from "@/server/api/core/exceptions";
 import { QuestionProviderFactory } from "@/server/api/routers/lms/question-bank/_providers";
-import { getDomainData } from "@/server/lib/domain";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { IQuizHydratedDocument, IQuizQuestionHydratedDocument, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz.model";
 import { IQuizAttemptHydratedDocument, QuizAttemptModel } from "@workspace/common-logic/models/lms/quiz-attempt.model";
-import { UserModel } from "@workspace/common-logic/models/user.model";
+import { QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt.types";
+import { IQuizHydratedDocument, IQuizQuestionHydratedDocument, QuizModel, QuizQuestionModel } from "@workspace/common-logic/models/lms/quiz.model";
+import { QuestionTypeEnum } from "@workspace/common-logic/models/lms/quiz.types";
 import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth";
-import { MainContextType } from "../api/core/procedures";
-import { QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt.types";
-import { QuestionTypeEnum } from "@workspace/common-logic/models/lms/quiz.types";
+import { ActionContext, getActionContext } from "../api/core/actions";
 
 // Use types from QuizAttempt model
 type AnswerSubmission = Pick<
@@ -40,35 +35,8 @@ interface QuizSubmissionResult {
   redirectUrl?: string;
 }
 
-// Core functions
-async function getActionContext(): Promise<MainContextType> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    throw new AuthenticationException("User not authenticated");
-  }
-
-  const user = await UserModel.findById(session.user.id);
-  if (!user) {
-    throw new AuthenticationException("User not found");
-  }
-
-  const domainData = await getDomainData();
-  if (!domainData.domainObj) {
-    throw new NotFoundException("Domain");
-  }
-
-  return {
-    session,
-    user,
-    domainData: {
-      ...domainData,
-      domainObj: domainData.domainObj! as any,
-    },
-  };
-}
-
 // Helper functions
-async function validateAttempt(attemptId: string, ctx: MainContextType) {
+async function validateAttempt(attemptId: string, ctx: ActionContext) {
   const attempt = await QuizAttemptModel.findOne({
     _id: attemptId,
     userId: ctx.user._id,

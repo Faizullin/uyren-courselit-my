@@ -14,6 +14,7 @@ import { z } from "zod";
 import { getActionContext as getDefaultActionContext } from "@/server/api/core/actions";
 import { AuthorizationException } from "@/server/api/core/exceptions";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { GrantApplicationModel } from "@workspace/common-logic/models/lms/grant-application.model";
 
 const MODEL_REGISTRY = {
     users: UserModel,
@@ -25,6 +26,7 @@ const MODEL_REGISTRY = {
     domains: DomainModel,
     activities: ActivityModel,
     enrollments: EnrollmentModel,
+    grantApplications: GrantApplicationModel,        
 } as const;
 
 type ModelKey = keyof typeof MODEL_REGISTRY;

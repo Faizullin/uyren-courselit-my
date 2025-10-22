@@ -199,7 +199,6 @@ export const lessonRouter = router({
       course.statsLessonCount = await LessonModel.countDocuments({
         courseId: course._id,
         orgId: ctx.domainData.domainObj.orgId,
-        published: true,
       });
 
       return jsonify(lesson.toObject());
@@ -237,7 +236,6 @@ export const lessonRouter = router({
       course.statsLessonCount = await LessonModel.countDocuments({
         courseId: course._id,
         orgId: ctx.domainData.domainObj.orgId,
-        published: true,
       });
       await course.save();
       return jsonify(savedLesson.toObject());
@@ -274,7 +272,6 @@ export const lessonRouter = router({
       course.statsLessonCount = await LessonModel.countDocuments({
         courseId: course._id,
         orgId: ctx.domainData.domainObj.orgId,
-        published: true,
       });
       await course.save();
 
@@ -309,7 +306,6 @@ export const lessonRouter = router({
         _id: input.lessonId,
         courseId: input.courseId,
         orgId: ctx.domainData.domainObj.orgId,
-        published: true,
       }).lean();
 
       if (!lesson) {
@@ -358,7 +354,6 @@ export const lessonRouter = router({
       if (currentIndex > 0) {
         const prevLessonDoc = await LessonModel.findOne({
           _id: allLessonIds[currentIndex - 1],
-          published: true,
         })
           .select("_id title")
           .lean();
@@ -370,7 +365,6 @@ export const lessonRouter = router({
       if (currentIndex < allLessonIds.length - 1) {
         const nextLessonDoc = await LessonModel.findOne({
           _id: allLessonIds[currentIndex + 1],
-          published: true,
         })
           .select("_id title")
           .lean();

@@ -309,7 +309,7 @@ export default function Page() {
               className="gap-2"
             >
               <Save className="h-4 w-4" />
-              {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+              {updateUserMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </div>
         )}

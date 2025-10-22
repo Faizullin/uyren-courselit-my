@@ -242,11 +242,11 @@ export function NotificationsViewer() {
                   <p className="text-xs text-muted-foreground">
                     {notification.message}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  {/* <p className="text-xs text-muted-foreground mt-1">
                     {formatDistanceToNow(new Date(notification.createdAt), {
                       addSuffix: true,
                     })}
-                  </p>
+                  </p> */}
                 </div>
               ))
             )}

@@ -702,7 +702,7 @@ function QuestionEditor({
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent position="item-aligned">
+                    <SelectContent>
                       <SelectItem value={QuestionTypeEnum.MULTIPLE_CHOICE}>
                         <div className="flex items-center gap-2">
                           {getQuestionTypeIcon(QuestionTypeEnum.MULTIPLE_CHOICE)}
