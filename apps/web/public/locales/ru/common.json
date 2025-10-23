@@ -70,5 +70,40 @@
     "documentation": "Документация",
     "feedback": "Обратная связь",
     "report_bug": "Сообщить об ошибке",
-    "feature_request": "Запрос функции"
+    "feature_request": "Запрос функции",
+    "saving": "Сохранение...",
+    "remove": "Удалить",
+    "add": "Добавить",
+    "create": "Создать",
+    "update": "Обновить",
+    "submit": "Отправить",
+    "actions": "Действия",
+    "description": "Описание",
+    "status": "Статус",
+    "enabled": "Включено",
+    "disabled": "Отключено",
+    "required": "Обязательно",
+    "optional": "Необязательно",
+    "unlimited": "Неограниченно",
+    "points": "Баллы",
+    "score": "Оценка",
+    "not_set": "Не установлено",
+    "unknown_student": "Неизвестный студент",
+    "attempt": "Попытка",
+    "toast": {
+        "created_successfully": "{{item}} успешно создан",
+        "updated_successfully": "{{item}} успешно обновлен",
+        "deleted_successfully": "{{item}} успешно удален",
+        "upload_error": "Не удалось загрузить {{item}}",
+        "remove_error": "Не удалось удалить {{item}}",
+        "uploaded_successfully": "{{item}} успешно загружен",
+        "removed_successfully": "{{item}} успешно удален",
+        "not_found": "{{item}} не найден",
+        "save_before_upload": "Пожалуйста, сохраните {{item}} перед загрузкой вложений"
+    },
+    "dialog": {
+        "delete_confirm": "Вы уверены, что хотите удалить этот элемент? Это действие нельзя отменить.",
+        "confirm": "Подтвердить",
+        "are_you_sure": "Вы уверены?"
+    }
 }

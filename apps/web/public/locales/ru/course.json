@@ -1,0 +1,114 @@
+{
+  "list": {
+    "title": "Курсы",
+    "breadcrumb": "Курсы",
+    "filter_level": "Уровень",
+    "all_levels": "Все уровни",
+    "filter_status": "Статус",
+    "all_statuses": "Все статусы",
+    "no_courses": "Курсы не найдены",
+    "no_courses_desc": "Попробуйте изменить фильтры или создать новый курс"
+  },
+  "level": {
+    "beginner": "Начальный",
+    "intermediate": "Средний",
+    "advanced": "Продвинутый"
+  },
+  "status": {
+    "in_progress": "В процессе",
+    "under_review": "На проверке",
+    "approved": "Одобрено",
+    "published": "Опубликовано",
+    "draft": "Черновик"
+  },
+  "form": {
+    "create_title": "Создать новый курс",
+    "course_title": "Название курса",
+    "title_placeholder": "Введите название курса",
+    "course_code": "Код курса",
+    "course_code_placeholder": "например, CS101, MATH201",
+    "level": "Уровень",
+    "level_placeholder": "Выберите уровень курса",
+    "language": "Язык",
+    "language_placeholder": "Выберите язык",
+    "create_button": "Создать курс"
+  },
+  "validation": {
+    "title_required": "Название обязательно",
+    "title_max": "Название должно быть менее 255 символов",
+    "course_code_required": "Код курса обязателен",
+    "course_code_max": "Код курса должен быть менее 50 символов",
+    "language_required": "Язык обязателен"
+  },
+  "detail": {
+    "breadcrumb_courses": "Управление курсами",
+    "badge_course": "Курс",
+    "draft_notice": "Этот курс находится в режиме черновика.",
+    "manage_link": "Управление",
+    "select_time_range": "Выберите временной диапазон",
+    "edit_content": "Редактировать контент",
+    "actions": "Действия",
+    "manage_course": "Управление курсом",
+    "cohort_groups": "Группы когорт",
+    "preview_course": "Предпросмотр курса",
+    "view_all": "Посмотреть все",
+    "no_cohorts_yet": "Пока нет групп когорт.",
+    "create_one": "Создать",
+    "no_instructor": "Нет инструктора"
+  },
+  "card": {
+    "sales": "продажи",
+    "students": "студенты",
+    "chapters": "главы",
+    "no_description": "Нет описания"
+  },
+  "toast": {
+    "created": "Курс успешно создан",
+    "updated": "Курс успешно обновлен",
+    "deleted": "Курс успешно удален"
+  },
+  "manage": {
+    "breadcrumb_courses": "Курсы",
+    "breadcrumb_manage": "Управление",
+    "not_found": "Курс не найден",
+    "loading": "Загрузка..."
+  },
+  "cohorts": {
+    "breadcrumb_courses": "Курсы",
+    "breadcrumb_cohorts": "Когорты",
+    "title": "Группы когорт",
+    "subtitle": "Управление группами когорт для {{courseName}}",
+    "add_cohort": "Добавить когорту",
+    "not_found": "Курс не найден",
+    "search_placeholder": "Поиск когорт...",
+    "filter_status": "Фильтр по статусу",
+    "all_statuses": "Все статусы",
+    "stats": {
+      "total_cohorts": "Всего когорт",
+      "active_cohorts": "Активные когорты",
+      "total_capacity": "Общая вместимость"
+    },
+    "table": {
+      "title": "Название",
+      "instructor": "Инструктор",
+      "status": "Статус",
+      "start_date": "Дата начала",
+      "end_date": "Дата окончания",
+      "capacity": "Вместимость",
+      "actions": "Действия",
+      "unlimited": "Неограниченно",
+      "no_instructor": "-"
+    },
+    "actions": {
+      "view_details": "Просмотр деталей",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "open_menu": "Открыть меню"
+    },
+    "delete_dialog": {
+      "title": "Удалить когорту",
+      "message": "Вы уверены, что хотите удалить \"{{name}}\"?"
+    }
+  }
+}
+

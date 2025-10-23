@@ -70,5 +70,40 @@
   "documentation": "Құжаттама",
   "feedback": "Кері байланыс",
   "report_bug": "Қатені хабарлау",
-  "feature_request": "Мүмкіндік сұрауы"
+  "feature_request": "Мүмкіндік сұрауы",
+  "saving": "Сақталуда...",
+  "remove": "Жою",
+  "add": "Қосу",
+  "create": "Жасау",
+  "update": "Жаңарту",
+  "submit": "Жіберу",
+  "actions": "Әрекеттер",
+  "description": "Сипаттама",
+  "status": "Күйі",
+  "enabled": "Қосулы",
+  "disabled": "Өшірулі",
+  "required": "Міндетті",
+  "optional": "Міндетті емес",
+  "unlimited": "Шектеусіз",
+  "points": "Ұпайлар",
+  "score": "Баға",
+  "not_set": "Орнатылмаған",
+  "unknown_student": "Белгісіз студент",
+  "attempt": "Әрекет",
+  "toast": {
+      "created_successfully": "{{item}} сәтті жасалды",
+      "updated_successfully": "{{item}} сәтті жаңартылды",
+      "deleted_successfully": "{{item}} сәтті жойылды",
+      "upload_error": "{{item}} жүктеу сәтсіз аяқталды",
+      "remove_error": "{{item}} жою сәтсіз аяқталды",
+      "uploaded_successfully": "{{item}} сәтті жүктелді",
+      "removed_successfully": "{{item}} сәтті жойылды",
+      "not_found": "{{item}} табылмады",
+      "save_before_upload": "Қоса тіркемелерді жүктеу алдында {{item}} сақтаңыз"
+  },
+  "dialog": {
+      "delete_confirm": "Бұл элементті жойғыңыз келетініне сенімдісіз бе? Бұл әрекетті болдырмауға болмайды.",
+      "confirm": "Растау",
+      "are_you_sure": "Сенімдісіз бе?"
+  }
 }

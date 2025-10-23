@@ -26,6 +26,18 @@
     "error_loading_title": "Loading Error",
     "error_loading_description": "Failed to load the requested content.",
     "error_validation_title": "Validation Error",
-    "error_validation_description": "Please check your input and try again."
+    "error_validation_description": "Please check your input and try again.",
+    "auth": {
+        "invalid_email": "Invalid email address",
+        "user_not_found": "Account not found",
+        "wrong_password": "Incorrect password",
+        "invalid_credential": "Invalid credentials",
+        "email_already_in_use": "Email already in use",
+        "weak_password": "Password too weak",
+        "too_many_requests": "Too many attempts",
+        "network_error": "Network error",
+        "popup_blocked": "Popup blocked",
+        "unknown": "Authentication failed"
+    }
 }
 

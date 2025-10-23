@@ -26,7 +26,7 @@ export default function SignInForm() {
   const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
   const firebaseAuth = useFirebaseAuth();
   const router = useRouter();
-  const { t } = useTranslation("validation");
+  const { t } = useTranslation("auth");
 
   const isFormValid = formData.email.trim() && formData.password.trim();
 
@@ -81,7 +81,7 @@ export default function SignInForm() {
           {/* Compact Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {t("auth.signin.welcome_back")}
+              {t("signin.welcome_back")}
             </h1>
           </div>
 
@@ -89,7 +89,7 @@ export default function SignInForm() {
           <Card className="w-full shadow-lg border border-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-center">
-                {t("auth.signin.card_title")}
+                {t("signin.card_title")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -123,7 +123,7 @@ export default function SignInForm() {
                     />
                   </svg>
                 )}
-                {firebaseAuth.isPending ? t("auth.signin.google_signing_in") : t("auth.signin.google_signin")}
+                {firebaseAuth.isPending ? t("signin.google_signing_in") : t("signin.google_signin")}
               </Button>
 
               <div className="relative">
@@ -132,7 +132,7 @@ export default function SignInForm() {
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-background px-2 text-muted-foreground">
-                    {t("auth.signin.or_continue")}
+                    {t("signin.or_continue")}
                   </span>
                 </div>
               </div>
@@ -151,7 +151,7 @@ export default function SignInForm() {
                     htmlFor="email"
                     className="text-xs font-medium text-foreground mb-1 block"
                   >
-                    {t("auth.signin.email_label")}
+                    {t("signin.email_label")}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -163,7 +163,7 @@ export default function SignInForm() {
                         setFormData({ ...formData, email: e.target.value })
                       }
                       className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-background text-foreground"
-                      placeholder={t("auth.signin.email_placeholder")}
+                      placeholder={t("signin.email_placeholder")}
                       required
                     />
                   </div>
@@ -174,7 +174,7 @@ export default function SignInForm() {
                     htmlFor="password"
                     className="text-xs font-medium text-foreground mb-1 block"
                   >
-                    {t("auth.signin.password_label")}
+                    {t("signin.password_label")}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -186,7 +186,7 @@ export default function SignInForm() {
                         setFormData({ ...formData, password: e.target.value })
                       }
                       className="w-full pl-8 pr-9 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-background text-foreground"
-                      placeholder={t("auth.signin.password_placeholder")}
+                      placeholder={t("signin.password_placeholder")}
                       required
                     />
                     <button
@@ -203,6 +203,15 @@ export default function SignInForm() {
                   </div>
                 </div>
 
+                <div className="text-right">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs text-brand-primary hover:text-brand-primary-hover font-medium"
+                  >
+                    {t("signin.forgot_password_link")}
+                  </Link>
+                </div>
+
                 <Button
                   type="submit"
                   size="sm"
@@ -212,27 +221,27 @@ export default function SignInForm() {
                   {isEmailSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      {t("auth.signin.signing_in")}
+                      {t("signin.signing_in")}
                     </>
                   ) : (
-                    t("auth.signin.signin_button")
+                    t("signin.signin_button")
                   )}
                 </Button>
               </form>
 
               {/* Sign Up Link */}
               <div className="text-center text-xs text-muted-foreground">
-                {t("auth.signin.no_account")}{" "}
+                {t("signin.no_account")}{" "}
                 <Link
                   href="/auth/sign-up"
                   className="text-brand-primary hover:text-brand-primary-hover font-medium"
                 >
-                  {t("auth.signin.signup_link")}
+                  {t("signin.signup_link")}
                 </Link>
               </div>
 
               <div className="text-center text-xs text-muted-foreground leading-relaxed">
-                {t("auth.signin.terms_text")}
+                {t("signin.terms_text")}
               </div>
             </CardContent>
           </Card>

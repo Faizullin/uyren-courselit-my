@@ -129,7 +129,6 @@ export default function GeneralSettings() {
           type="domain"
           strings={{
             buttonCaption: "Upload Image",
-            removeButtonCaption: "Remove",
           }}
           disabled={isDisabled}
           functions={{

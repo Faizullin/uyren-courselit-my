@@ -9,12 +9,15 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Button } from "@workspace/ui/components/button";
+import { useTranslation } from "react-i18next";
 import NiceModal, { NiceModalHocProps } from "./nice-modal";
 
 interface DeleteConfirmDialogProps<T = any> extends NiceModalHocProps {
   title?: string;
   message?: string;
   data?: T;
+  confirmText?: string;
+  cancelText?: string;
 }
 
 export const DeleteConfirmNiceDialog = NiceModal.create<
@@ -22,11 +25,14 @@ export const DeleteConfirmNiceDialog = NiceModal.create<
   { reason: "cancel"; data: null } | { reason: "confirm"; data: any }
 >(
   ({
-    title = "Delete Item",
-    message = "Are you sure you want to delete this item? This action cannot be undone.",
+    title,
+    message,
     data,
+    confirmText,
+    cancelText,
   }) => {
     const { visible, hide, resolve } = NiceModal.useModal();
+    const { t } = useTranslation(["common"]);
 
     const handleClose = () => {
       resolve({ reason: "cancel", data: null });
@@ -49,15 +55,15 @@ export const DeleteConfirmNiceDialog = NiceModal.create<
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            <DialogDescription>{message}</DialogDescription>
+            <DialogTitle>{title || t("common:delete")}</DialogTitle>
+            <DialogDescription>{message || t("common:dialog.delete_confirm")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {cancelText || t("common:cancel")}
             </Button>
             <Button variant="destructive" onClick={handleConfirm}>
-              Delete
+              {confirmText || t("common:delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

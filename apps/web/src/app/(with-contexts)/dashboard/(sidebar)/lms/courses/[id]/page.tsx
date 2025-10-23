@@ -37,13 +37,13 @@ import { useTranslation } from "react-i18next";
 import { useCourseContext } from "./_components/course-context";
 
 export default function Page() {
-  const { t } = useTranslation(["dashboard", "common"]);
+  const { t } = useTranslation(["course", "dashboard", "common"]);
   const [timeRange, setTimeRange] = useState("7d");
   const { toast } = useToast();
   const { course, isLoading: courseLoading } = useCourseContext();
 
   const breadcrumbs = [
-    { label: t("dashboard:courses.detail.breadcrumb_manage"), href: "/dashboard/lms/courses" },
+    { label: t("course:detail.breadcrumb_courses"), href: "/dashboard/lms/courses" },
     {
       label: course ? truncate(course.title || "", 20) || "..." : "...",
       href: "#",
@@ -86,12 +86,12 @@ export default function Page() {
     <DashboardContent breadcrumbs={breadcrumbs}>
       {!course?.published && (
         <div className="bg-red-400 p-2 mb-4 text-sm text-white rounded-md">
-          {course?.published ? t("dashboard:courses.detail.published") : t("dashboard:courses.detail.draft")}{" "}
+          {t("course:detail.draft_notice")}{" "}
           <Link
             href={`/dashboard/lms/courses/${course._id}/manage#publish`}
             className="underline"
           >
-            {t("dashboard:courses.detail.manage_link")}
+            {t("course:detail.manage_link")}
           </Link>
         </div>
       )}
@@ -106,10 +106,10 @@ export default function Page() {
                 <>
                   <Badge variant="secondary">
                     <BookOpen className="h-4 w-4 mr-1" />
-                    {t("dashboard:courses.detail.badge_course")}
+                    {t("course:detail.badge_course")}
                   </Badge>
                   <Badge variant="outline">
-                    {course.published ? t("dashboard:courses.detail.published") : t("dashboard:courses.detail.draft")}
+                    {course.published ? t("course:status.published") : t("course:status.draft")}
                   </Badge>
                 </>
               ) : (
@@ -120,7 +120,7 @@ export default function Page() {
           <div className="flex flex-wrap gap-2 items-center">
             <Select value={timeRange} onValueChange={setTimeRange} >
               <SelectTrigger className="w-[140px]" size="sm">
-                <SelectValue placeholder={t("dashboard:courses.detail.select_time_range")} />
+                <SelectValue placeholder={t("course:detail.select_time_range")} />
               </SelectTrigger>
               <SelectContent>
                 {TIME_RANGES.map((range) => (
@@ -132,13 +132,13 @@ export default function Page() {
             </Select>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/dashboard/lms/courses/${course._id}/content`}>
-                {t("dashboard:courses.detail.edit_content")}
+                {t("course:detail.edit_content")}
               </Link>
             </Button>
             <DropdownMenu >
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
-                  {t("dashboard:courses.detail.actions")}
+                  {t("course:detail.actions")}
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -146,20 +146,20 @@ export default function Page() {
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/courses/${course._id}/manage`}>
                     <Settings className="mr-2 h-4 w-4" />
-                    {t("dashboard:courses.detail.manage_course")}
+                    {t("course:detail.manage_course")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
                     <Users className="mr-2 h-4 w-4" />
-                    {t("dashboard:courses.detail.cohort_groups")}
+                    {t("course:detail.cohort_groups")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/courses/${course._id}`}>
                     <Eye className="mr-2 h-4 w-4" />
-                    {t("dashboard:courses.detail.preview_course")}
+                    {t("course:detail.preview_course")}
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -199,10 +199,10 @@ export default function Page() {
 
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("dashboard:courses.detail.cohort_groups")}</CardTitle>
+          <CardTitle>{t("course:detail.cohort_groups")}</CardTitle>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
-              {t("dashboard:courses.detail.view_all")}
+              {t("course:detail.view_all")}
             </Link>
           </Button>
         </CardHeader>
@@ -214,9 +214,9 @@ export default function Page() {
             </div>
           ) : loadCohortsQuery.data?.items.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {t("dashboard:courses.detail.no_cohorts_yet")}{" "}
+              {t("course:detail.no_cohorts_yet")}{" "}
               <Link href={`/dashboard/lms/courses/${course._id}/cohorts`} className="text-primary hover:underline">
-                {t("dashboard:courses.detail.create_one")}
+                {t("course:detail.create_one")}
               </Link>
             </div>
           ) : (
@@ -232,7 +232,7 @@ export default function Page() {
                     <div className="flex-1">
                       <div className="font-medium">{cohort.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {cohort.instructor?.fullName || t("dashboard:courses.detail.no_instructor")}
+                        {cohort.instructor?.fullName || t("course:detail.no_instructor")}
                       </div>
                     </div>
                     <Badge variant="secondary">{cohort.status}</Badge>

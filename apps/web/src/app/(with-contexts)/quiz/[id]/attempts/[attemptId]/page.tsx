@@ -1,12 +1,8 @@
 import { getQuizAttempt } from "@/server/actions/quiz-attempt";
+import { getT } from "@/app/i18n/server";
 import { trpcCaller } from "@/server/api/caller";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import { ArrowLeft } from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -46,6 +42,7 @@ export default async function QuizAttemptPage({
   params,
 }: QuizAttemptPageProps) {
   const { id, attemptId } = await params;
+  const { t } = await getT(["quiz", "common"]);
 
   try {
     const quiz = await getCachedData(id);
@@ -95,22 +92,24 @@ export default async function QuizAttemptPage({
       serializedAttempt.status === "graded"
     ) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-auto">
+        <div className="container max-w-2xl mx-auto px-4 py-16">
+          <Card>
             <CardHeader>
               <CardTitle className="text-center">
-                Quiz Already Completed
+                {t("quiz:quiz_already_completed")}
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-gray-600 mb-4">
-                This quiz attempt has already been completed.
+            <CardContent className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                {t("quiz:quiz_completed_message")}
               </p>
-              <Link
-                href={`/quiz/${serializedQuiz._id}/attempts/${serializedAttempt._id}/results`}
-              >
-                View Results
-              </Link>
+              <Button asChild>
+                <Link
+                  href={`/quiz/${serializedQuiz._id}/attempts/${serializedAttempt._id}/results`}
+                >
+                  {t("quiz:view_results")}
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -119,21 +118,22 @@ export default async function QuizAttemptPage({
 
     if (serializedAttempt.status === "abandoned") {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-auto">
+        <div className="container max-w-2xl mx-auto px-4 py-16">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-center text-red-600">
-                Attempt Abandoned
+              <CardTitle className="text-center text-destructive">
+                {t("quiz:attempt_abandoned")}
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-gray-600 mb-4">
-                This quiz attempt has been abandoned and cannot be continued.
+            <CardContent className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                {t("quiz:attempt_abandoned_message")}
               </p>
-              <Link href={`/quiz/${serializedQuiz._id}`}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Quiz
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href={`/quiz/${serializedQuiz._id}`}>
+                  {t("quiz:back_to_quiz")}
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </div>

@@ -26,6 +26,18 @@
     "error_loading_title": "Ошибка загрузки",
     "error_loading_description": "Не удалось загрузить запрашиваемый контент.",
     "error_validation_title": "Ошибка валидации",
-    "error_validation_description": "Пожалуйста, проверьте введенные данные и попробуйте снова."
+    "error_validation_description": "Пожалуйста, проверьте введенные данные и попробуйте снова.",
+    "auth": {
+        "invalid_email": "Неверный адрес электронной почты",
+        "user_not_found": "Аккаунт не найден",
+        "wrong_password": "Неверный пароль",
+        "invalid_credential": "Неверные учетные данные",
+        "email_already_in_use": "Email уже используется",
+        "weak_password": "Слишком слабый пароль",
+        "too_many_requests": "Слишком много попыток",
+        "network_error": "Ошибка сети",
+        "popup_blocked": "Всплывающее окно заблокировано",
+        "unknown": "Ошибка аутентификации"
+    }
 }
 

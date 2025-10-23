@@ -49,7 +49,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
   const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
   const firebaseAuth = useFirebaseAuth();
   const router = useRouter();
-  const { t } = useTranslation("validation");
+  const { t } = useTranslation("auth");
 
   const isFormValid = formData.name.trim() && formData.email.trim() && formData.password.trim() && formData.confirmPassword.trim();
 
@@ -122,7 +122,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
           {/* Compact Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {t("auth.signup.welcome_back")}
+              {t("signup.welcome_back")}
             </h1>
           </div>
 
@@ -130,7 +130,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
           <Card className="w-full shadow-lg border border-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-center">
-                {t("auth.signup.card_title")}
+                {t("signup.card_title")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -164,7 +164,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     />
                   </svg>
                 )}
-                {firebaseAuth.isPending ? t("auth.signup.google_signing_up") : t("auth.signup.google_signup")}
+                {firebaseAuth.isPending ? t("signup.google_signing_up") : t("signup.google_signup")}
               </Button>
 
               <div className="relative">
@@ -173,7 +173,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-background px-2 text-muted-foreground">
-                    {t("auth.signup.or_continue")}
+                    {t("signup.or_continue")}
                   </span>
                 </div>
               </div>
@@ -192,7 +192,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     htmlFor="name"
                     className="text-xs font-medium text-foreground mb-1 block"
                   >
-                    {t("auth.signup.name_label")}
+                    {t("signup.name_label")}
                   </label>
                   <div className="relative">
                     <User className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -204,12 +204,12 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-background text-foreground"
-                      placeholder={t("auth.signup.name_placeholder")}
+                      placeholder={t("signup.name_placeholder")}
                       required
                     />
                   </div>
                   {validationErrors.name && (
-                    <p className="text-xs text-red-600 mt-1">{t(validationErrors.name)}</p>
+                    <p className="text-xs text-red-600 mt-1">{t(`validation.${validationErrors.name}`)}</p>
                   )}
                 </div>
 
@@ -218,7 +218,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     htmlFor="email"
                     className="text-xs font-medium text-foreground mb-1 block"
                   >
-                    {t("auth.signup.email_label")}
+                    {t("signup.email_label")}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -230,12 +230,12 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                         setFormData({ ...formData, email: e.target.value })
                       }
                       className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-background text-foreground"
-                      placeholder={t("auth.signup.email_placeholder")}
+                      placeholder={t("signup.email_placeholder")}
                       required
                     />
                   </div>
                   {validationErrors.email && (
-                    <p className="text-xs text-red-600 mt-1">{t(validationErrors.email)}</p>
+                    <p className="text-xs text-red-600 mt-1">{t(`validation.${validationErrors.email}`)}</p>
                   )}
                 </div>
 
@@ -244,7 +244,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     htmlFor="password"
                     className="text-xs font-medium text-foreground mb-1 block"
                   >
-                    {t("auth.signup.password_label")}
+                    {t("signup.password_label")}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -256,7 +256,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                         setFormData({ ...formData, password: e.target.value })
                       }
                       className="w-full pl-8 pr-9 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-background text-foreground"
-                      placeholder={t("auth.signup.password_placeholder")}
+                      placeholder={t("signup.password_placeholder")}
                       required
                     />
                     <button
@@ -272,7 +272,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     </button>
                   </div>
                   {validationErrors.password && (
-                    <p className="text-xs text-red-600 mt-1">{t(validationErrors.password)}</p>
+                    <p className="text-xs text-red-600 mt-1">{t(`validation.${validationErrors.password}`)}</p>
                   )}
                 </div>
 
@@ -281,7 +281,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     htmlFor="confirmPassword"
                     className="text-xs font-medium text-foreground mb-1 block"
                   >
-                    {t("auth.signup.confirm_password_label")}
+                    {t("signup.confirm_password_label")}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -293,7 +293,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                         setFormData({ ...formData, confirmPassword: e.target.value })
                       }
                       className="w-full pl-8 pr-9 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent bg-background text-foreground"
-                      placeholder={t("auth.signup.confirm_password_placeholder")}
+                      placeholder={t("signup.confirm_password_placeholder")}
                       required
                     />
                     <button
@@ -309,7 +309,7 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                     </button>
                   </div>
                   {validationErrors.confirmPassword && (
-                    <p className="text-xs text-red-600 mt-1">{t(validationErrors.confirmPassword)}</p>
+                    <p className="text-xs text-red-600 mt-1">{t(`validation.${validationErrors.confirmPassword}`)}</p>
                   )}
                 </div>
 
@@ -322,27 +322,27 @@ export default function SignUpForm({ redirectTo }: { redirectTo?: string }) {
                   {isEmailSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      {t("auth.signup.signing_up")}
+                      {t("signup.signing_up")}
                     </>
                   ) : (
-                    t("auth.signup.signup_button")
+                    t("signup.signup_button")
                   )}
                 </Button>
               </form>
 
               {/* Sign In Link */}
               <div className="text-center text-xs text-muted-foreground">
-                {t("auth.signup.has_account")}{" "}
+                {t("signup.has_account")}{" "}
                 <Link
                   href="/auth/sign-in"
                   className="text-brand-primary hover:text-brand-primary-hover font-medium"
                 >
-                  {t("auth.signup.signin_link")}
+                  {t("signup.signin_link")}
                 </Link>
               </div>
 
               <div className="text-center text-xs text-muted-foreground leading-relaxed">
-                {t("auth.signup.terms_text")}
+                {t("signup.terms_text")}
               </div>
             </CardContent>
           </Card>

@@ -152,6 +152,237 @@
     "actions": {
       "view_all": "View All",
       "new": "New"
+    },
+    "assignment": {
+      "new_assignment": "New Assignment",
+      "edit_assignment": "Edit Assignment",
+      "create_subtitle": "Create a new assignment with detailed configuration",
+      "edit_subtitle": "Edit assignment settings and manage submissions",
+      "archive_confirm": "Are you sure you want to archive this assignment?",
+      "tabs": {
+        "basic_information": "Basic Information",
+        "submissions": "Submissions",
+        "grading": "Grading"
+      },
+      "messages": {
+        "save_first_submissions": "Save the assignment first to manage submissions.",
+        "save_first_grading": "Save the assignment first to configure grading.",
+        "save_first_upload": "Save the assignment first to enable file uploads",
+        "save_first_upload_attachments": "Save the assignment first to upload attachments"
+      },
+      "settings": {
+        "basic_info": "Basic Information",
+        "dates_config": "Dates & Configuration",
+        "instructions_requirements": "Instructions & Requirements",
+        "grading_rubrics": "Grading Rubrics",
+        "attachments": "Attachments",
+        "title": "Title",
+        "description": "Description",
+        "course": "Course",
+        "type": "Type",
+        "difficulty": "Difficulty",
+        "total_points": "Total Points",
+        "begin_date": "Begin Date",
+        "due_date": "Due Date",
+        "scheduled_date": "Scheduled Date",
+        "event_duration": "Event Duration (minutes)",
+        "event_duration_placeholder": "Optional (1-480)",
+        "allow_late_submissions": "Allow Late Submissions",
+        "allow_late_submissions_desc": "Students can submit after due date",
+        "late_penalty": "Late Penalty (%)",
+        "max_attempts": "Max Attempts",
+        "allow_peer_review": "Allow Peer Review",
+        "allow_peer_review_desc": "Enable students to review each other",
+        "instructions": "Instructions",
+        "requirements": "Requirements",
+        "add_requirement": "Add Requirement",
+        "requirement_number": "Requirement {{number}}",
+        "no_requirements": "No requirements added yet",
+        "add_rubric": "Add Rubric",
+        "criterion": "Criterion",
+        "rubric_description": "Description",
+        "grading_criterion_placeholder": "Grading criterion",
+        "grading_criterion_desc_placeholder": "Describe this grading criterion",
+        "no_rubrics": "No rubrics added yet. Add rubrics to define grading criteria.",
+        "attachments_desc": "Add files, documents, or resources for students to reference when completing this assignment.",
+        "upload_attachment": "Upload Attachment",
+        "upload_first_attachment": "Upload First Attachment",
+        "upload_another_attachment": "Upload Another Attachment",
+        "select_course": "Select a course",
+        "assignment_title_placeholder": "Assignment title",
+        "brief_description_placeholder": "Brief description",
+        "detailed_instructions_placeholder": "Detailed instructions for students",
+        "check_project_ide": "Check Project in IDE",
+        "begin": "Begin",
+        "due": "Due"
+      },
+      "types": {
+        "essay": "Essay",
+        "project": "Project",
+        "presentation": "Presentation",
+        "file_upload": "File Upload"
+      },
+      "difficulty": {
+        "easy": "Easy",
+        "medium": "Medium",
+        "hard": "Hard"
+      },
+      "submissions": {
+        "title": "Student Submissions",
+        "loading": "Loading submissions...",
+        "no_submissions": "No submissions yet",
+        "no_submissions_desc": "Submissions will appear here when students submit their work",
+        "student": "Student",
+        "submitted": "Submitted",
+        "not_graded": "Not graded",
+        "edit_grade": "Edit Grade",
+        "grade": "Grade"
+      },
+      "submission_status": {
+        "graded": "Graded",
+        "late": "Late",
+        "pending": "Pending",
+        "draft": "Draft"
+      },
+      "grading": {
+        "overview": "Grading Overview",
+        "graded": "Graded",
+        "pending": "Pending",
+        "total_points": "Total Points",
+        "configuration": "Grading Configuration",
+        "rubric": "Rubric",
+        "no_rubric": "No rubric defined",
+        "criteria_defined": "{{count}} criteria defined",
+        "late_submission_policy": "Late Submission Policy",
+        "late_penalty_percent": "Late penalty: {{percent}}%",
+        "late_not_allowed": "Late submissions not allowed",
+        "peer_review": "Peer Review",
+        "peer_review_enabled_desc": "Students can review each other's work",
+        "peer_review_not_enabled": "Peer review not enabled",
+        "pts": "pts"
+      },
+      "grade_dialog": {
+        "title": "Grade Submission",
+        "loading": "Loading submission...",
+        "not_found": "Submission not found",
+        "submission_content": "Submission Content",
+        "no_content": "No content provided",
+        "attachments": "Attachments",
+        "attachment_number": "Attachment {{number}}",
+        "submitted": "Submitted",
+        "score_label": "Score * (Max: {{max}} points)",
+        "score_placeholder": "Enter score",
+        "feedback_label": "Feedback (Optional)",
+        "feedback_placeholder": "Provide feedback to the student...",
+        "invalid_score": "Invalid Score",
+        "invalid_score_desc": "Please enter a valid score",
+        "score_exceeds": "Score cannot exceed {{max}} points"
+      },
+      "toast": {
+        "created": "Assignment created successfully",
+        "updated": "Assignment updated successfully",
+        "submission_graded": "Submission graded successfully"
+      },
+      "publicationStatus": "Publication Status"
+    },
+    "quiz": {
+      "new_quiz": "New Quiz",
+      "edit_quiz": "Edit Quiz",
+      "create_subtitle": "Build a new quiz with questions and settings",
+      "edit_subtitle": "Edit quiz settings and questions",
+      "archive_confirm": "Are you sure you want to archive this quiz?",
+      "delete_question_confirm": "Are you sure you want to delete this question?",
+      "tabs": {
+        "quiz_settings": "Quiz Settings",
+        "questions": "Questions",
+        "submissions": "Submissions"
+      },
+      "messages": {
+        "save_first_questions": "Save the quiz first to add questions.",
+        "save_first_submissions": "Save the quiz first to view submissions."
+      },
+      "settings": {
+        "quiz_title": "Quiz Title",
+        "quiz_description": "Description",
+        "course": "Course",
+        "time_limit": "Time Limit (minutes)",
+        "passing_score": "Passing Score (%)",
+        "max_attempts": "Max Attempts",
+        "total_points": "Total Points",
+        "shuffle_questions": "Shuffle Questions",
+        "show_results": "Show Results",
+        "basic_info": "Basic Information",
+        "quiz_configuration": "Quiz Configuration",
+        "quiz_title_placeholder": "Enter quiz title",
+        "quiz_description_placeholder": "Enter quiz description",
+        "select_course": "Select a course",
+        "copy_link": "Copy Link",
+        "save_settings": "Save Settings",
+        "attempts": {
+          "one": "1 Attempt",
+          "two": "2 Attempts",
+          "three": "3 Attempts",
+          "unlimited": "Unlimited"
+        }
+      },
+      "questions": {
+        "title": "Questions",
+        "no_questions": "No questions yet",
+        "no_questions_desc": "Add your first question to get started",
+        "add_question": "Add Question",
+        "question_text": "Question Text",
+        "question_type": "Question Type",
+        "points": "Points",
+        "explanation": "Explanation (optional)",
+        "options": "Options",
+        "add_option": "Add Option",
+        "correct_answers": "Correct Answers",
+        "add_answer": "Add Answer",
+        "save_question": "Save Question",
+        "update_question": "Update Question",
+        "question_number": "Question {{number}}",
+        "option_placeholder": "Option {{number}}",
+        "answer_placeholder": "Correct answer {{number}}",
+        "question_text_placeholder": "Enter your question here",
+        "explanation_placeholder": "Explain why this is the correct answer (optional)",
+        "mark_correct": "Mark as correct",
+        "types": {
+          "multiple_choice": "Multiple Choice",
+          "short_answer": "Short Answer",
+          "true_false": "True/False",
+          "essay": "Essay"
+        }
+      },
+      "submissions": {
+        "title": "Student Submissions",
+        "loading": "Loading submissions...",
+        "no_submissions": "No submissions yet",
+        "no_submissions_desc": "Submissions will appear here when students take the quiz",
+        "student": "Student",
+        "submitted_at": "Submitted At",
+        "score_label": "Score",
+        "time_taken": "Time Taken",
+        "view_results": "View Results",
+        "regrade": "Regrade",
+        "delete": "Delete",
+        "submission_deleted": "Submission Deleted",
+        "submission_deleted_desc": "Student submission has been deleted successfully",
+        "regrade_complete": "Regrade Complete",
+        "regrade_complete_desc": "Quiz attempt has been regraded successfully",
+        "regrade_failed": "Regrade Failed",
+        "passed": "Passed",
+        "failed": "Failed",
+        "minutes": "minutes"
+      },
+      "toast": {
+        "created": "Quiz created successfully",
+        "updated": "Quiz updated successfully",
+        "question_created": "Question created successfully",
+        "question_updated": "Question updated successfully",
+        "question_deleted": "Question deleted successfully",
+        "link_copied": "Link Copied",
+        "link_copied_desc": "Quiz link copied to clipboard"
+      }
     }
   },
   "my_progress": {
@@ -347,5 +578,49 @@
   },
   "create_button": {
     "new": "New"
+  },
+  "media": {
+    "selector": {
+      "button_caption": "Select media",
+      "dialog_title": "Select media",
+      "upload_button": "Upload",
+      "uploading": "Uploading...",
+      "cancel": "Cancel",
+      "file_label": "File",
+      "caption_label": "Caption",
+      "working": "Working...",
+      "select_media": "Select media"
+    },
+    "browser": {
+      "title": "Media Library",
+      "description": "Browse and manage your media files",
+      "browse_tab": "Browse Media",
+      "upload_tab": "Upload Files",
+      "total_items": "{{count}} total items",
+      "selected": "Selected: {{filename}}",
+      "select_file_prompt": "Select a file from the list",
+      "select_button": "Select",
+      "delete_confirm": "Are you sure you want to delete this media file?",
+      "upload_title": "Upload Files",
+      "upload_description": "Select images, videos, audio, or PDF files",
+      "choose_files": "Choose Files",
+      "selected_file": "Selected File",
+      "selected_file_number": "Selected File {{number}}",
+      "clear": "Clear",
+      "upload_count": "Upload {{count}} File",
+      "upload_count_plural": "Upload {{count}} Files",
+      "upload_media": "Upload Media",
+      "uploading_count": "Uploading {{count}} file",
+      "uploading_count_plural": "Uploading {{count}} files",
+      "upload_success": "Successfully uploaded {{count}} file",
+      "upload_success_plural": "Successfully uploaded {{count}} files"
+    },
+    "toast": {
+      "file_uploaded": "File uploaded successfully",
+      "upload_failed": "Upload failed",
+      "media_deleted": "Media deleted successfully",
+      "delete_failed": "Failed to delete media",
+      "delete_error": "Failed to delete media: {{error}}"
+    }
   }
 }

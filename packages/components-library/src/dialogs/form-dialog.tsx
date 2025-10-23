@@ -1,5 +1,8 @@
+"use client";
+
 import { Button } from "@workspace/ui/components/button";
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { BaseDialog } from "./base-dialog";
 
 interface FormDialogProps {
@@ -24,11 +27,13 @@ export function FormDialog({
     children,
     onSubmit,
     onCancel,
-    submitText = "Save",
-    cancelText = "Cancel",
+    submitText,
+    cancelText,
     isLoading = false,
     maxWidth = "2xl"
 }: FormDialogProps) {
+    const { t } = useTranslation(["common"]);
+
     const handleCancel = () => {
         onCancel?.();
         onOpenChange(false);
@@ -37,10 +42,10 @@ export function FormDialog({
     const footer = (
         <>
             <Button type="button" variant="outline" onClick={handleCancel}>
-                {cancelText}
+                {cancelText || t("common:cancel")}
             </Button>
             <Button type="button" onClick={onSubmit} disabled={isLoading}>
-                {isLoading ? "Saving..." : submitText}
+                {isLoading ? t("common:saving") : (submitText || t("common:save"))}
             </Button>
         </>
     );

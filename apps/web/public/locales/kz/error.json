@@ -26,6 +26,18 @@
     "error_loading_title": "Жүктеу қатесі",
     "error_loading_description": "Сұралған контентті жүктеу сәтсіз аяқталды.",
     "error_validation_title": "Тексеру қатесі",
-    "error_validation_description": "Енгізілген деректеріңізді тексеріп, қайталап көріңіз."
+    "error_validation_description": "Енгізілген деректеріңізді тексеріп, қайталап көріңіз.",
+    "auth": {
+        "invalid_email": "Жарамсыз email мекенжайы",
+        "user_not_found": "Аккаунт табылмады",
+        "wrong_password": "Қате құпия сөз",
+        "invalid_credential": "Жарамсыз тіркелгі деректері",
+        "email_already_in_use": "Email қолданыста",
+        "weak_password": "Тым әлсіз құпия сөз",
+        "too_many_requests": "Тым көп әрекет",
+        "network_error": "Желі қатесі",
+        "popup_blocked": "Қалқымалы терезе бөгелген",
+        "unknown": "Аутентификация сәтсіз аяқталды"
+    }
 }
 

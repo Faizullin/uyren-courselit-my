@@ -34,7 +34,7 @@ const LanguagesMap = {
 export function CourseCreateDialog(props: {
     control: ReturnType<typeof useDialogControl>;
 }) {
-    const { t } = useTranslation(["dashboard", "common"]);
+    const { t } = useTranslation(["course", "common"]);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -42,14 +42,14 @@ export function CourseCreateDialog(props: {
     const CourseSchema = useMemo(() => z.object({
         title: z
             .string()
-            .min(1, { message: t("dashboard:courses.validation.title_required") })
-            .max(255, { message: t("dashboard:courses.validation.title_max") }),
+            .min(1, { message: t("course:validation.title_required") })
+            .max(255, { message: t("course:validation.title_max") }),
         courseCode: z
             .string()
-            .min(1, { message: t("dashboard:courses.validation.course_code_required") })
-            .max(50, { message: t("dashboard:courses.validation.course_code_max") }),
+            .min(1, { message: t("course:validation.course_code_required") })
+            .max(50, { message: t("course:validation.course_code_max") }),
         level: z.nativeEnum(CourseLevelEnum),
-        language: z.string().min(1, { message: t("dashboard:courses.validation.language_required") }),
+        language: z.string().min(1, { message: t("course:validation.language_required") }),
     }), [t]);
 
     type CourseFormDataType = z.infer<typeof CourseSchema>;
@@ -68,15 +68,15 @@ export function CourseCreateDialog(props: {
         trpc.lmsModule.courseModule.course.create.useMutation({
             onSuccess: (response) => {
                 toast({
-                    title: t("common:dashboard.success"),
-                    description: t("products.created_successfully"),
+                    title: t("common:success"),
+                    description: t("course:toast.created"),
                 });
                 props.control.hide();
                 router.push(`/dashboard/lms/courses/${response._id}`);
             },
             onError: (err) => {
                 toast({
-                    title: t("common:dashboard.error"),
+                    title: t("common:error"),
                     description: err.message,
                     variant: "destructive",
                 });
@@ -111,12 +111,12 @@ export function CourseCreateDialog(props: {
                     });
                 }
             }}
-            title={t("dashboard:courses.form.create_new_course")}
+            title={t("course:form.create_title")}
             onSubmit={form.handleSubmit(handleSubmit)}
             onCancel={props.control.hide}
             isLoading={isSaving || isSubmitting}
-            submitText={t("dashboard:courses.form.create_course")}
-            cancelText={t("common:dashboard.cancel")}
+            submitText={t("course:form.create_button")}
+            cancelText={t("common:cancel")}
             maxWidth="xl"
         >
             <FieldGroup className="min-h-[300px]">
@@ -125,10 +125,10 @@ export function CourseCreateDialog(props: {
                     name="title"
                     render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel>{t("dashboard:courses.form.course_title")}</FieldLabel>
+                            <FieldLabel>{t("course:form.course_title")}</FieldLabel>
                             <Input
                                 {...field}
-                                placeholder={t("dashboard:courses.form.title_placeholder")}
+                                placeholder={t("course:form.title_placeholder")}
                                 aria-invalid={fieldState.invalid}
                             />
                             {fieldState.invalid && (
@@ -142,10 +142,10 @@ export function CourseCreateDialog(props: {
                     name="courseCode"
                     render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel>{t("dashboard:courses.form.course_code")}</FieldLabel>
+                            <FieldLabel>{t("course:form.course_code")}</FieldLabel>
                             <Input
                                 {...field}
-                                placeholder={t("dashboard:courses.form.course_code_placeholder")}
+                                placeholder={t("course:form.course_code_placeholder")}
                                 aria-invalid={fieldState.invalid}
                             />
                             {fieldState.invalid && (
@@ -160,7 +160,7 @@ export function CourseCreateDialog(props: {
                     render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
                             <FieldLabel htmlFor="course-level">
-                                {t("dashboard:courses.form.level")}
+                                {t("course:form.level")}
                             </FieldLabel>
                             <div>
                                 <Select
@@ -173,7 +173,7 @@ export function CourseCreateDialog(props: {
                                         aria-invalid={fieldState.invalid}
                                         className="w-full"
                                     >
-                                        <SelectValue placeholder={t("dashboard:courses.form.level_placeholder")} />
+                                        <SelectValue placeholder={t("course:form.level_placeholder")} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {Object.entries(CourseLevelEnum).map(([key, value]) => (
@@ -195,7 +195,7 @@ export function CourseCreateDialog(props: {
                     name="language"
                     render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor="course-language">{t("dashboard:courses.form.language")}</FieldLabel>
+                            <FieldLabel htmlFor="course-language">{t("course:form.language")}</FieldLabel>
                             <div>
                                 <Select
                                     name={field.name}
@@ -207,7 +207,7 @@ export function CourseCreateDialog(props: {
                                         aria-invalid={fieldState.invalid}
                                         className="w-full"
                                     >
-                                        <SelectValue placeholder={t("dashboard:courses.form.language_placeholder")} />
+                                        <SelectValue placeholder={t("course:form.language_placeholder")} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {Object.entries(LanguagesMap).map(([key, value]) => (

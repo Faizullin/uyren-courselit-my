@@ -33,9 +33,9 @@ type QueryParams = Parameters<typeof trpc.lmsModule.courseModule.course.list.use
 
 
 export default function Page() {
-  const { t } = useTranslation(["dashboard", "common"]);
+  const { t } = useTranslation(["course", "dashboard", "common"]);
   const createCourseDialog = useDialogControl();
-  const breadcrumbs = [{ label: t("common:dashboard.courses.title"), href: "#" }];
+  const breadcrumbs = [{ label: t("course:list.breadcrumb"), href: "#" }];
 
   const [levelFilter, setLevelFilter] = useState<CourseLevelEnum | "all">("all");
   const [courseStatusFilter, setCourseStatusFilter] = useState<CourseStatusEnum | "all">("all");
@@ -98,21 +98,21 @@ export default function Page() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
           <div className="space-y-2">
-            <Label className="text-sm font-medium">{t("dashboard:courses.page.filter_level")}</Label>
+            <Label className="text-sm font-medium">{t("course:list.filter_level")}</Label>
             <Select value={levelFilter} onValueChange={(value) => setLevelFilter(value as CourseLevelEnum | "all")}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("dashboard:courses.page.all_levels")}</SelectItem>
+                <SelectItem value="all">{t("course:list.all_levels")}</SelectItem>
                 {[CourseLevelEnum.BEGINNER, CourseLevelEnum.INTERMEDIATE, CourseLevelEnum.ADVANCED].map(
                   (level) => (
                     <SelectItem value={level} key={level}>
                       {level === CourseLevelEnum.BEGINNER
-                        ? t("dashboard:courses.status.beginner")
+                        ? t("course:level.beginner")
                         : level === CourseLevelEnum.INTERMEDIATE
-                          ? t("dashboard:courses.status.intermediate")
-                          : t("dashboard:courses.status.advanced")}
+                          ? t("course:level.intermediate")
+                          : t("course:level.advanced")}
                     </SelectItem>
                   ),
                 )}
@@ -120,21 +120,21 @@ export default function Page() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm font-medium">{t("dashboard:courses.page.filter_status")}</Label>
+            <Label className="text-sm font-medium">{t("course:list.filter_status")}</Label>
             <Select value={courseStatusFilter} onValueChange={(value) => setCourseStatusFilter(value as CourseStatusEnum | "all")}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("dashboard:courses.page.all_statuses")}</SelectItem>
+                <SelectItem value="all">{t("course:list.all_statuses")}</SelectItem>
                 {[CourseStatusEnum.IN_PROGRESS, CourseStatusEnum.UNDER_REVIEW, CourseStatusEnum.APPROVED].map(
                   (status) => (
                     <SelectItem value={status} key={status}>
                       {status === CourseStatusEnum.IN_PROGRESS
-                        ? t("dashboard:courses.status.in_progress")
+                        ? t("course:status.in_progress")
                         : status === CourseStatusEnum.UNDER_REVIEW
-                          ? t("dashboard:courses.status.under_review")
-                          : t("dashboard:courses.status.approved")}
+                          ? t("course:status.under_review")
+                          : t("course:status.approved")}
                     </SelectItem>
                   ),
                 )}
@@ -174,8 +174,8 @@ export default function Page() {
           </>
         ) : loadListQuery.data?.items?.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground text-lg">{t("dashboard:courses.page.no_courses")}</p>
-            <p className="text-sm text-muted-foreground mt-2">{t("dashboard:courses.page.no_courses_desc")}</p>
+            <p className="text-muted-foreground text-lg">{t("course:list.no_courses")}</p>
+            <p className="text-sm text-muted-foreground mt-2">{t("course:list.no_courses_desc")}</p>
           </div>
         ) : (
           <>

@@ -2,24 +2,21 @@ import {
   getAttemptStatistics,
   getUserQuizAttempts,
 } from "@/server/actions/quiz-attempt";
+import { getT } from "@/app/i18n/server";
 import { trpcCaller } from "@/server/api/caller";
 import { NotFoundException } from "@/server/api/core/exceptions";
 import { QuizAttemptStatusEnum } from "@workspace/common-logic/models/lms/quiz-attempt.types";
+import { IQuizAttemptHydratedDocument } from "@workspace/common-logic/models/lms/quiz-attempt.model";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import { ArrowLeft, BarChart3, Clock, Eye, Target } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Separator } from "@workspace/ui/components/separator";
+import { BarChart3, Clock, Eye, Target } from "lucide-react";
 import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import QuizActions from "./_components/quiz-actions";
-import { IQuizAttemptHydratedDocument } from "@workspace/common-logic/models/lms/quiz-attempt.model";
 
 interface QuizPageProps {
   params: Promise<{ id: string }>;
@@ -40,17 +37,18 @@ export async function generateMetadata(
 
   if (!quiz) {
     return {
-      title: `Quiz Not Found | Quizzes | LMS | ${(await parent)?.title?.absolute}`,
+      title: `Quiz Not Found | ${(await parent)?.title?.absolute}`,
     };
   }
   return {
-    title: `${quiz.title} | Quizzes | LMS | ${(await parent)?.title?.absolute}`,
+    title: `${quiz.title} | ${(await parent)?.title?.absolute}`,
     description: quiz.description || `Take the ${quiz.title} quiz`,
   };
 }
 
 export default async function QuizPage({ params }: QuizPageProps) {
   const { id } = await params;
+  const { t } = await getT(["quiz", "common"]);
 
   try {
     const quiz = await getCachedData(id);
@@ -76,234 +74,197 @@ export default async function QuizPage({ params }: QuizPageProps) {
       return Math.max(0, quiz.maxAttempts - (attemptStats?.totalAttempts || 0));
     };
 
+    const getStatusLabel = (status: QuizAttemptStatusEnum) => {
+      switch (status) {
+        case QuizAttemptStatusEnum.COMPLETED:
+          return t("quiz:completed");
+        case QuizAttemptStatusEnum.IN_PROGRESS:
+          return t("quiz:in_progress");
+        case QuizAttemptStatusEnum.ABANDONED:
+          return t("quiz:abandoned");
+        case QuizAttemptStatusEnum.GRADED:
+          return t("quiz:graded");
+        default:
+          return status.replace("_", " ");
+      }
+    };
+
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          {/* Back Navigation */}
-          <div className="mb-6">
-            <Link
-              href="/courses"
-              className="inline-flex items-center text-muted-foreground hover:text-brand-primary transition-colors duration-300"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Courses
-            </Link>
+      <div className="container max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary">{t("quiz:quiz_assessment")}</Badge>
           </div>
+          <h1 className="text-4xl font-semibold mb-2">{quiz.title}</h1>
+          {quiz.description && (
+            <p className="text-lg text-muted-foreground">{quiz.description}</p>
+          )}
+        </div>
 
-          {/* Main Quiz Card */}
-          <Card className="max-w-4xl mx-auto shadow-lg border-0 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="text-center pb-8">
-              <div className="space-y-4">
-                <Badge className="bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 text-sm font-semibold px-4 py-2">
-                  Quiz Assessment
-                </Badge>
-                <CardTitle className="text-3xl lg:text-4xl font-bold text-foreground leading-tight">
-                  {quiz.title}
-                </CardTitle>
-                {quiz.description && (
-                  <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                    {quiz.description}
-                  </p>
-                )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <Target className="w-5 h-5 text-muted-foreground" />
               </div>
-            </CardHeader>
-
-            <CardContent className="space-y-8 px-8 pb-8">
-              {/* Quiz Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="group bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 p-6 rounded-xl text-center border border-blue-200/50 dark:border-blue-800/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                  <div className="flex items-center justify-center mb-3">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors duration-300">
-                      <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-                    {quiz.passingScore}%
-                  </div>
-                  <div className="text-sm text-muted-foreground font-medium">
-                    Passing Score
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 p-6 rounded-xl text-center border border-green-200/50 dark:border-green-800/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                  <div className="flex items-center justify-center mb-3">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors duration-300">
-                      <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-                    {quiz.timeLimit ? `${quiz.timeLimit} min` : "No limit"}
-                  </div>
-                  <div className="text-sm text-muted-foreground font-medium">
-                    Time Limit
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 p-6 rounded-xl text-center border border-purple-200/50 dark:border-purple-800/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                  <div className="flex items-center justify-center mb-3">
-                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors duration-300">
-                      <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-                    {quiz.totalPoints}
-                  </div>
-                  <div className="text-sm text-muted-foreground font-medium">
-                    Total Points
-                  </div>
-                </div>
+              <div className="text-2xl font-semibold mb-1">
+                {quiz.passingScore}%
               </div>
-
-              {/* Progress Summary */}
-              {attemptStats && (
-                <div className="bg-muted/50 p-6 rounded-xl border border-border/50">
-                  <h3 className="font-semibold text-lg mb-4 text-foreground">
-                    Your Progress
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Attempts Used
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          {attemptStats.totalAttempts}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Remaining
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          {getRemainingAttempts()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      {userAttempts.length > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Total Attempts
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {userAttempts.length}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                <QuizActions
-                  quizId={id}
-                  currentAttempt={currentAttempt}
-                  remainingAttempts={getRemainingAttempts()}
-                />
+              <div className="text-sm text-muted-foreground">
+                {t("quiz:passing_score")}
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Attempt Limit Warning */}
-              {getRemainingAttempts() === 0 && (
-                <div className="text-center p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-sm text-destructive font-medium">
-                    You have used all available attempts for this quiz.
-                  </p>
-                </div>
-              )}
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <Clock className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="text-2xl font-semibold mb-1">
+                {quiz.timeLimit ? `${quiz.timeLimit} min` : t("quiz:no_limit")}
+              </div>
+              <div className="text-sm text-muted-foreground">{t("quiz:time_limit")}</div>
+            </CardContent>
+          </Card>
 
-              {/* Quick Attempt History */}
-              {userAttempts.length > 0 && (
-                <div className="border-t border-border/50 pt-8">
-                  <h3 className="font-semibold text-lg mb-6 text-foreground">
-                    Recent Attempts
-                  </h3>
-                  <div className="space-y-3">
-                    {userAttempts.slice(0, 3).map((attempt) => (
-                      <div
-                        key={`${attempt._id}`}
-                        className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors duration-300"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`w-3 h-3 rounded-full ${attempt.status === QuizAttemptStatusEnum.COMPLETED
-                              ? "bg-green-500"
-                              : attempt.status === QuizAttemptStatusEnum.IN_PROGRESS
-                                ? "bg-brand-primary"
-                                : "bg-muted-foreground"
-                              }`}
-                          />
-                          <span className="text-sm font-medium text-foreground">
-                            {new Date(attempt.startedAt).toLocaleDateString()}
-                          </span>
-                          <Badge
-                            variant={
-                              attempt.status === QuizAttemptStatusEnum.COMPLETED
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {attempt.status.replace("_", " ")}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          {attempt.percentageScore !== undefined && (
-                            <span className="text-sm font-semibold text-foreground">
-                              {Math.round(attempt.percentageScore)}%
-                            </span>
-                          )}
-                          {attempt.status === QuizAttemptStatusEnum.IN_PROGRESS ? (
-                            <Link href={`/quiz/${id}/attempts/${attempt._id}`}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white"
-                              >
-                                Continue
-                              </Button>
-                            </Link>
-                          ) : (
-                            <Link
-                              href={`/quiz/${id}/attempts/${attempt._id}/results`}
-                            >
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white"
-                              >
-                                View Results
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* View All Results Link */}
-                  {userAttempts.length > 3 && (
-                    <div className="mt-6 text-center">
-                      <Link
-                        href={`/quiz/${id}/attempts/${userAttempts[0]!._id}/results`}
-                      >
-                        <Button
-                          variant="outline"
-                          className="w-full border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View All Results & Attempt History
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              )}
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <BarChart3 className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="text-2xl font-semibold mb-1">
+                {quiz.totalPoints}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {t("quiz:total_points")}
+              </div>
             </CardContent>
           </Card>
         </div>
+
+        {attemptStats && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>{t("quiz:your_progress")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">
+                    {t("quiz:attempts_used")}
+                  </div>
+                  <div className="text-2xl font-semibold">
+                    {attemptStats.totalAttempts}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">
+                    {t("quiz:remaining")}
+                  </div>
+                  <div className="text-2xl font-semibold">
+                    {getRemainingAttempts()}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <QuizActions
+            quizId={id}
+            currentAttempt={currentAttempt}
+            remainingAttempts={getRemainingAttempts()}
+          />
+        </div>
+
+        {getRemainingAttempts() === 0 && (
+          <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-sm text-destructive font-medium">
+              {t("quiz:max_attempts_reached")}
+            </p>
+          </div>
+        )}
+
+        {userAttempts.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("quiz:recent_attempts")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {userAttempts.slice(0, 3).map((attempt) => (
+                  <div
+                    key={`${attempt._id}`}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border hover:bg-accent transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          attempt.status === QuizAttemptStatusEnum.COMPLETED
+                            ? "bg-green-500"
+                            : attempt.status === QuizAttemptStatusEnum.IN_PROGRESS
+                              ? "bg-blue-500"
+                              : "bg-muted-foreground"
+                        }`}
+                      />
+                      <span className="text-sm font-medium">
+                        {new Date(attempt.startedAt).toLocaleDateString()}
+                      </span>
+                      <Badge
+                        variant={
+                          attempt.status === QuizAttemptStatusEnum.COMPLETED
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {getStatusLabel(attempt.status)}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {attempt.percentageScore !== undefined && (
+                        <span className="text-sm font-semibold">
+                          {Math.round(attempt.percentageScore)}%
+                        </span>
+                      )}
+                      {attempt.status === QuizAttemptStatusEnum.IN_PROGRESS ? (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/quiz/${id}/attempts/${attempt._id}`}>
+                            {t("common:continue")}
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" asChild>
+                          <Link
+                            href={`/quiz/${id}/attempts/${attempt._id}/results`}
+                          >
+                            {t("quiz:view_results")}
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {userAttempts.length > 3 && (
+                <>
+                  <Separator className="my-4" />
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link
+                      href={`/quiz/${id}/attempts/${userAttempts[0]!._id}/results`}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      {t("quiz:view_all_results")}
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   } catch (error) {

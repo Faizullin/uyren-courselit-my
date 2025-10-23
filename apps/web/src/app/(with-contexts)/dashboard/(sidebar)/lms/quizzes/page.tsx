@@ -285,8 +285,8 @@ export default function Page() {
     <DashboardContent breadcrumbs={breadcrumbs}>
       <HeaderTopbar
         header={{
-          title: t("lms.modules.quizzes.title"),
-          subtitle: t("lms.modules.quizzes.description"),
+          title: t("dashboard:lms.modules.quizzes.title"),
+          subtitle: t("dashboard:lms.modules.quizzes.description"),
         }}
         rightAction={<CreateButton href="/dashboard/lms/quizzes/new" />}
       />

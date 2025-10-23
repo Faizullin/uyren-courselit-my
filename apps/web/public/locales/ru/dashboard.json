@@ -152,6 +152,237 @@
     "actions": {
       "view_all": "Показать все",
       "new": "Новый"
+    },
+    "assignment": {
+      "new_assignment": "Новое задание",
+      "edit_assignment": "Редактировать задание",
+      "create_subtitle": "Создайте новое задание с подробной конфигурацией",
+      "edit_subtitle": "Редактируйте настройки задания и управляйте отправками",
+      "archive_confirm": "Вы уверены, что хотите архивировать это задание?",
+      "tabs": {
+        "basic_information": "Основная информация",
+        "submissions": "Отправки",
+        "grading": "Оценивание"
+      },
+      "messages": {
+        "save_first_submissions": "Сначала сохраните задание для управления отправками.",
+        "save_first_grading": "Сначала сохраните задание для настройки оценивания.",
+        "save_first_upload": "Сначала сохраните задание для загрузки файлов",
+        "save_first_upload_attachments": "Сначала сохраните задание для загрузки вложений"
+      },
+      "settings": {
+        "basic_info": "Основная информация",
+        "dates_config": "Даты и конфигурация",
+        "instructions_requirements": "Инструкции и требования",
+        "grading_rubrics": "Рубрики оценивания",
+        "attachments": "Вложения",
+        "title": "Название",
+        "description": "Описание",
+        "course": "Курс",
+        "type": "Тип",
+        "difficulty": "Сложность",
+        "total_points": "Всего баллов",
+        "begin_date": "Дата начала",
+        "due_date": "Срок сдачи",
+        "scheduled_date": "Запланированная дата",
+        "event_duration": "Длительность события (минуты)",
+        "event_duration_placeholder": "Необязательно (1-480)",
+        "allow_late_submissions": "Разрешить поздние отправки",
+        "allow_late_submissions_desc": "Студенты могут отправлять после срока",
+        "late_penalty": "Штраф за опоздание (%)",
+        "max_attempts": "Макс. попыток",
+        "allow_peer_review": "Разрешить взаимную оценку",
+        "allow_peer_review_desc": "Позволить студентам оценивать работы друг друга",
+        "instructions": "Инструкции",
+        "requirements": "Требования",
+        "add_requirement": "Добавить требование",
+        "requirement_number": "Требование {{number}}",
+        "no_requirements": "Пока нет требований",
+        "add_rubric": "Добавить рубрику",
+        "criterion": "Критерий",
+        "rubric_description": "Описание",
+        "grading_criterion_placeholder": "Критерий оценивания",
+        "grading_criterion_desc_placeholder": "Опишите этот критерий оценивания",
+        "no_rubrics": "Пока нет рубрик. Добавьте рубрики для определения критериев оценивания.",
+        "attachments_desc": "Добавьте файлы, документы или ресурсы для справки студентов при выполнении задания.",
+        "upload_attachment": "Загрузить вложение",
+        "upload_first_attachment": "Загрузить первое вложение",
+        "upload_another_attachment": "Загрузить ещё вложение",
+        "select_course": "Выберите курс",
+        "assignment_title_placeholder": "Название задания",
+        "brief_description_placeholder": "Краткое описание",
+        "detailed_instructions_placeholder": "Подробные инструкции для студентов",
+        "check_project_ide": "Проверить проект в IDE",
+        "begin": "Начало",
+        "due": "Срок"
+      },
+      "types": {
+        "essay": "Эссе",
+        "project": "Проект",
+        "presentation": "Презентация",
+        "file_upload": "Загрузка файла"
+      },
+      "difficulty": {
+        "easy": "Легко",
+        "medium": "Средне",
+        "hard": "Сложно"
+      },
+      "submissions": {
+        "title": "Отправки студентов",
+        "loading": "Загрузка отправок...",
+        "no_submissions": "Пока нет отправок",
+        "no_submissions_desc": "Отправки появятся здесь, когда студенты отправят свою работу",
+        "student": "Студент",
+        "submitted": "Отправлено",
+        "not_graded": "Не оценено",
+        "edit_grade": "Редактировать оценку",
+        "grade": "Оценить"
+      },
+      "submission_status": {
+        "graded": "Оценено",
+        "late": "Опоздание",
+        "pending": "В ожидании",
+        "draft": "Черновик"
+      },
+      "grading": {
+        "overview": "Обзор оценивания",
+        "graded": "Оценено",
+        "pending": "В ожидании",
+        "total_points": "Всего баллов",
+        "configuration": "Конфигурация оценивания",
+        "rubric": "Рубрика",
+        "no_rubric": "Рубрика не определена",
+        "criteria_defined": "Определено критериев: {{count}}",
+        "late_submission_policy": "Политика поздних отправок",
+        "late_penalty_percent": "Штраф за опоздание: {{percent}}%",
+        "late_not_allowed": "Поздние отправки не разрешены",
+        "peer_review": "Взаимная оценка",
+        "peer_review_enabled_desc": "Студенты могут оценивать работы друг друга",
+        "peer_review_not_enabled": "Взаимная оценка не включена",
+        "pts": "б"
+      },
+      "grade_dialog": {
+        "title": "Оценить отправку",
+        "loading": "Загрузка отправки...",
+        "not_found": "Отправка не найдена",
+        "submission_content": "Содержание отправки",
+        "no_content": "Содержимое не предоставлено",
+        "attachments": "Вложения",
+        "attachment_number": "Вложение {{number}}",
+        "submitted": "Отправлено",
+        "score_label": "Оценка * (Макс: {{max}} баллов)",
+        "score_placeholder": "Введите оценку",
+        "feedback_label": "Отзыв (Необязательно)",
+        "feedback_placeholder": "Оставьте отзыв студенту...",
+        "invalid_score": "Неверная оценка",
+        "invalid_score_desc": "Пожалуйста, введите корректную оценку",
+        "score_exceeds": "Оценка не может превышать {{max}} баллов"
+      },
+      "toast": {
+        "created": "Задание успешно создано",
+        "updated": "Задание успешно обновлено",
+        "submission_graded": "Отправка успешно оценена"
+      },
+      "publicationStatus": "Статус публикации"
+    },
+    "quiz": {
+      "new_quiz": "Новая викторина",
+      "edit_quiz": "Редактировать викторину",
+      "create_subtitle": "Создайте новую викторину с вопросами и настройками",
+      "edit_subtitle": "Редактируйте настройки викторины и вопросы",
+      "archive_confirm": "Вы уверены, что хотите архивировать эту викторину?",
+      "delete_question_confirm": "Вы уверены, что хотите удалить этот вопрос?",
+      "tabs": {
+        "quiz_settings": "Настройки викторины",
+        "questions": "Вопросы",
+        "submissions": "Отправки"
+      },
+      "messages": {
+        "save_first_questions": "Сначала сохраните викторину для добавления вопросов.",
+        "save_first_submissions": "Сначала сохраните викторину для просмотра отправок."
+      },
+      "settings": {
+        "quiz_title": "Название викторины",
+        "quiz_description": "Описание",
+        "course": "Курс",
+        "time_limit": "Ограничение времени (минуты)",
+        "passing_score": "Проходной балл (%)",
+        "max_attempts": "Макс. попыток",
+        "total_points": "Всего баллов",
+        "shuffle_questions": "Перемешать вопросы",
+        "show_results": "Показать результаты",
+        "basic_info": "Основная информация",
+        "quiz_configuration": "Конфигурация викторины",
+        "quiz_title_placeholder": "Введите название викторины",
+        "quiz_description_placeholder": "Введите описание викторины",
+        "select_course": "Выберите курс",
+        "copy_link": "Копировать ссылку",
+        "save_settings": "Сохранить настройки",
+        "attempts": {
+          "one": "1 попытка",
+          "two": "2 попытки",
+          "three": "3 попытки",
+          "unlimited": "Неограниченно"
+        }
+      },
+      "questions": {
+        "title": "Вопросы",
+        "no_questions": "Пока нет вопросов",
+        "no_questions_desc": "Добавьте первый вопрос для начала",
+        "add_question": "Добавить вопрос",
+        "question_text": "Текст вопроса",
+        "question_type": "Тип вопроса",
+        "points": "Баллы",
+        "explanation": "Объяснение (необязательно)",
+        "options": "Варианты ответов",
+        "add_option": "Добавить вариант",
+        "correct_answers": "Правильные ответы",
+        "add_answer": "Добавить ответ",
+        "save_question": "Сохранить вопрос",
+        "update_question": "Обновить вопрос",
+        "question_number": "Вопрос {{number}}",
+        "option_placeholder": "Вариант {{number}}",
+        "answer_placeholder": "Правильный ответ {{number}}",
+        "question_text_placeholder": "Введите ваш вопрос здесь",
+        "explanation_placeholder": "Объясните, почему это правильный ответ (необязательно)",
+        "mark_correct": "Отметить как правильный",
+        "types": {
+          "multiple_choice": "Множественный выбор",
+          "short_answer": "Короткий ответ",
+          "true_false": "Верно/Неверно",
+          "essay": "Эссе"
+        }
+      },
+      "submissions": {
+        "title": "Отправки студентов",
+        "loading": "Загрузка отправок...",
+        "no_submissions": "Пока нет отправок",
+        "no_submissions_desc": "Отправки появятся здесь, когда студенты пройдут викторину",
+        "student": "Студент",
+        "submitted_at": "Отправлено",
+        "score_label": "Оценка",
+        "time_taken": "Затраченное время",
+        "view_results": "Просмотреть результаты",
+        "regrade": "Переоценить",
+        "delete": "Удалить",
+        "submission_deleted": "Отправка удалена",
+        "submission_deleted_desc": "Отправка студента успешно удалена",
+        "regrade_complete": "Переоценка завершена",
+        "regrade_complete_desc": "Попытка викторины успешно переоценена",
+        "regrade_failed": "Переоценка не удалась",
+        "passed": "Сдано",
+        "failed": "Не сдано",
+        "minutes": "минут"
+      },
+      "toast": {
+        "created": "Викторина успешно создана",
+        "updated": "Викторина успешно обновлена",
+        "question_created": "Вопрос успешно создан",
+        "question_updated": "Вопрос успешно обновлен",
+        "question_deleted": "Вопрос успешно удален",
+        "link_copied": "Ссылка скопирована",
+        "link_copied_desc": "Ссылка на викторину скопирована в буфер обмена"
+      }
     }
   },
   "my_progress": {
@@ -347,5 +578,49 @@
   },
   "create_button": {
     "new": "Новый"
+  },
+  "media": {
+    "selector": {
+      "button_caption": "Выбрать медиа",
+      "dialog_title": "Выбрать медиа",
+      "upload_button": "Загрузить",
+      "uploading": "Загрузка...",
+      "cancel": "Отмена",
+      "file_label": "Файл",
+      "caption_label": "Подпись",
+      "working": "Обработка...",
+      "select_media": "Выбрать медиа"
+    },
+    "browser": {
+      "title": "Медиатека",
+      "description": "Просматривайте и управляйте вашими медиафайлами",
+      "browse_tab": "Обзор медиа",
+      "upload_tab": "Загрузить файлы",
+      "total_items": "Всего элементов: {{count}}",
+      "selected": "Выбрано: {{filename}}",
+      "select_file_prompt": "Выберите файл из списка",
+      "select_button": "Выбрать",
+      "delete_confirm": "Вы уверены, что хотите удалить этот медиафайл?",
+      "upload_title": "Загрузить файлы",
+      "upload_description": "Выберите изображения, видео, аудио или PDF файлы",
+      "choose_files": "Выбрать файлы",
+      "selected_file": "Выбранный файл",
+      "selected_file_number": "Выбранный файл {{number}}",
+      "clear": "Очистить",
+      "upload_count": "Загрузить {{count}} файл",
+      "upload_count_plural": "Загрузить файлов: {{count}}",
+      "upload_media": "Загрузить медиа",
+      "uploading_count": "Загрузка {{count}} файла",
+      "uploading_count_plural": "Загрузка файлов: {{count}}",
+      "upload_success": "Успешно загружен {{count}} файл",
+      "upload_success_plural": "Успешно загружено файлов: {{count}}"
+    },
+    "toast": {
+      "file_uploaded": "Файл успешно загружен",
+      "upload_failed": "Загрузка не удалась",
+      "media_deleted": "Медиа успешно удалено",
+      "delete_failed": "Не удалось удалить медиа",
+      "delete_error": "Не удалось удалить медиа: {{error}}"
+    }
   }
 }

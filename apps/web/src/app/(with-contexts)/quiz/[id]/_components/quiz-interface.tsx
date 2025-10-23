@@ -23,6 +23,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { CheckCircle2, Circle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import React, { useCallback, useMemo, useState } from "react";
 
 type ISerializerQuestion = Pick<IQuizQuestionHydratedDocument, "text" | "type" | "points"> & {
@@ -89,6 +90,7 @@ export default function QuizInterface({
 }: QuizInterfaceProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation(["quiz", "common"]);
 
   // Single source of truth for quiz state
   const [quizState, setQuizState] = useState(() => {
@@ -227,16 +229,16 @@ export default function QuizInterface({
           });
         } else {
           toast({
-            title: "Navigation Failed",
-            description: result.message || "Failed to navigate to question",
+            title: t("common:error"),
+            description: result.message || t("common:error_occurred"),
             variant: "destructive",
           });
         }
       } catch (error) {
         console.error("Navigation failed:", error);
         toast({
-          title: "Error",
-          description: "Failed to navigate to question",
+          title: t("common:error"),
+          description: t("common:error_occurred"),
           variant: "destructive",
         });
       } finally {
@@ -280,21 +282,21 @@ export default function QuizInterface({
 
       if (result.success) {
         toast({
-          title: "Quiz Submitted",
+          title: t("common:success"),
           description: result.message,
         });
         router.push(`/quiz/${initialQuiz._id}/attempts/${attemptId}/results`);
       } else {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: result.message,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to submit quiz",
+        title: t("common:error"),
+        description: t("common:error_occurred"),
         variant: "destructive",
       });
     } finally {
@@ -328,9 +330,8 @@ export default function QuizInterface({
                       <h3 className="text-xl font-semibold leading-relaxed">
                         {currentQuestion.text}
                       </h3>
-                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                        {currentQuestion.points} point
-                        {currentQuestion.points !== 1 ? "s" : ""}
+                      <span className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                        {currentQuestion.points} {currentQuestion.points === 1 ? t("quiz:point") : t("quiz:points_plural")}
                       </span>
                     </div>
                     <div className="min-h-[200px]">
@@ -345,6 +346,7 @@ export default function QuizInterface({
                         <ShortAnswerQuestion
                           currentAnswer={currentAnswer}
                           onAnswerChange={handleShortAnswerChange}
+                          t={t}
                         />
                       )}
                     </div>
@@ -352,7 +354,7 @@ export default function QuizInterface({
                 )}
               </div>
 
-              <div className="border-t bg-gray-50/50 p-6">
+              <div className="border-t bg-muted/50 p-6">
                 <div className="flex justify-between items-center">
                   <Button
                     variant="outline"
@@ -360,17 +362,16 @@ export default function QuizInterface({
                     disabled={currentQuestionIndex === 0 || isLoading}
                     size="lg"
                   >
-                    Previous
+                    {t("quiz:previous")}
                   </Button>
 
                   {currentQuestionIndex === initialQuiz.questions.length - 1 ? (
                     <Button
                       onClick={handleSubmitClick}
                       disabled={isLoading || currentAnswer === null}
-                      className="bg-green-600 hover:bg-green-700"
                       size="lg"
                     >
-                      {isLoading ? "Submitting..." : "Submit Quiz"}
+                      {isLoading ? t("quiz:submitting") : t("quiz:submit_quiz")}
                     </Button>
                   ) : (
                     <Button
@@ -381,18 +382,18 @@ export default function QuizInterface({
                       }
                       size="lg"
                     >
-                      {isLoading ? "Loading..." : "Next"}
+                      {isLoading ? t("common:loading") : t("quiz:next")}
                     </Button>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="w-px bg-gray-200"></div>
+            <div className="w-px bg-border"></div>
 
             <div className="w-80 flex flex-col">
               <div className="p-6 border-b">
-                <h3 className="font-semibold text-lg">Question Navigator</h3>
+                <h3 className="font-semibold text-lg">{t("quiz:question_navigator")}</h3>
               </div>
 
               {/* Question Grid - Scrollable */}
@@ -409,10 +410,7 @@ export default function QuizInterface({
                         key={question._id}
                         variant={isCurrent ? "default" : "outline"}
                         size="sm"
-                        className={`h-14 w-14 p-0 ${isCurrent
-                          ? "bg-blue-600 text-white ring-2 ring-blue-200"
-                          : ""
-                          }`}
+                        className="h-14 w-14 p-0"
                         onClick={() => handleQuestionNavigation(index)}
                         disabled={isLoading}
                       >
@@ -421,7 +419,7 @@ export default function QuizInterface({
                             {hasAnswer ? (
                               <CheckCircle2 className="w-4 h-4 text-green-600" />
                             ) : (
-                              <Circle className="w-4 h-4 text-gray-400" />
+                              <Circle className="w-4 h-4 text-muted-foreground" />
                             )}
                             <span className="text-xs font-medium">
                               Q{index + 1}
@@ -437,18 +435,18 @@ export default function QuizInterface({
                 </div>
               </div>
 
-              <div className="border-t bg-gray-50/50 p-6">
+              <div className="border-t bg-muted/50 p-6">
                 <Button
                   onClick={handleSubmitClick}
-                  className="w-full bg-green-600 hover:bg-green-700 h-12"
+                  className="w-full h-12"
                   disabled={isLoading || quizState.answeredQuestions.size === 0}
                   size="lg"
                 >
-                  {isLoading ? "Submitting..." : "Submit Quiz"}
+                  {isLoading ? t("quiz:submitting") : t("quiz:submit_quiz")}
                 </Button>
                 {quizState.answeredQuestions.size === 0 && (
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    Answer at least one question to submit
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    {t("quiz:answer_at_least_one")}
                   </p>
                 )}
               </div>
@@ -463,21 +461,17 @@ export default function QuizInterface({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Submission</DialogTitle>
+            <DialogTitle>{t("quiz:confirm_submission")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to submit this quiz? You cannot go back and
-              edit your answers after submission.
+              {t("quiz:confirm_submission_message")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={submitDialog.hide}>
-              Cancel
+              {t("common:cancel")}
             </Button>
-            <Button
-              onClick={handleSubmit}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Submit Quiz
+            <Button onClick={handleSubmit}>
+              {t("quiz:submit_quiz")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -487,7 +481,7 @@ export default function QuizInterface({
 }
 
 const QuizWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+  <div className="min-h-screen bg-background flex items-center justify-center p-4">
     <div className="w-full max-w-6xl h-[90vh]">{children}</div>
   </div>
 );
@@ -495,9 +489,11 @@ const QuizWrapper = ({ children }: { children: React.ReactNode }) => (
 const ShortAnswerQuestion = ({
   currentAnswer,
   onAnswerChange,
+  t,
 }: {
   currentAnswer: string[];
   onAnswerChange: (answer: string) => void;
+  t: any;
 }) => {
   const currentValue = currentAnswer.length > 0 ? currentAnswer[0] : "";
 
@@ -512,7 +508,7 @@ const ShortAnswerQuestion = ({
     <div className="space-y-2">
       <Input
         type="text"
-        placeholder="Enter your answer..."
+        placeholder={t("quiz:enter_your_answer")}
         value={currentValue}
         onChange={handleChange}
         autoComplete="off"

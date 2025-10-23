@@ -19,6 +19,7 @@ import {
 } from "@workspace/ui/components/tabs";
 import { ChevronDown } from "lucide-react";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useAssignmentContext } from "./assignment-context";
 import AssignmentGrading from "./assignment-grading";
 import AssignmentSettings from "./assignment-settings";
@@ -26,24 +27,25 @@ import AssignmentSubmissions from "./assignment-submissions";
 
 export default function AssignmentContent() {
   const { mode, assignment, updateMutation } = useAssignmentContext();
-
+  const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
+
   const breadcrumbs = useMemo(
     () => [
       {
-        label: "LMS",
+        label: t("dashboard:lms.title"),
         href: `/dashboard/lms`,
       },
       {
-        label: "Assignments",
+        label: t("dashboard:lms.modules.assignments.title"),
         href: "/dashboard/lms/assignments",
       },
       {
-        label: mode === "create" ? "New Assignment" : "Edit Assignment",
+        label: mode === "create" ? t("dashboard:lms.assignment.new_assignment") : t("dashboard:lms.assignment.edit_assignment"),
         href: "#",
       },
     ],
-    [mode],
+    [mode, t],
   );
 
   const handleStatusChange = useCallback(
@@ -60,23 +62,23 @@ export default function AssignmentContent() {
 
   const pulicationStatusLabel = useMemo(() => {
     const data = {
-      [PublicationStatusEnum.DRAFT]: "Draft",
-      [PublicationStatusEnum.PUBLISHED]: "Published",
-      [PublicationStatusEnum.ARCHIVED]: "Archived",
+      [PublicationStatusEnum.DRAFT]: t("dashboard:table.draft"),
+      [PublicationStatusEnum.PUBLISHED]: t("dashboard:table.published"),
+      [PublicationStatusEnum.ARCHIVED]: t("dashboard:table.archived"),
     }
-    return data[assignment?.publicationStatus as PublicationStatusEnum] || "Draft";
-  }, [assignment?.publicationStatus]);
+    return data[assignment?.publicationStatus as PublicationStatusEnum] || t("dashboard:table.draft");
+  }, [assignment?.publicationStatus, t]);
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
       <HeaderTopbar
         backLink={true}
         header={{
-          title: mode === "create" ? "New Assignment" : "Edit Assignment",
+          title: mode === "create" ? t("dashboard:lms.assignment.new_assignment") : t("dashboard:lms.assignment.edit_assignment"),
           subtitle:
             mode === "create"
-              ? "Create a new assignment with detailed configuration"
-              : "Edit assignment settings and manage submissions",
+              ? t("dashboard:lms.assignment.create_subtitle")
+              : t("dashboard:lms.assignment.edit_subtitle"),
         }}
         rightAction={
           <div className="flex items-center gap-2">
@@ -102,7 +104,7 @@ export default function AssignmentContent() {
                   }
                   disabled={assignment?.publicationStatus === PublicationStatusEnum.DRAFT}
                 >
-                  Draft
+                  {t("dashboard:table.draft")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
@@ -112,7 +114,7 @@ export default function AssignmentContent() {
                   }
                   disabled={assignment?.publicationStatus === PublicationStatusEnum.PUBLISHED}
                 >
-                  Published
+                  {t("dashboard:table.published")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
@@ -120,7 +122,7 @@ export default function AssignmentContent() {
                   }
                   disabled={assignment?.publicationStatus === PublicationStatusEnum.ARCHIVED}
                 >
-                  Archived
+                  {t("dashboard:table.archived")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -130,12 +132,12 @@ export default function AssignmentContent() {
 
       <Tabs defaultValue="settings" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="settings">Basic Information</TabsTrigger>
+          <TabsTrigger value="settings">{t("dashboard:lms.assignment.tabs.basic_information")}</TabsTrigger>
           <TabsTrigger value="submissions" disabled={mode === "create"}>
-            Submissions
+            {t("dashboard:lms.assignment.tabs.submissions")}
           </TabsTrigger>
           <TabsTrigger value="grading" disabled={mode === "create"}>
-            Grading
+            {t("dashboard:lms.assignment.tabs.grading")}
           </TabsTrigger>
         </TabsList>
 
@@ -148,7 +150,7 @@ export default function AssignmentContent() {
             <AssignmentSubmissions />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Save the assignment first to manage submissions.
+              {t("dashboard:lms.assignment.messages.save_first_submissions")}
             </div>
           )}
         </TabsContent>
@@ -158,7 +160,7 @@ export default function AssignmentContent() {
             <AssignmentGrading />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Save the assignment first to configure grading.
+              {t("dashboard:lms.assignment.messages.save_first_grading")}
             </div>
           )}
         </TabsContent>

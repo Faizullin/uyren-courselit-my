@@ -25,6 +25,7 @@ import { Link, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import z from "zod";
 import { useQuizContext } from "./quiz-context";
 
@@ -54,8 +55,8 @@ type CourseSelectItemType = {
 
 export default function QuizSettings() {
   const { quiz, mode } = useQuizContext();
-
   const router = useRouter();
+  const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
   const form = useForm<QuizSettingsFormDataType>({
     resolver: zodResolver(QuizSettingsSchema),
@@ -75,14 +76,14 @@ export default function QuizSettings() {
   const createMutation = trpc.lmsModule.quizModule.quiz.create.useMutation({
     onSuccess: (response) => {
       toast({
-        title: "Success",
-        description: "Quiz created successfully",
+        title: t("common:success"),
+        description: t("dashboard:lms.quiz.toast.created"),
       });
       router.push(`/dashboard/lms/quizzes/${response._id}`);
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: t("common:error"),
         description: error.message,
         variant: "destructive",
       });
@@ -91,13 +92,13 @@ export default function QuizSettings() {
   const updateMutation = trpc.lmsModule.quizModule.quiz.update.useMutation({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Quiz updated successfully",
+        title: t("common:success"),
+        description: t("dashboard:lms.quiz.toast.updated"),
       });
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: t("common:error"),
         description: error.message,
         variant: "destructive",
       });
@@ -180,11 +181,10 @@ export default function QuizSettings() {
     try {
       await navigator.clipboard.writeText(quizUrl);
       toast({
-        title: "Link Copied",
-        description: "Quiz link copied to clipboard",
+        title: t("dashboard:lms.quiz.toast.link_copied"),
+        description: t("dashboard:lms.quiz.toast.link_copied_desc"),
       });
     } catch (error) {
-      // Fallback for older browsers
       const textArea = document.createElement("textarea");
       textArea.value = quizUrl;
       document.body.appendChild(textArea);
@@ -193,11 +193,11 @@ export default function QuizSettings() {
       document.body.removeChild(textArea);
 
       toast({
-        title: "Link Copied",
-        description: "Quiz link copied to clipboard",
+        title: t("dashboard:lms.quiz.toast.link_copied"),
+        description: t("dashboard:lms.quiz.toast.link_copied_desc"),
       });
     }
-  }, [quiz?._id, toast]);
+  }, [quiz?._id, toast, t]);
 
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -210,18 +210,18 @@ export default function QuizSettings() {
           className="flex items-center gap-2"
         >
           <Link className="h-4 w-4" />
-          Copy Link
+          {t("dashboard:lms.quiz.settings.copy_link")}
         </Button>
         <Button type="submit" disabled={isSaving || isSubmitting}>
           <Save className="h-4 w-4 mr-2" />
-          {isSaving || isSubmitting ? "Saving..." : "Save Settings"}
+          {isSaving || isSubmitting ? t("common:saving") : t("dashboard:lms.quiz.settings.save_settings")}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle>{t("dashboard:lms.quiz.settings.basic_info")}</CardTitle>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -230,10 +230,10 @@ export default function QuizSettings() {
                 name="title"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Quiz Title</FieldLabel>
+                    <FieldLabel>{t("dashboard:lms.quiz.settings.quiz_title")}</FieldLabel>
                     <Input
                       {...field}
-                      placeholder="Enter quiz title"
+                      placeholder={t("dashboard:lms.quiz.settings.quiz_title_placeholder")}
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -247,10 +247,10 @@ export default function QuizSettings() {
                 name="description"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Description</FieldLabel>
+                    <FieldLabel>{t("common:description")}</FieldLabel>
                     <Textarea
                       {...field}
-                      placeholder="Enter quiz description"
+                      placeholder={t("dashboard:lms.quiz.settings.quiz_description_placeholder")}
                       rows={3}
                       aria-invalid={fieldState.invalid}
                     />
@@ -265,9 +265,9 @@ export default function QuizSettings() {
                 name="course"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Course</FieldLabel>
+                    <FieldLabel>{t("dashboard:lms.quiz.settings.course")}</FieldLabel>
                     <ComboBox2<CourseSelectItemType>
-                      title="Select a course"
+                      title={t("dashboard:lms.quiz.settings.select_course")}
                       valueKey="key"
                       value={field.value || undefined}
                       searchFn={fetchCourses}
@@ -298,7 +298,7 @@ export default function QuizSettings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quiz Configuration</CardTitle>
+            <CardTitle>{t("dashboard:lms.quiz.settings.quiz_configuration")}</CardTitle>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -308,7 +308,7 @@ export default function QuizSettings() {
                   name="timeLimit"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Time Limit (minutes)</FieldLabel>
+                      <FieldLabel>{t("dashboard:lms.quiz.settings.time_limit")}</FieldLabel>
                       <Input
                         type="number"
                         {...field}
@@ -328,7 +328,7 @@ export default function QuizSettings() {
                   name="passingScore"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Passing Score (%)</FieldLabel>
+                      <FieldLabel>{t("dashboard:lms.quiz.settings.passing_score")}</FieldLabel>
                       <Input
                         type="number"
                         {...field}
@@ -350,7 +350,7 @@ export default function QuizSettings() {
                   name="maxAttempts"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor="max-attempts">Max Attempts</FieldLabel>
+                      <FieldLabel htmlFor="max-attempts">{t("dashboard:lms.quiz.settings.max_attempts")}</FieldLabel>
                       <Select
                         name={field.name}
                         value={field.value.toString()}
@@ -366,10 +366,10 @@ export default function QuizSettings() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">1 Attempt</SelectItem>
-                          <SelectItem value="2">2 Attempts</SelectItem>
-                          <SelectItem value="3">3 Attempts</SelectItem>
-                          <SelectItem value="-1">Unlimited</SelectItem>
+                          <SelectItem value="1">{t("dashboard:lms.quiz.settings.attempts.one")}</SelectItem>
+                          <SelectItem value="2">{t("dashboard:lms.quiz.settings.attempts.two")}</SelectItem>
+                          <SelectItem value="3">{t("dashboard:lms.quiz.settings.attempts.three")}</SelectItem>
+                          <SelectItem value="-1">{t("dashboard:lms.quiz.settings.attempts.unlimited")}</SelectItem>
                         </SelectContent>
                       </Select>
                       {fieldState.invalid && (
@@ -383,7 +383,7 @@ export default function QuizSettings() {
                   name="totalPoints"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Total Points</FieldLabel>
+                      <FieldLabel>{t("dashboard:lms.quiz.settings.total_points")}</FieldLabel>
                       <Input
                         type="number"
                         {...field}

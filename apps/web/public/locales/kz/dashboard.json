@@ -152,6 +152,237 @@
     "actions": {
       "view_all": "Барлығын көру",
       "new": "Жаңа"
+    },
+    "assignment": {
+      "new_assignment": "Жаңа тапсырма",
+      "edit_assignment": "Тапсырманы өңдеу",
+      "create_subtitle": "Толық конфигурациямен жаңа тапсырма жасаңыз",
+      "edit_subtitle": "Тапсырма параметрлерін өңдеңіз және жіберулерді басқарыңыз",
+      "archive_confirm": "Бұл тапсырманы мұрағаттағыңыз келетініне сенімдісіз бе?",
+      "tabs": {
+        "basic_information": "Негізгі ақпарат",
+        "submissions": "Жіберулер",
+        "grading": "Бағалау"
+      },
+      "messages": {
+        "save_first_submissions": "Жіберулерді басқару үшін алдымен тапсырманы сақтаңыз.",
+        "save_first_grading": "Бағалауды конфигурациялау үшін алдымен тапсырманы сақтаңыз.",
+        "save_first_upload": "Файлдарды жүктеу үшін алдымен тапсырманы сақтаңыз",
+        "save_first_upload_attachments": "Қоса тіркемелерді жүктеу үшін алдымен тапсырманы сақтаңыз"
+      },
+      "settings": {
+        "basic_info": "Негізгі ақпарат",
+        "dates_config": "Күндер және конфигурация",
+        "instructions_requirements": "Нұсқаулар және талаптар",
+        "grading_rubrics": "Бағалау рубрикалары",
+        "attachments": "Қоса тіркемелер",
+        "title": "Атауы",
+        "description": "Сипаттама",
+        "course": "Курс",
+        "type": "Түрі",
+        "difficulty": "Қиындық",
+        "total_points": "Барлық ұпайлар",
+        "begin_date": "Басталу күні",
+        "due_date": "Тапсыру күні",
+        "scheduled_date": "Жоспарланған күн",
+        "event_duration": "Оқиға ұзақтығы (минут)",
+        "event_duration_placeholder": "Міндетті емес (1-480)",
+        "allow_late_submissions": "Кеш жіберулерге рұқсат беру",
+        "allow_late_submissions_desc": "Студенттер мерзімнен кейін жібере алады",
+        "late_penalty": "Кешіктірген айыппұл (%)",
+        "max_attempts": "Макс. әрекеттер",
+        "allow_peer_review": "Өзара бағалауға рұқсат беру",
+        "allow_peer_review_desc": "Студенттерге бір-бірінің жұмысын бағалауға мүмкіндік беру",
+        "instructions": "Нұсқаулар",
+        "requirements": "Талаптар",
+        "add_requirement": "Талап қосу",
+        "requirement_number": "Талап {{number}}",
+        "no_requirements": "Әлі талаптар жоқ",
+        "add_rubric": "Рубрика қосу",
+        "criterion": "Критерий",
+        "rubric_description": "Сипаттама",
+        "grading_criterion_placeholder": "Бағалау критерийі",
+        "grading_criterion_desc_placeholder": "Бұл бағалау критерийін сипаттаңыз",
+        "no_rubrics": "Әлі рубрикалар жоқ. Бағалау критерийлерін анықтау үшін рубрикалар қосыңыз.",
+        "attachments_desc": "Студенттерге тапсырманы орындау кезінде анықтама үшін файлдар, құжаттар немесе ресурстар қосыңыз.",
+        "upload_attachment": "Қоса тіркеме жүктеу",
+        "upload_first_attachment": "Бірінші қоса тіркемені жүктеу",
+        "upload_another_attachment": "Тағы бір қоса тіркеме жүктеу",
+        "select_course": "Курсты таңдаңыз",
+        "assignment_title_placeholder": "Тапсырма атауы",
+        "brief_description_placeholder": "Қысқаша сипаттама",
+        "detailed_instructions_placeholder": "Студенттерге арналған толық нұсқаулар",
+        "check_project_ide": "Жобаны IDE-де тексеру",
+        "begin": "Басталуы",
+        "due": "Мерзімі"
+      },
+      "types": {
+        "essay": "Эссе",
+        "project": "Жоба",
+        "presentation": "Презентация",
+        "file_upload": "Файл жүктеу"
+      },
+      "difficulty": {
+        "easy": "Оңай",
+        "medium": "Орташа",
+        "hard": "Қиын"
+      },
+      "submissions": {
+        "title": "Студенттердің жіберулері",
+        "loading": "Жіберулер жүктелуде...",
+        "no_submissions": "Әлі жіберулер жоқ",
+        "no_submissions_desc": "Студенттер жұмыстарын жіберген кезде жіберулер осында пайда болады",
+        "student": "Студент",
+        "submitted": "Жіберілді",
+        "not_graded": "Бағаланбаған",
+        "edit_grade": "Бағаны өңдеу",
+        "grade": "Бағалау"
+      },
+      "submission_status": {
+        "graded": "Бағаланған",
+        "late": "Кешіктірілген",
+        "pending": "Күтуде",
+        "draft": "Жоба"
+      },
+      "grading": {
+        "overview": "Бағалауға шолу",
+        "graded": "Бағаланған",
+        "pending": "Күтуде",
+        "total_points": "Барлық ұпайлар",
+        "configuration": "Бағалау конфигурациясы",
+        "rubric": "Рубрика",
+        "no_rubric": "Рубрика анықталмаған",
+        "criteria_defined": "Анықталған критерийлер: {{count}}",
+        "late_submission_policy": "Кеш жіберу саясаты",
+        "late_penalty_percent": "Кешіктірген айыппұл: {{percent}}%",
+        "late_not_allowed": "Кеш жіберулерге рұқсат берілмейді",
+        "peer_review": "Өзара бағалау",
+        "peer_review_enabled_desc": "Студенттер бір-бірінің жұмыстарын бағалай алады",
+        "peer_review_not_enabled": "Өзара бағалау қосылмаған",
+        "pts": "ұ"
+      },
+      "grade_dialog": {
+        "title": "Жіберуді бағалау",
+        "loading": "Жіберу жүктелуде...",
+        "not_found": "Жіберу табылмады",
+        "submission_content": "Жіберу мазмұны",
+        "no_content": "Мазмұн берілмеді",
+        "attachments": "Қоса тіркемелер",
+        "attachment_number": "Қоса тіркеме {{number}}",
+        "submitted": "Жіберілді",
+        "score_label": "Баға * (Макс: {{max}} ұпай)",
+        "score_placeholder": "Бағаны енгізіңіз",
+        "feedback_label": "Кері байланыс (Міндетті емес)",
+        "feedback_placeholder": "Студентке кері байланыс қалдырыңыз...",
+        "invalid_score": "Жарамсыз баға",
+        "invalid_score_desc": "Дұрыс бағаны енгізіңіз",
+        "score_exceeds": "Баға {{max}} ұпайдан аспауы керек"
+      },
+      "toast": {
+        "created": "Тапсырма сәтті жасалды",
+        "updated": "Тапсырма сәтті жаңартылды",
+        "submission_graded": "Жіберу сәтті бағаланды"
+      },
+      "publicationStatus": "Жариялау күйі"
+    },
+    "quiz": {
+      "new_quiz": "Жаңа викторина",
+      "edit_quiz": "Викторинаны өңдеу",
+      "create_subtitle": "Сұрақтар мен параметрлермен жаңа викторина жасаңыз",
+      "edit_subtitle": "Викторина параметрлерін және сұрақтарды өңдеңіз",
+      "archive_confirm": "Бұл викторинаны мұрағаттағыңыз келетініне сенімдісіз бе?",
+      "delete_question_confirm": "Бұл сұрақты жойғыңыз келетініне сенімдісіз бе?",
+      "tabs": {
+        "quiz_settings": "Викторина параметрлері",
+        "questions": "Сұрақтар",
+        "submissions": "Жіберулер"
+      },
+      "messages": {
+        "save_first_questions": "Сұрақтар қосу үшін алдымен викторинаны сақтаңыз.",
+        "save_first_submissions": "Жіберулерді көру үшін алдымен викторинаны сақтаңыз."
+      },
+      "settings": {
+        "quiz_title": "Викторина атауы",
+        "quiz_description": "Сипаттама",
+        "course": "Курс",
+        "time_limit": "Уақыт шектеуі (минут)",
+        "passing_score": "Өту бағасы (%)",
+        "max_attempts": "Макс. әрекеттер",
+        "total_points": "Барлық ұпайлар",
+        "shuffle_questions": "Сұрақтарды араластыру",
+        "show_results": "Нәтижелерді көрсету",
+        "basic_info": "Негізгі ақпарат",
+        "quiz_configuration": "Викторина конфигурациясы",
+        "quiz_title_placeholder": "Викторина атауын енгізіңіз",
+        "quiz_description_placeholder": "Викторина сипаттамасын енгізіңіз",
+        "select_course": "Курсты таңдаңыз",
+        "copy_link": "Сілтемені көшіру",
+        "save_settings": "Параметрлерді сақтау",
+        "attempts": {
+          "one": "1 әрекет",
+          "two": "2 әрекет",
+          "three": "3 әрекет",
+          "unlimited": "Шектеусіз"
+        }
+      },
+      "questions": {
+        "title": "Сұрақтар",
+        "no_questions": "Әлі сұрақтар жоқ",
+        "no_questions_desc": "Бастау үшін бірінші сұрақты қосыңыз",
+        "add_question": "Сұрақ қосу",
+        "question_text": "Сұрақ мәтіні",
+        "question_type": "Сұрақ түрі",
+        "points": "Ұпайлар",
+        "explanation": "Түсіндірме (міндетті емес)",
+        "options": "Жауап нұсқалары",
+        "add_option": "Нұсқа қосу",
+        "correct_answers": "Дұрыс жауаптар",
+        "add_answer": "Жауап қосу",
+        "save_question": "Сұрақты сақтау",
+        "update_question": "Сұрақты жаңарту",
+        "question_number": "Сұрақ {{number}}",
+        "option_placeholder": "Нұсқа {{number}}",
+        "answer_placeholder": "Дұрыс жауап {{number}}",
+        "question_text_placeholder": "Сұрағыңызды осында енгізіңіз",
+        "explanation_placeholder": "Неліктен бұл дұрыс жауап екенін түсіндіріңіз (міндетті емес)",
+        "mark_correct": "Дұрыс ретінде белгілеу",
+        "types": {
+          "multiple_choice": "Көп таңдау",
+          "short_answer": "Қысқа жауап",
+          "true_false": "Дұрыс/Бұрыс",
+          "essay": "Эссе"
+        }
+      },
+      "submissions": {
+        "title": "Студенттердің жіберулері",
+        "loading": "Жіберулер жүктелуде...",
+        "no_submissions": "Әлі жіберулер жоқ",
+        "no_submissions_desc": "Студенттер викторинаны тапсырған кезде жіберулер осында пайда болады",
+        "student": "Студент",
+        "submitted_at": "Жіберілді",
+        "score_label": "Баға",
+        "time_taken": "Кеткен уақыт",
+        "view_results": "Нәтижелерді көру",
+        "regrade": "Қайта бағалау",
+        "delete": "Жою",
+        "submission_deleted": "Жіберу жойылды",
+        "submission_deleted_desc": "Студенттің жіберуі сәтті жойылды",
+        "regrade_complete": "Қайта бағалау аяқталды",
+        "regrade_complete_desc": "Викторина әрекеті сәтті қайта бағаланды",
+        "regrade_failed": "Қайта бағалау сәтсіз аяқталды",
+        "passed": "Тапсырылды",
+        "failed": "Тапсырылмады",
+        "minutes": "минут"
+      },
+      "toast": {
+        "created": "Викторина сәтті жасалды",
+        "updated": "Викторина сәтті жаңартылды",
+        "question_created": "Сұрақ сәтті жасалды",
+        "question_updated": "Сұрақ сәтті жаңартылды",
+        "question_deleted": "Сұрақ сәтті жойылды",
+        "link_copied": "Сілтеме көшірілді",
+        "link_copied_desc": "Викторина сілтемесі алмасу буферіне көшірілді"
+      }
     }
   },
   "my_progress": {
@@ -347,5 +578,49 @@
   },
   "create_button": {
     "new": "Жаңа"
+  },
+  "media": {
+    "selector": {
+      "button_caption": "Медиа таңдау",
+      "dialog_title": "Медиа таңдау",
+      "upload_button": "Жүктеу",
+      "uploading": "Жүктелуде...",
+      "cancel": "Болдырмау",
+      "file_label": "Файл",
+      "caption_label": "Тақырып",
+      "working": "Өңделуде...",
+      "select_media": "Медиа таңдау"
+    },
+    "browser": {
+      "title": "Медиа кітапхана",
+      "description": "Медиа файлдарыңызды қарап шығыңыз және басқарыңыз",
+      "browse_tab": "Медиаға шолу",
+      "upload_tab": "Файлдарды жүктеу",
+      "total_items": "Барлық элементтер: {{count}}",
+      "selected": "Таңдалған: {{filename}}",
+      "select_file_prompt": "Тізімнен файл таңдаңыз",
+      "select_button": "Таңдау",
+      "delete_confirm": "Бұл медиафайлды жойғыңыз келетініне сенімдісіз бе?",
+      "upload_title": "Файлдарды жүктеу",
+      "upload_description": "Суреттер, бейнелер, аудио немесе PDF файлдарын таңдаңыз",
+      "choose_files": "Файлдарды таңдау",
+      "selected_file": "Таңдалған файл",
+      "selected_file_number": "Таңдалған файл {{number}}",
+      "clear": "Тазалау",
+      "upload_count": "{{count}} файлды жүктеу",
+      "upload_count_plural": "Файлдарды жүктеу: {{count}}",
+      "upload_media": "Медиа жүктеу",
+      "uploading_count": "{{count}} файл жүктелуде",
+      "uploading_count_plural": "Файлдар жүктелуде: {{count}}",
+      "upload_success": "{{count}} файл сәтті жүктелді",
+      "upload_success_plural": "Файлдар сәтті жүктелді: {{count}}"
+    },
+    "toast": {
+      "file_uploaded": "Файл сәтті жүктелді",
+      "upload_failed": "Жүктеу сәтсіз аяқталды",
+      "media_deleted": "Медиа сәтті жойылды",
+      "delete_failed": "Медианы жою сәтсіз аяқталды",
+      "delete_error": "Медианы жою сәтсіз аяқталды: {{error}}"
+    }
   }
 }

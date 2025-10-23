@@ -12,11 +12,12 @@ import {
 } from "@workspace/ui/components/card";
 import { CheckCircle, Clock, Settings, Star } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAssignmentContext } from "./assignment-context";
-
 
 export default function AssignmentGrading() {
   const { assignment } = useAssignmentContext();
+  const { t } = useTranslation(["dashboard", "common"]);
   const [showRubricBuilder, setShowRubricBuilder] = useState(false);
 
   const loadSubmissionsQuery =
@@ -39,7 +40,7 @@ export default function AssignmentGrading() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Grading Overview</CardTitle>
+          <CardTitle>{t("dashboard:lms.assignment.grading.overview")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
@@ -47,14 +48,14 @@ export default function AssignmentGrading() {
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div>
                 <div className="text-2xl font-bold">{gradedCount}</div>
-                <div className="text-sm text-muted-foreground">Graded</div>
+                <div className="text-sm text-muted-foreground">{t("dashboard:lms.assignment.grading.graded")}</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 border rounded-lg">
               <Clock className="h-8 w-8 text-blue-600" />
               <div>
                 <div className="text-2xl font-bold">{pendingCount}</div>
-                <div className="text-sm text-muted-foreground">Pending</div>
+                <div className="text-sm text-muted-foreground">{t("dashboard:lms.assignment.grading.pending")}</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 border rounded-lg">
@@ -64,7 +65,7 @@ export default function AssignmentGrading() {
                   {assignment?.totalPoints || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Total Points
+                  {t("dashboard:lms.assignment.grading.total_points")}
                 </div>
               </div>
             </div>
@@ -74,17 +75,17 @@ export default function AssignmentGrading() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Grading Configuration</CardTitle>
+          <CardTitle>{t("dashboard:lms.assignment.grading.configuration")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <div className="font-medium">Rubric</div>
+                <div className="font-medium">{t("dashboard:lms.assignment.grading.rubric")}</div>
                 <div className="text-sm text-muted-foreground">
                   {assignment?.rubrics && assignment.rubrics.length > 0
-                    ? `${assignment.rubrics.length} criteria defined`
-                    : "No rubric defined"}
+                    ? t("dashboard:lms.assignment.grading.criteria_defined", { count: assignment.rubrics.length })
+                    : t("dashboard:lms.assignment.grading.no_rubric")}
                 </div>
               </div>
               <Button
@@ -93,9 +94,9 @@ export default function AssignmentGrading() {
               >
                 <Settings className="h-4 w-4 mr-2" />
                 {assignment?.rubrics && assignment.rubrics.length > 0
-                  ? "Edit"
-                  : "Create"}{" "}
-                Rubric
+                  ? t("common:edit")
+                  : t("common:create")}{" "}
+                {t("dashboard:lms.assignment.grading.rubric")}
               </Button>
             </div>
 
@@ -114,7 +115,7 @@ export default function AssignmentGrading() {
                         </div>
                       )}
                     </div>
-                    <Badge variant="outline">{criterion.points} pts</Badge>
+                    <Badge variant="outline">{criterion.points} {t("dashboard:lms.assignment.grading.pts")}</Badge>
                   </div>
                 ))}
               </div>
@@ -122,11 +123,11 @@ export default function AssignmentGrading() {
 
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <div className="font-medium">Late Submission Policy</div>
+                <div className="font-medium">{t("dashboard:lms.assignment.grading.late_submission_policy")}</div>
                 <div className="text-sm text-muted-foreground">
                   {assignment?.allowLateSubmission
-                    ? `Late penalty: ${assignment.latePenalty}%`
-                    : "Late submissions not allowed"}
+                    ? t("dashboard:lms.assignment.grading.late_penalty_percent", { percent: assignment.latePenalty })
+                    : t("dashboard:lms.assignment.grading.late_not_allowed")}
                 </div>
               </div>
               <Badge
@@ -134,17 +135,17 @@ export default function AssignmentGrading() {
                   assignment?.allowLateSubmission ? "default" : "secondary"
                 }
               >
-                {assignment?.allowLateSubmission ? "Enabled" : "Disabled"}
+                {assignment?.allowLateSubmission ? t("common:enabled") : t("common:disabled")}
               </Badge>
             </div>
 
             {/* <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
-                <div className="font-medium">Peer Review</div>
+                <div className="font-medium">{t("dashboard:lms.assignment.grading.peer_review")}</div>
                 <div className="text-sm text-muted-foreground">
                   {assignment?.allowPeerReview
-                    ? "Students can review each other's work"
-                    : "Peer review not enabled"}
+                    ? t("dashboard:lms.assignment.grading.peer_review_enabled_desc")
+                    : t("dashboard:lms.assignment.grading.peer_review_not_enabled")}
                 </div>
               </div>
               <Badge
@@ -152,7 +153,7 @@ export default function AssignmentGrading() {
                   assignment?.allowPeerReview ? "default" : "secondary"
                 }
               >
-                {assignment?.peerReviewEnabled ? "Enabled" : "Disabled"}
+                {assignment?.peerReviewEnabled ? t("common:enabled") : t("common:disabled")}
               </Badge>
             </div> */}
           </div>

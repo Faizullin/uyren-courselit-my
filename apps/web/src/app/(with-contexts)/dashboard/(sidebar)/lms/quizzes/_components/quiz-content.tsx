@@ -19,6 +19,7 @@ import {
 } from "@workspace/ui/components/tabs";
 import { ChevronDown } from "lucide-react";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuizContext } from "./quiz-context";
 import QuizQuestions from "./quiz-questions";
 import QuizSettings from "./quiz-settings";
@@ -26,24 +27,25 @@ import QuizSubmissions from "./quiz-submissions";
 
 export default function QuizContent() {
   const { mode, quiz, updateMutation } = useQuizContext();
-
+  const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
+
   const breadcrumbs = useMemo(
     () => [
       {
-        label: "LMS",
+        label: t("dashboard:lms.title"),
         href: `/dashboard/lms`,
       },
       {
-        label: "Quizzes",
+        label: t("dashboard:lms.modules.quizzes.title"),
         href: "/dashboard/lms/quizzes",
       },
       {
-        label: mode === "create" ? "New Quiz" : "Edit Quiz",
+        label: mode === "create" ? t("dashboard:lms.quiz.new_quiz") : t("dashboard:lms.quiz.edit_quiz"),
         href: "#",
       },
     ],
-    [mode],
+    [mode, t],
   );
 
   const handleStatusChange = useCallback(
@@ -60,23 +62,23 @@ export default function QuizContent() {
 
   const pulicationStatusLabel = useMemo(() => {
     const data = {
-      [PublicationStatusEnum.DRAFT]: "Draft",
-      [PublicationStatusEnum.PUBLISHED]: "Published",
-      [PublicationStatusEnum.ARCHIVED]: "Archived",
+      [PublicationStatusEnum.DRAFT]: t("dashboard:table.draft"),
+      [PublicationStatusEnum.PUBLISHED]: t("dashboard:table.published"),
+      [PublicationStatusEnum.ARCHIVED]: t("dashboard:table.archived"),
     }
-    return data[quiz?.publicationStatus as PublicationStatusEnum] || "Draft";
-  }, [quiz?.publicationStatus]);
+    return data[quiz?.publicationStatus as PublicationStatusEnum] || t("dashboard:table.draft");
+  }, [quiz?.publicationStatus, t]);
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
       <HeaderTopbar
         backLink={true}
         header={{
-          title: mode === "create" ? "New Quiz" : "Edit Quiz",
+          title: mode === "create" ? t("dashboard:lms.quiz.new_quiz") : t("dashboard:lms.quiz.edit_quiz"),
           subtitle:
             mode === "create"
-              ? "Build a new quiz with questions and settings"
-              : "Edit quiz settings and questions",
+              ? t("dashboard:lms.quiz.create_subtitle")
+              : t("dashboard:lms.quiz.edit_subtitle"),
         }}
         rightAction={
           <div className="flex items-center gap-2">
@@ -100,7 +102,7 @@ export default function QuizContent() {
                   }
                   disabled={quiz?.publicationStatus === PublicationStatusEnum.DRAFT}
                 >
-                  Draft
+                  {t("dashboard:table.draft")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
@@ -110,7 +112,7 @@ export default function QuizContent() {
                   }
                   disabled={quiz?.publicationStatus === PublicationStatusEnum.PUBLISHED}
                 >
-                  Published
+                  {t("dashboard:table.published")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
@@ -118,7 +120,7 @@ export default function QuizContent() {
                   }
                   disabled={quiz?.publicationStatus === PublicationStatusEnum.ARCHIVED}
                 >
-                  Archived
+                  {t("dashboard:table.archived")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -128,12 +130,12 @@ export default function QuizContent() {
 
       <Tabs defaultValue="settings" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="settings">Quiz Settings</TabsTrigger>
+          <TabsTrigger value="settings">{t("dashboard:lms.quiz.tabs.quiz_settings")}</TabsTrigger>
           <TabsTrigger value="questions" disabled={mode === "create"}>
-            Questions
+            {t("dashboard:lms.quiz.tabs.questions")}
           </TabsTrigger>
           <TabsTrigger value="submissions" disabled={mode === "create"}>
-            Submissions
+            {t("dashboard:lms.quiz.tabs.submissions")}
           </TabsTrigger>
         </TabsList>
 
@@ -146,7 +148,7 @@ export default function QuizContent() {
             <QuizQuestions />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Save the quiz first to add questions.
+              {t("dashboard:lms.quiz.messages.save_first_questions")}
             </div>
           )}
         </TabsContent>
@@ -156,7 +158,7 @@ export default function QuizContent() {
             <QuizSubmissions />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Save the quiz first to view submissions.
+              {t("dashboard:lms.quiz.messages.save_first_submissions")}
             </div>
           )}
         </TabsContent>

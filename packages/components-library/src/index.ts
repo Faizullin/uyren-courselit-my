@@ -3,7 +3,7 @@ import CircularProgress from "./circular-progress";
 import ComboBox2 from "./combo-box2";
 import DragAndDrop from "./drag-and-drop";
 import IconButton from "./icon-button";
-import { MediaBrowserNiceDialog, MediaComponents } from "./media-browser";
+import { MediaBrowserNiceDialog, MediaComponents, type MediaDialogStrings, type MediaDialogConfig, type MediaDialogFunctions } from "./media-browser";
 import MediaSelector from "./media-selector";
 import Section from "./section";
 import Table, { TableBody, TableHead, TableRow } from "./table";
@@ -20,6 +20,7 @@ export {
   TableHead,
   TableRow
 };
+export type { MediaDialogStrings, MediaDialogConfig, MediaDialogFunctions };
 
   export * from "./dialogs/base-dialog";
   export * from "./dialogs/form-dialog";

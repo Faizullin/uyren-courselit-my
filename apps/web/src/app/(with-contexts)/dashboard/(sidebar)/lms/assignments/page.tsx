@@ -53,18 +53,18 @@ export default function Page() {
 
   const handleArchive = useCallback(
     (assignment: ItemType) => {
-      if (confirm("Are you sure you want to archive this assignment?")) {
+      if (confirm(t("dashboard:lms.assignment.archive_confirm"))) {
         archiveMutation.mutate({
           id: assignment._id,
         });
       }
     },
-    [archiveMutation],
+    [archiveMutation, t],
   );
 
   const breadcrumbs = [
-    { label: "LMS", href: "#" },
-    { label: "Assignments", href: "#" },
+    { label: t("dashboard:lms.title"), href: "#" },
+    { label: t("dashboard:lms.modules.assignments.title"), href: "#" },
   ];
 
   const columns: ColumnDef<ItemType>[] = useMemo(() => {
@@ -303,8 +303,8 @@ export default function Page() {
     <DashboardContent breadcrumbs={breadcrumbs}>
       <HeaderTopbar
         header={{
-          title: t("lms.modules.assignments.title"),
-          subtitle: t("lms.modules.assignments.description"),
+          title: t("dashboard:lms.modules.assignments.title"),
+          subtitle: t("dashboard:lms.modules.assignments.description"),
         }}
         rightAction={<CreateButton href="/dashboard/lms/assignments/new" />}
       />

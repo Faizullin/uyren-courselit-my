@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { UseFormReturn, useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import z from "zod";
 import { useQuizContext } from "./quiz-context";
 
@@ -127,6 +128,7 @@ const getDefaultValues = (
 export default function QuizQuestions() {
   const { toast } = useToast();
   const { quiz, mode } = useQuizContext();
+  const { t } = useTranslation(["dashboard", "common"]);
   const trpcUtils = trpc.useUtils();
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionType | null>(
     null
@@ -152,15 +154,15 @@ export default function QuizQuestions() {
     trpc.lmsModule.quizModule.quizQuestions.delete.useMutation({
       onSuccess: async () => {
         toast({
-          title: "Success",
-          description: "Question deleted successfully",
+          title: t("common:success"),
+          description: t("dashboard:lms.quiz.toast.question_deleted"),
         });
         await trpcUtils.lmsModule.quizModule.quizQuestions.list.invalidate();
         setSelectedQuestion(null);
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: error.message,
           variant: "destructive",
         });
@@ -179,7 +181,7 @@ export default function QuizQuestions() {
 
   const handleDeleteQuestion = useCallback(
     async (question: QuestionType) => {
-      if (!confirm("Are you sure you want to delete this question?")) return;
+      if (!confirm(t("dashboard:lms.quiz.delete_question_confirm"))) return;
       await deleteQuestionMutation.mutateAsync({
         id: question._id,
         quizId: quiz!._id!,
@@ -188,7 +190,7 @@ export default function QuizQuestions() {
         setSelectedQuestion(null);
       }
     },
-    [deleteQuestionMutation, quiz, selectedQuestion]
+    [deleteQuestionMutation, quiz, selectedQuestion, t]
   );
 
   const handleQuestionSelect = useCallback((question: QuestionType) => {
@@ -210,9 +212,9 @@ export default function QuizQuestions() {
   const getQuestionTypeLabel = (type: QuestionTypeEnum) => {
     switch (type) {
       case QuestionTypeEnum.MULTIPLE_CHOICE:
-        return "Multiple Choice";
+        return t("dashboard:lms.quiz.questions.types.multiple_choice");
       case QuestionTypeEnum.SHORT_ANSWER:
-        return "Short Answer";
+        return t("dashboard:lms.quiz.questions.types.short_answer");
     }
   };
 
@@ -222,9 +224,9 @@ export default function QuizQuestions() {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <FileQuestion className="h-5 w-5 text-muted-foreground" />
-          <span className="font-medium">{questions.length} Questions</span>
+          <span className="font-medium">{questions.length} {t("dashboard:lms.quiz.questions.title")}</span>
         </div>
-        <Badge variant="outline">Total Points: {totalPoints}</Badge>
+        <Badge variant="outline">{t("dashboard:lms.quiz.settings.total_points")}: {totalPoints}</Badge>
       </div>
 
       {/* Single Card Wrapper */}
@@ -237,11 +239,11 @@ export default function QuizQuestions() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <List className="h-4 w-4" />
-                    <span className="font-medium">Questions</span>
+                    <span className="font-medium">{t("dashboard:lms.quiz.questions.title")}</span>
                   </div>
                   <Button onClick={handleCreateQuestion} size="sm" variant="outline">
                     <Plus className="h-4 w-4 mr-1" />
-                    Add
+                    {t("common:add")}
                   </Button>
                 </div>
               </div>
@@ -249,8 +251,8 @@ export default function QuizQuestions() {
                 {questions.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground">
                     <FileQuestion className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No questions yet</p>
-                    <p className="text-sm">Add your first question to get started</p>
+                    <p>{t("dashboard:lms.quiz.questions.no_questions")}</p>
+                    <p className="text-sm">{t("dashboard:lms.quiz.questions.no_questions_desc")}</p>
                   </div>
                 ) : (
                   <div className="p-2">
@@ -271,7 +273,7 @@ export default function QuizQuestions() {
                                 Q{index + 1}
                               </span>
                               <Badge variant="outline" className="text-xs">
-                                {question.points} pts
+                                {question.points} {t("dashboard:lms.assignment.grading.pts")}
                               </Badge>
                               <Badge variant="secondary" className="text-xs">
                                 {getQuestionTypeLabel(question.type as QuestionTypeEnum)}
@@ -296,14 +298,14 @@ export default function QuizQuestions() {
                                 onClick={() => handleEditQuestion(question)}
                               >
                                 <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                                {t("common:edit")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
                                 onClick={() => handleDeleteQuestion(question)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
+                                {t("common:delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -353,13 +355,13 @@ export default function QuizQuestions() {
               ) : (
                 <div className="p-8 text-center h-full flex flex-col items-center justify-center">
                   <LayoutDashboard className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">No Question Selected</h3>
+                  <h3 className="text-lg font-medium mb-2">{t("dashboard:lms.quiz.questions.no_questions")}</h3>
                   <p className="text-muted-foreground mb-4">
-                    Select a question from the sidebar or create a new one
+                    {t("dashboard:lms.quiz.questions.no_questions_desc")}
                   </p>
                   <Button onClick={handleCreateQuestion}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Question
+                    {t("dashboard:lms.quiz.questions.add_question")}
                   </Button>
                 </div>
               )}
@@ -538,6 +540,7 @@ function QuestionEditor({
 }: QuestionEditorProps) {
   const { toast } = useToast();
   const { quiz } = useQuizContext();
+  const { t } = useTranslation(["dashboard", "common"]);
   const trpcUtils = trpc.useUtils();
   const [currentType, setCurrentType] = useState<QuestionTypeEnum>(
     (question?.type as QuestionTypeEnum) || QuestionTypeEnum.MULTIPLE_CHOICE
@@ -547,15 +550,15 @@ function QuestionEditor({
     trpc.lmsModule.quizModule.quizQuestions.create.useMutation({
       onSuccess: async () => {
         toast({
-          title: "Success",
-          description: "Question created successfully",
+          title: t("common:success"),
+          description: t("dashboard:lms.quiz.toast.question_created"),
         });
         await trpcUtils.lmsModule.quizModule.quizQuestions.list.invalidate();
         onSuccess();
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: error.message,
           variant: "destructive",
         });
@@ -566,15 +569,15 @@ function QuestionEditor({
     trpc.lmsModule.quizModule.quizQuestions.update.useMutation({
       onSuccess: async () => {
         toast({
-          title: "Success",
-          description: "Question updated successfully",
+          title: t("common:success"),
+          description: t("dashboard:lms.quiz.toast.question_updated"),
         });
         await trpcUtils.lmsModule.quizModule.quizQuestions.list.invalidate();
         onSuccess();
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: error.message,
           variant: "destructive",
         });
@@ -678,7 +681,7 @@ function QuestionEditor({
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold">
-          {isEdit ? "Edit Question" : "Create Question"}
+          {isEdit ? t("common:edit") : t("common:create")} {t("dashboard:lms.quiz.questions.title")}
         </h3>
         <Button variant="ghost" size="icon" onClick={onCancel}>
           <X className="h-4 w-4" />
@@ -693,7 +696,7 @@ function QuestionEditor({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Question Type *</FormLabel>
+                  <FormLabel>{t("dashboard:lms.quiz.questions.question_type")} *</FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={(value) => handleTypeChange(value as QuestionTypeEnum)}
@@ -727,7 +730,7 @@ function QuestionEditor({
               name="points"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Points *</FormLabel>
+                  <FormLabel>{t("common:points")} *</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -751,11 +754,11 @@ function QuestionEditor({
             name="text"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Question Text *</FormLabel>
+                <FormLabel>{t("dashboard:lms.quiz.questions.question_text")} *</FormLabel>
                 <FormControl>
                   <Textarea
                     {...field}
-                    placeholder="Enter your question..."
+                    placeholder={t("dashboard:lms.quiz.questions.question_text_placeholder")}
                     rows={3}
                   />
                 </FormControl>
@@ -769,11 +772,11 @@ function QuestionEditor({
             name="explanation"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Explanation (Optional)</FormLabel>
+                <FormLabel>{t("dashboard:lms.quiz.questions.explanation")}</FormLabel>
                 <FormControl>
                   <Textarea
                     {...field}
-                    placeholder="Explain the correct answer..."
+                    placeholder={t("dashboard:lms.quiz.questions.explanation_placeholder")}
                     rows={2}
                   />
                 </FormControl>
@@ -802,10 +805,10 @@ function QuestionEditor({
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button type="submit" disabled={isSaving}>
-              {isSaving ? "Saving..." : isEdit ? "Update" : "Create"} Question
+              {isSaving ? t("common:saving") : isEdit ? t("dashboard:lms.quiz.questions.update_question") : t("dashboard:lms.quiz.questions.save_question")}
             </Button>
           </div>
         </form>
@@ -825,13 +828,15 @@ function MultipleChoiceFields({
   removeOption: (index: number) => void;
   form: UseFormReturn<QuestionFormDataType>;
 }) {
+  const { t } = useTranslation(["dashboard", "common"]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <FormLabel className="text-base">Answer Options *</FormLabel>
+        <FormLabel className="text-base">{t("dashboard:lms.quiz.questions.options")} *</FormLabel>
         <Button type="button" variant="outline" size="sm" onClick={addOption}>
           <Plus className="h-3 w-3 mr-1" />
-          Add Option
+          {t("dashboard:lms.quiz.questions.add_option")}
         </Button>
       </div>
       <div className="space-y-3">
@@ -849,7 +854,7 @@ function MultipleChoiceFields({
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormControl>
-                    <Input {...field} placeholder={`Option ${index + 1}`} />
+                    <Input {...field} placeholder={t("dashboard:lms.quiz.questions.option_placeholder", { number: index + 1 })} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -860,7 +865,7 @@ function MultipleChoiceFields({
               name={`options.${index}.isCorrect`}
               render={({ field }) => (
                 <FormItem className="flex items-center gap-2">
-                  <FormLabel className="text-sm font-normal">Correct</FormLabel>
+                  <FormLabel className="text-sm font-normal">{t("dashboard:lms.quiz.questions.mark_correct")}</FormLabel>
                   <FormControl>
                     <input
                       type="checkbox"
@@ -902,12 +907,13 @@ function ShortAnswerFields({
   appendCorrectAnswer: () => void;
   removeCorrectAnswer: (index: number) => void;
 }) {
+  const { t } = useTranslation(["dashboard", "common"]);
   const correctAnswers = form.watch("correctAnswers") || [];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <FormLabel className="text-base">Correct Answers *</FormLabel>
+        <FormLabel className="text-base">{t("dashboard:lms.quiz.questions.correct_answers")} *</FormLabel>
         <Button
           type="button"
           variant="outline"
@@ -915,7 +921,7 @@ function ShortAnswerFields({
           onClick={appendCorrectAnswer}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add Answer
+          {t("dashboard:lms.quiz.questions.add_answer")}
         </Button>
       </div>
       <div className="space-y-3">
@@ -935,7 +941,7 @@ function ShortAnswerFields({
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder={`Correct answer ${index + 1}`}
+                      placeholder={t("dashboard:lms.quiz.questions.answer_placeholder", { number: index + 1 })}
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value)}
                     />

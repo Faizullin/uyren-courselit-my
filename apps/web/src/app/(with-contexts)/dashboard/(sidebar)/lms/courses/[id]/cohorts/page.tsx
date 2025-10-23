@@ -26,6 +26,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCourseContext } from "../_components/course-context";
 import { NotSupportedException } from "@/server/api/core/exceptions";
+import { useTranslation } from "react-i18next";
 
 type ItemType = GeneralRouterOutputs["lmsModule"]["cohortModule"]["cohort"]["list"]["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.cohortModule.cohort.list.useQuery>[0];
@@ -34,6 +35,7 @@ export default function CourseCohorts() {
   throw new NotSupportedException("Cohorts are not supported yet");
   const { course, isLoading: courseLoading } = useCourseContext();
   const courseId = course?._id;
+  const { t } = useTranslation("course");
   
   const [parsedData, setParsedData] = useState<ItemType[]>([]);
   const [parsedPagination, setParsedPagination] = useState({ pageCount: 0 });
@@ -49,14 +51,14 @@ export default function CourseCohorts() {
 
   const handleDelete = useCallback(async (cohort: ItemType) => {
     const result = await NiceModal.show(DeleteConfirmNiceDialog, {
-      title: "Delete Cohort",
-      message: `Are you sure you want to delete "${cohort.title}"?`,
+      title: t("cohorts.delete_dialog.title"),
+      message: t("cohorts.delete_dialog.message", { name: cohort.title }),
     });
     
     if (result.reason === "confirm") {
       deleteMutation.mutate({ id: cohort._id });
     }
-  }, [deleteMutation]);
+  }, [deleteMutation, t]);
 
   const getStatusBadge = useCallback((status: CohortStatusEnum) => {
     const variants: Record<CohortStatusEnum, "default" | "secondary" | "destructive" | "outline"> = {
@@ -72,27 +74,27 @@ export default function CourseCohorts() {
     return [
       {
         accessorKey: "title",
-        header: "Title",
+        header: t("cohorts.table.title"),
         cell: ({ row }) => (
           <Link href={`/dashboard/lms/cohorts/${row.original._id}`} className="font-medium">{row.getValue("title")}</Link>
         ),
       },
       {
         accessorKey: "instructor",
-        header: "Instructor",
+        header: t("cohorts.table.instructor"),
         cell: ({ row }) => {
           const instructor = row.original.instructor;
-          return <div>{instructor?.fullName || "-"}</div>;
+          return <div>{instructor?.fullName || t("cohorts.table.no_instructor")}</div>;
         },
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("cohorts.table.status"),
         cell: ({ row }) => getStatusBadge(row.getValue("status")),
       },
       {
         accessorKey: "beginDate",
-        header: "Start Date",
+        header: t("cohorts.table.start_date"),
         cell: ({ row }) => {
           const date = row.getValue("beginDate") as Date;
           return date ? format(new Date(date), "MMM dd, yyyy") : "-";
@@ -100,7 +102,7 @@ export default function CourseCohorts() {
       },
       {
         accessorKey: "endDate",
-        header: "End Date",
+        header: t("cohorts.table.end_date"),
         cell: ({ row }) => {
           const date = row.getValue("endDate") as Date;
           return date ? format(new Date(date), "MMM dd, yyyy") : "-";
@@ -108,10 +110,10 @@ export default function CourseCohorts() {
       },
       {
         accessorKey: "maxCapacity",
-        header: "Capacity",
+        header: t("cohorts.table.capacity"),
         cell: ({ row }) => {
           const maxCap = row.getValue("maxCapacity") as number;
-          if (!maxCap) return "Unlimited";
+          if (!maxCap) return t("cohorts.table.unlimited");
           return (
             <div className="flex items-center gap-2">
               <span className="text-sm">0/{maxCap}</span>
@@ -124,7 +126,7 @@ export default function CourseCohorts() {
       },
       {
         id: "actions",
-        header: "Actions",
+        header: t("cohorts.table.actions"),
         cell: ({ row }) => {
           const cohort = row.original;
           return (
@@ -132,25 +134,25 @@ export default function CourseCohorts() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
+                  <span className="sr-only">{t("cohorts.actions.open_menu")}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/cohorts/${cohort._id}`} target="_blank">
                     <Eye className="h-4 w-4 mr-2" />
-                    View Details
+                    {t("cohorts.actions.view_details")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/dashboard/lms/cohorts/${cohort._id}`} target="_blank">
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit
+                    {t("cohorts.actions.edit")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleDelete(cohort)} className="text-destructive">
                   <Archive className="h-4 w-4 mr-2" />
-                  Delete
+                  {t("cohorts.actions.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -158,7 +160,7 @@ export default function CourseCohorts() {
         },
       },
     ];
-  }, [getStatusBadge, handleDelete]);
+  }, [getStatusBadge, handleDelete, t]);
 
   const { table } = useDataTable({
     columns,
@@ -224,9 +226,9 @@ export default function CourseCohorts() {
     return (
       <DashboardContent
         breadcrumbs={[
-          { label: "Courses", href: "/dashboard/lms/courses" },
+          { label: t("cohorts.breadcrumb_courses"), href: "/dashboard/lms/courses" },
           { label: "...", href: "#" },
-          { label: "Cohorts", href: "#" },
+          { label: t("cohorts.breadcrumb_cohorts"), href: "#" },
         ]}
       >
         <div className="space-y-4">
@@ -241,13 +243,13 @@ export default function CourseCohorts() {
     return (
       <DashboardContent
         breadcrumbs={[
-          { label: "Courses", href: "/dashboard/lms/courses" },
-          { label: "Course", href: "#" },
-          { label: "Cohorts", href: "#" },
+          { label: t("cohorts.breadcrumb_courses"), href: "/dashboard/lms/courses" },
+          { label: "...", href: "#" },
+          { label: t("cohorts.breadcrumb_cohorts"), href: "#" },
         ]}
       >
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Course not found</p>
+          <p className="text-muted-foreground">{t("cohorts.not_found")}</p>
         </div>
       </DashboardContent>
     );
@@ -258,19 +260,19 @@ export default function CourseCohorts() {
   return (
     <DashboardContent
       breadcrumbs={[
-        { label: "Courses", href: "/dashboard/lms/courses" },
+        { label: t("cohorts.breadcrumb_courses"), href: "/dashboard/lms/courses" },
         { label: course?.title || "", href: `/dashboard/lms/courses/${courseId}` },
-        { label: "Cohorts", href: "#" },
+        { label: t("cohorts.breadcrumb_cohorts"), href: "#" },
       ]}
     >
       <HeaderTopbar
         backLink={true}
         header={{
-          title: "Cohort Groups",
-          subtitle: `Manage cohort groups for ${course?.title || ""}`,
+          title: t("cohorts.title"),
+          subtitle: t("cohorts.subtitle", { courseName: course?.title || "" }),
         }}
         rightAction={
-          <CreateButton onClick={handleCreateCohort} text="Add Cohort" />
+          <CreateButton onClick={handleCreateCohort} text={t("cohorts.add_cohort")} />
         }
       />
 
@@ -278,7 +280,7 @@ export default function CourseCohorts() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{cohortCount}</div>
-            <p className="text-xs text-muted-foreground">Total Cohorts</p>
+            <p className="text-xs text-muted-foreground">{t("cohorts.stats.total_cohorts")}</p>
           </CardContent>
         </Card>
         <Card>
@@ -286,7 +288,7 @@ export default function CourseCohorts() {
             <div className="text-2xl font-bold">
               {parsedData.filter(c => c.status === CohortStatusEnum.LIVE).length}
             </div>
-            <p className="text-xs text-muted-foreground">Active Cohorts</p>
+            <p className="text-xs text-muted-foreground">{t("cohorts.stats.active_cohorts")}</p>
           </CardContent>
         </Card>
         <Card>
@@ -294,7 +296,7 @@ export default function CourseCohorts() {
             <div className="text-2xl font-bold">
               {parsedData.reduce((sum, c) => sum + (c.maxCapacity || 0), 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Total Capacity</p>
+            <p className="text-xs text-muted-foreground">{t("cohorts.stats.total_capacity")}</p>
           </CardContent>
         </Card>
       </div>
@@ -304,17 +306,17 @@ export default function CourseCohorts() {
           <div className="flex flex-col gap-4 pt-6">
             <div className="flex flex-wrap gap-4">
               <Input
-                placeholder="Search cohorts..."
+                placeholder={t("cohorts.search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="max-w-sm"
               />
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CohortStatusEnum | "all")}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder={t("cohorts.filter_status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="all">{t("cohorts.all_statuses")}</SelectItem>
                   {Object.values(CohortStatusEnum).map((status) => (
                     <SelectItem key={status} value={status}>
                       {status}

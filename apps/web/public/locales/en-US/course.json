@@ -1,0 +1,114 @@
+{
+  "list": {
+    "title": "Courses",
+    "breadcrumb": "Courses",
+    "filter_level": "Level",
+    "all_levels": "All Levels",
+    "filter_status": "Status",
+    "all_statuses": "All Statuses",
+    "no_courses": "No courses found",
+    "no_courses_desc": "Try adjusting your filters or create a new course"
+  },
+  "level": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "status": {
+    "in_progress": "In Progress",
+    "under_review": "Under Review",
+    "approved": "Approved",
+    "published": "Published",
+    "draft": "Draft"
+  },
+  "form": {
+    "create_title": "Create New Course",
+    "course_title": "Course Title",
+    "title_placeholder": "Enter course title",
+    "course_code": "Course Code",
+    "course_code_placeholder": "e.g., CS101, MATH201",
+    "level": "Level",
+    "level_placeholder": "Select course level",
+    "language": "Language",
+    "language_placeholder": "Select language",
+    "create_button": "Create Course"
+  },
+  "validation": {
+    "title_required": "Title is required",
+    "title_max": "Title must be less than 255 characters",
+    "course_code_required": "Course code is required",
+    "course_code_max": "Course code must be less than 50 characters",
+    "language_required": "Language is required"
+  },
+  "detail": {
+    "breadcrumb_courses": "Manage Courses",
+    "badge_course": "Course",
+    "draft_notice": "This course is in draft mode.",
+    "manage_link": "Manage",
+    "select_time_range": "Select time range",
+    "edit_content": "Edit Content",
+    "actions": "Actions",
+    "manage_course": "Manage Course",
+    "cohort_groups": "Cohort Groups",
+    "preview_course": "Preview Course",
+    "view_all": "View All",
+    "no_cohorts_yet": "No cohort groups yet.",
+    "create_one": "Create one",
+    "no_instructor": "No instructor"
+  },
+  "card": {
+    "sales": "sales",
+    "students": "students",
+    "chapters": "chapters",
+    "no_description": "No description"
+  },
+  "toast": {
+    "created": "Course created successfully",
+    "updated": "Course updated successfully",
+    "deleted": "Course deleted successfully"
+  },
+  "manage": {
+    "breadcrumb_courses": "Courses",
+    "breadcrumb_manage": "Manage",
+    "not_found": "Course not found",
+    "loading": "Loading..."
+  },
+  "cohorts": {
+    "breadcrumb_courses": "Courses",
+    "breadcrumb_cohorts": "Cohorts",
+    "title": "Cohort Groups",
+    "subtitle": "Manage cohort groups for {{courseName}}",
+    "add_cohort": "Add Cohort",
+    "not_found": "Course not found",
+    "search_placeholder": "Search cohorts...",
+    "filter_status": "Filter by status",
+    "all_statuses": "All Statuses",
+    "stats": {
+      "total_cohorts": "Total Cohorts",
+      "active_cohorts": "Active Cohorts",
+      "total_capacity": "Total Capacity"
+    },
+    "table": {
+      "title": "Title",
+      "instructor": "Instructor",
+      "status": "Status",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "capacity": "Capacity",
+      "actions": "Actions",
+      "unlimited": "Unlimited",
+      "no_instructor": "-"
+    },
+    "actions": {
+      "view_details": "View Details",
+      "edit": "Edit",
+      "delete": "Delete",
+      "open_menu": "Open menu"
+    },
+    "delete_dialog": {
+      "title": "Delete Cohort",
+      "message": "Are you sure you want to delete \"{{name}}\"?"
+    }
+  }
+}
+

@@ -461,7 +461,6 @@ export default function ProductManageClient({
             type="course"
             strings={{
               buttonCaption: "Upload Image",
-              removeButtonCaption: "Remove",
             }}
             functions={{
               uploadFile: async (files: File[]) => {

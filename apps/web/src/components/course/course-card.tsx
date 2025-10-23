@@ -9,6 +9,7 @@ import { BookOpen, CheckCircle, CircleDashed } from "lucide-react";
 import Image from "next/image";
 import { useSiteInfo } from "../contexts/site-info-context";
 import { GeneralRouterOutputs } from "@/server/api/types";
+import { useTranslation } from "react-i18next";
 
 interface CourseCardBaseProps {
     className?: ReturnType<typeof cn>;
@@ -24,6 +25,7 @@ interface CourseCardProps extends CourseCardBaseProps {
 
 export function CourseCard({ course, className, viewMode = "grid" }: CourseCardProps) {
     const { siteInfo } = useSiteInfo();
+    const { t } = useTranslation(["course"]);
     
     if (viewMode === "list") {
         return (
@@ -55,7 +57,7 @@ export function CourseCard({ course, className, viewMode = "grid" }: CourseCardP
                                             )}
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            {course.published ? "Published" : "Draft"}
+                                            {course.published ? t("status.published") : t("status.draft")}
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -71,7 +73,7 @@ export function CourseCard({ course, className, viewMode = "grid" }: CourseCardP
                                     <span className="text-base">
                                         {getSymbolFromCurrency(siteInfo.currencyISOCode || "USD")}{" "}
                                     </span>
-                                    {course.statsEnrollmentCount.toLocaleString()} sales
+                                    {course.statsEnrollmentCount.toLocaleString()} {t("card.sales")}
                                 </span>
                             </div>
                         </div>
@@ -103,7 +105,7 @@ export function CourseCard({ course, className, viewMode = "grid" }: CourseCardP
                                     )}
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    {course.published ? "Published" : "Draft"}
+                                    {course.published ? t("status.published") : t("status.draft")}
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -115,7 +117,7 @@ export function CourseCard({ course, className, viewMode = "grid" }: CourseCardP
                             <span className="text-base">
                                 {getSymbolFromCurrency(siteInfo.currencyISOCode || "USD")}{" "}
                             </span>
-                            {course.statsEnrollmentCount.toLocaleString()} sales
+                            {course.statsEnrollmentCount.toLocaleString()} {t("card.sales")}
                         </span>
                     </div>
                 </div>

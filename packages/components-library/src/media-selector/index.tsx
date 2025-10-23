@@ -17,6 +17,7 @@ import { Upload, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast as sonnerToast } from "sonner";
 import { z } from "zod";
 import { useToast } from "../hooks/use-toast";
@@ -62,7 +63,7 @@ interface MediaSelectorProps {
   onSelection: (media: any) => void;
   onRemove?: () => void;
   functions: MediaSelectorFunctions;
-  strings: Strings;
+  strings?: Strings;
   type: "course" | "lesson" | "page" | "user" | "domain" | "community";
   hidePreview?: boolean;
   disabled?: boolean;
@@ -78,17 +79,33 @@ type MediaSelectorFormData = z.infer<typeof mediaSelectorSchema>;
 
 const defaultSrc = "/courselit_backdrop.webp";
 const defaultSrcTitle = "Courselit Backdrop";
+
 const MediaSelector = (props: MediaSelectorProps) => {
+  const { t } = useTranslation(["dashboard", "common"]);
   const [dialogOpened, setDialogOpened] = useState(false);
   const fileInput = React.createRef<HTMLInputElement>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
   const {
-    strings,
+    strings: propStrings,
     media,
     functions,
     disabled = false,
   } = props;
+
+  const strings = {
+    buttonCaption: propStrings?.buttonCaption || t("dashboard:media.selector.button_caption"),
+    dialogTitle: propStrings?.dialogTitle || t("dashboard:media.selector.dialog_title"),
+    cancelCaption: propStrings?.cancelCaption || t("common:cancel"),
+    uploadButtonText: propStrings?.uploadButtonText || t("common:upload"),
+    uploading: propStrings?.uploading || t("dashboard:media.selector.uploading"),
+    fileUploaded: propStrings?.fileUploaded || t("dashboard:media.toast.file_uploaded"),
+    uploadFailed: propStrings?.uploadFailed || t("dashboard:media.toast.upload_failed"),
+    mediaDeleted: propStrings?.mediaDeleted || t("dashboard:media.toast.media_deleted"),
+    removeButtonCaption: propStrings?.removeButtonCaption || t("common:remove"),
+    header: propStrings?.header || t("dashboard:media.selector.file_label"),
+    editingArea: propStrings?.editingArea || t("dashboard:media.selector.caption_label"),
+  };
 
   const src = media?.thumbnail;
   const srcTitle = media?.originalFileName;
@@ -120,13 +137,13 @@ const MediaSelector = (props: MediaSelectorProps) => {
     onSuccess: (media) => {
       queryClient.invalidateQueries({ queryKey: ["media"] });
       onSelection(media);
-      sonnerToast.success(strings.fileUploaded || "File uploaded successfully");
+      sonnerToast.success(strings.fileUploaded);
       setSelectedFile(null);
       form.reset();
       setDialogOpened(false);
     },
     onError: (err: any) => {
-      const errorMessage = err.message || "Upload failed";
+      const errorMessage = err.message || strings.uploadFailed;
       sonnerToast.error(errorMessage);
     },
   });
@@ -150,7 +167,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
       if (props.onRemove) {
         props.onRemove();
       }
-      sonnerToast.success(strings.mediaDeleted || "Media deleted successfully");
+      sonnerToast.success(strings.mediaDeleted);
       setDialogOpened(false);
     },
     onError: (err: any) => {
@@ -196,7 +213,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
             <X className="mr-2 h-4 w-4" />
             {removeMutation.isPending
               ? "Working..."
-              : strings.removeButtonCaption || "Remove"}
+              : strings.removeButtonCaption}
           </Button>
         )}
         {!mediaId && (
@@ -207,10 +224,10 @@ const MediaSelector = (props: MediaSelectorProps) => {
               disabled={disabled}
               onClick={() => setDialogOpened(true)}
             >
-              {strings.buttonCaption || "Select media"}
+              {strings.buttonCaption}
             </Button>
             <BaseDialog
-              title={strings.dialogTitle || "Select media"}
+              title={strings.dialogTitle}
               open={dialogOpened}
               onOpenChange={setDialogOpened}
               maxWidth="2xl"
@@ -221,7 +238,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
                     variant="outline"
                     onClick={() => setDialogOpened(false)}
                   >
-                    {strings.cancelCaption || "Cancel"}
+                    {strings.cancelCaption}
                   </Button>
                   <Button
                     type="submit"
@@ -229,8 +246,8 @@ const MediaSelector = (props: MediaSelectorProps) => {
                     disabled={uploadMutation.isPending || !selectedFile}
                   >
                     {uploadMutation.isPending
-                      ? strings.uploading || "Uploading..."
-                      : strings.uploadButtonText || "Upload"}
+                      ? strings.uploading
+                      : strings.uploadButtonText}
                   </Button>
                 </>
               }
@@ -247,7 +264,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
                     name="file"
                     render={({ field: { onChange, value, ...field }, fieldState }) => (
                       <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel>File</FieldLabel>
+                        <FieldLabel>{strings.header || "File"}</FieldLabel>
                         <Input
                           ref={fileInput}
                           type="file"
@@ -283,7 +300,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
                       {uploadMutation.isPending && (
                         <div className="space-y-2">
                           <div className="flex justify-between text-xs text-gray-600">
-                            <span>Uploading...</span>
+                            <span>{strings.uploading}</span>
                           </div>
                           <Progress className="h-2" />
                         </div>
@@ -291,7 +308,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
                       
                       {uploadMutation.isError && (
                         <div className="text-sm text-destructive">
-                          {(uploadMutation.error as any)?.message || "Upload failed"}
+                          {(uploadMutation.error as any)?.message || strings.uploadFailed}
                         </div>
                       )}
                     </div>
@@ -302,7 +319,7 @@ const MediaSelector = (props: MediaSelectorProps) => {
                     name="caption"
                     render={({ field, fieldState }) => (
                       <Field data-invalid={fieldState.invalid}>
-                        <FieldLabel>Caption</FieldLabel>
+                        <FieldLabel>{strings.editingArea || "Caption"}</FieldLabel>
                         <Textarea
                           {...field}
                           rows={5}

@@ -13,6 +13,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, X } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { BaseDialog } from "../dialogs/base-dialog";
 import NiceModal, { NiceModalHocProps } from "../nice-modal";
@@ -21,6 +22,36 @@ import MediaComponents from "./media-components";
 // ============================================================================
 // TYPES
 // ============================================================================
+
+export interface MediaDialogStrings {
+  title?: string;
+  description?: string;
+  browseTab?: string;
+  uploadTab?: string;
+  totalItems?: string;
+  selected?: string;
+  selectFilePrompt?: string;
+  selectButton?: string;
+  deleteConfirm?: string;
+  uploadTitle?: string;
+  uploadDescription?: string;
+  chooseFiles?: string;
+  selectedFile?: string;
+  selectedFileNumber?: string;
+  clear?: string;
+  uploadCount?: string;
+  uploadCountPlural?: string;
+  uploadMedia?: string;
+  uploadingCount?: string;
+  uploadingCountPlural?: string;
+  uploadSuccess?: string;
+  uploadSuccessPlural?: string;
+  uploading?: string;
+  uploadFailed?: string;
+  mediaDeleted?: string;
+  deleteFailed?: string;
+  deleteError?: string;
+}
 
 export interface MediaDialogConfig {
   title?: string;
@@ -178,7 +209,8 @@ const FileUploadTab: React.FC<{
   type: string;
   uploadFile: MediaDialogFunctions["uploadFile"];
   onComplete?: (media: IAttachmentMedia) => void;
-}> = ({ type, uploadFile: uploadFileFn, onComplete }) => {
+  strings: MediaDialogStrings;
+}> = ({ type, uploadFile: uploadFileFn, onComplete, strings }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -215,20 +247,23 @@ const FileUploadTab: React.FC<{
         if (lastResult) {
           onComplete?.(lastResult);
         }
-        toast.success(`Successfully uploaded ${results.length} file${results.length > 1 ? 's' : ''}`);
+        const successMsg = results.length > 1 
+          ? (strings.uploadSuccessPlural || "Successfully uploaded {{count}} files").replace("{{count}}", results.length.toString())
+          : (strings.uploadSuccess || "Successfully uploaded {{count}} file").replace("{{count}}", results.length.toString());
+        toast.success(successMsg);
       }
 
       setSelectedFiles([]);
       setUploadProgress(0);
     } catch (err) {
       console.error("Upload error:", err);
-      const errorMessage = err instanceof Error ? err.message : "Upload failed";
+      const errorMessage = err instanceof Error ? err.message : (strings.uploadFailed || "Upload failed");
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
-  }, [selectedFiles, uploadFileFn, type, onComplete]);
+  }, [selectedFiles, uploadFileFn, type, onComplete, strings]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -247,10 +282,10 @@ const FileUploadTab: React.FC<{
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Upload Files
+            {strings.uploadTitle || "Upload Files"}
           </h3>
           <p className="text-sm text-gray-500 mb-6">
-            Select images, videos, audio, or PDF files
+            {strings.uploadDescription || "Select images, videos, audio, or PDF files"}
           </p>
         </div>
 
@@ -271,7 +306,7 @@ const FileUploadTab: React.FC<{
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
         >
           <Upload className="h-4 w-4 mr-2" />
-          {uploading ? "Uploading..." : "Choose Files"}
+          {uploading ? (strings.uploading || "Uploading...") : (strings.chooseFiles || "Choose Files")}
         </Button>
       </div>
 
@@ -284,7 +319,9 @@ const FileUploadTab: React.FC<{
               className="p-4 bg-blue-50/50 rounded-lg border border-blue-100"
             >
               <h4 className="font-medium mb-2 text-blue-900">
-                Selected File {selectedFiles.length > 1 ? `${index + 1}` : ""}
+                {selectedFiles.length > 1 
+                  ? (strings.selectedFileNumber || "Selected File {{number}}").replace("{{number}}", (index + 1).toString())
+                  : (strings.selectedFile || "Selected File")}
               </h4>
               <div className="flex items-center justify-between">
                 <span className="truncate flex-1 mr-2 text-sm">
@@ -318,8 +355,9 @@ const FileUploadTab: React.FC<{
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>
-              Uploading {selectedFiles.length} file
-              {selectedFiles.length > 1 ? "s" : ""}...
+              {selectedFiles.length > 1
+                ? (strings.uploadingCountPlural || "Uploading {{count}} files").replace("{{count}}", selectedFiles.length.toString())
+                : (strings.uploadingCount || "Uploading {{count}} file").replace("{{count}}", selectedFiles.length.toString())}...
             </span>
             <span>{uploadProgress}%</span>
           </div>
@@ -351,8 +389,9 @@ const FileUploadTab: React.FC<{
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Upload {selectedFiles.length} File
-                {selectedFiles.length > 1 ? "s" : ""}
+                {selectedFiles.length > 1
+                  ? (strings.uploadCountPlural || "Upload {{count}} Files").replace("{{count}}", selectedFiles.length.toString())
+                  : (strings.uploadCount || "Upload {{count}} File").replace("{{count}}", selectedFiles.length.toString())}
               </>
             )}
           </Button>
@@ -362,7 +401,7 @@ const FileUploadTab: React.FC<{
             disabled={uploading}
             size="lg"
           >
-            Clear
+            {strings.clear || "Clear"}
           </Button>
         </div>
       )}
@@ -375,16 +414,48 @@ const MediaBrowserComponent = (
   props: {
     config?: Partial<MediaDialogConfig>;
     functions: MediaDialogFunctions;
+    strings?: Partial<MediaDialogStrings>;
     type?: string;
     selectMode?: boolean;
     selectedMedia?: IAttachmentMedia | null;
   } & NiceModalHocProps,
 ) => {
-  const { config: configProp, functions, type = "page", selectMode, selectedMedia } = props;
+  const { config: configProp, functions, strings: stringsProp, type = "page", selectMode, selectedMedia } = props;
+  const { t } = useTranslation(["dashboard", "common"]);
+  
+  const strings: MediaDialogStrings = {
+    title: stringsProp?.title || t("dashboard:media.browser.title"),
+    description: stringsProp?.description || t("dashboard:media.browser.description"),
+    browseTab: stringsProp?.browseTab || t("dashboard:media.browser.browse_tab"),
+    uploadTab: stringsProp?.uploadTab || t("dashboard:media.browser.upload_tab"),
+    totalItems: stringsProp?.totalItems || t("dashboard:media.browser.total_items"),
+    selected: stringsProp?.selected || t("dashboard:media.browser.selected"),
+    selectFilePrompt: stringsProp?.selectFilePrompt || t("dashboard:media.browser.select_file_prompt"),
+    selectButton: stringsProp?.selectButton || t("dashboard:media.browser.select_button"),
+    deleteConfirm: stringsProp?.deleteConfirm || t("dashboard:media.browser.delete_confirm"),
+    uploadTitle: stringsProp?.uploadTitle || t("dashboard:media.browser.upload_title"),
+    uploadDescription: stringsProp?.uploadDescription || t("dashboard:media.browser.upload_description"),
+    chooseFiles: stringsProp?.chooseFiles || t("dashboard:media.browser.choose_files"),
+    selectedFile: stringsProp?.selectedFile || t("dashboard:media.browser.selected_file"),
+    selectedFileNumber: stringsProp?.selectedFileNumber || t("dashboard:media.browser.selected_file_number"),
+    clear: stringsProp?.clear || t("dashboard:media.browser.clear"),
+    uploadCount: stringsProp?.uploadCount || t("dashboard:media.browser.upload_count"),
+    uploadCountPlural: stringsProp?.uploadCountPlural || t("dashboard:media.browser.upload_count_plural"),
+    uploadMedia: stringsProp?.uploadMedia || t("dashboard:media.browser.upload_media"),
+    uploadingCount: stringsProp?.uploadingCount || t("dashboard:media.browser.uploading_count"),
+    uploadingCountPlural: stringsProp?.uploadingCountPlural || t("dashboard:media.browser.uploading_count_plural"),
+    uploadSuccess: stringsProp?.uploadSuccess || t("dashboard:media.browser.upload_success"),
+    uploadSuccessPlural: stringsProp?.uploadSuccessPlural || t("dashboard:media.browser.upload_success_plural"),
+    uploading: stringsProp?.uploading || t("dashboard:media.selector.uploading"),
+    uploadFailed: stringsProp?.uploadFailed || t("dashboard:media.toast.upload_failed"),
+    mediaDeleted: stringsProp?.mediaDeleted || t("dashboard:media.toast.media_deleted"),
+    deleteFailed: stringsProp?.deleteFailed || t("dashboard:media.toast.delete_failed"),
+    deleteError: stringsProp?.deleteError || t("dashboard:media.toast.delete_error"),
+  };
   
   const config: Required<MediaDialogConfig> = {
-    title: "Media Library",
-    description: "Browse and manage your media files",
+    title: strings.title || "Media Library",
+    description: strings.description || "Browse and manage your media files",
     allowUpload: true,
     allowDelete: false,
     allowSelection: true,
@@ -437,21 +508,22 @@ const MediaBrowserComponent = (
     async (id: string) => {
       if (!functions.deleteItem) return;
       
-      const confirmed = window.confirm("Are you sure you want to delete this media file?");
+      const confirmed = window.confirm(strings.deleteConfirm || "Are you sure you want to delete this media file?");
       if (!confirmed) return;
       
       setIsDeleting(true);
       try {
         await functions.deleteItem(id);
         queryClient.invalidateQueries({ queryKey: ["media-browser"] });
-        toast.success("Media deleted successfully");
+        toast.success(strings.mediaDeleted || "Media deleted successfully");
       } catch (error) {
-        toast.error(`Failed to delete media: ${error instanceof Error ? error.message : "Unknown error"}`);
+        const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        toast.error((strings.deleteError || "Failed to delete media: {{error}}").replace("{{error}}", errorMsg));
       } finally {
         setIsDeleting(false);
       }
     },
-    [functions, queryClient]
+    [functions, queryClient, strings]
   );
 
   const emptyAction = useMemo(() => {
@@ -462,10 +534,10 @@ const MediaBrowserComponent = (
         className="mt-2 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
         <Upload className="h-4 w-4 mr-2" />
-        Upload Media
+        {strings.uploadMedia || "Upload Media"}
       </button>
     );
-  }, [config.allowUpload]);
+  }, [config.allowUpload, strings]);
 
   return (
     <BaseDialog
@@ -484,7 +556,7 @@ const MediaBrowserComponent = (
         {activeTab === "browse" && total > 0 && (
           <div className="px-4 pb-2">
             <Badge variant="outline">
-              {total} total items
+              {(strings.totalItems || "{{count}} total items").replace("{{count}}", total.toString())}
             </Badge>
           </div>
         )}
@@ -495,9 +567,9 @@ const MediaBrowserComponent = (
             className="w-full h-full flex flex-col"
           >
             <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
-              <TabsTrigger value="browse">Browse Media</TabsTrigger>
+              <TabsTrigger value="browse">{strings.browseTab || "Browse Media"}</TabsTrigger>
               {config.allowUpload && (
-                <TabsTrigger value="upload">Upload Files</TabsTrigger>
+                <TabsTrigger value="upload">{strings.uploadTab || "Upload Files"}</TabsTrigger>
               )}
             </TabsList>
 
@@ -509,8 +581,8 @@ const MediaBrowserComponent = (
                 <div className="flex items-center justify-between px-4 py-2 border-b">
                   <div className="text-sm text-muted-foreground">
                     {internalSelectedMedia
-                      ? `Selected: ${internalSelectedMedia.originalFileName}`
-                      : "Select a file from the list"}
+                      ? (strings.selected || "Selected: {{filename}}").replace("{{filename}}", internalSelectedMedia.originalFileName)
+                      : (strings.selectFilePrompt || "Select a file from the list")}
                   </div>
                   <Button
                     size="sm"
@@ -521,7 +593,7 @@ const MediaBrowserComponent = (
                     }}
                     disabled={!internalSelectedMedia}
                   >
-                    Select
+                    {strings.selectButton || "Select"}
                   </Button>
                 </div>
               )}
@@ -541,6 +613,7 @@ const MediaBrowserComponent = (
                   type={type}
                   uploadFile={functions.uploadFile}
                   onComplete={handleUploadComplete}
+                  strings={strings}
                 />
               </TabsContent>
             )}

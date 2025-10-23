@@ -32,6 +32,7 @@ import {
   User,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuizContext } from "./quiz-context";
 
 type QuizAttemptType =
@@ -39,6 +40,7 @@ type QuizAttemptType =
 
 export default function QuizSubmissions() {
   const { quiz } = useQuizContext();
+  const { t } = useTranslation(["dashboard", "common"]);
   const [parsedData, setParsedData] = useState<QuizAttemptType[]>([]);
   const [parsedPagination, setParsedPagination] = useState({ pageCount: 0 });
 
@@ -50,8 +52,8 @@ export default function QuizSubmissions() {
       onSuccess: () => {
         trpcUtils.lmsModule.quizModule.quizAttempt.list.invalidate();
         toast({
-          title: "Submission Deleted",
-          description: "Student submission has been deleted successfully",
+          title: t("dashboard:lms.quiz.submissions.submission_deleted"),
+          description: t("dashboard:lms.quiz.submissions.submission_deleted_desc"),
         });
       },
     });
@@ -61,13 +63,13 @@ export default function QuizSubmissions() {
       onSuccess: () => {
         trpcUtils.lmsModule.quizModule.quizAttempt.list.invalidate();
         toast({
-          title: "Regrade Complete",
-          description: "Quiz attempt has been regraded successfully",
+          title: t("dashboard:lms.quiz.submissions.regrade_complete"),
+          description: t("dashboard:lms.quiz.submissions.regrade_complete_desc"),
         });
       },
       onError: (error) => {
         toast({
-          title: "Regrade Failed",
+          title: t("dashboard:lms.quiz.submissions.regrade_failed"),
           description: error.message,
           variant: "destructive",
         });
@@ -95,8 +97,7 @@ export default function QuizSubmissions() {
   const handleDeleteSubmission = useCallback(
     (submission: QuizAttemptType) => {
       NiceModal.show(DeleteConfirmNiceDialog, {
-        title: "Delete Submission",
-        message: `Are you sure you want to delete the submission for "${submission.user?.fullName || submission.user?.email || "Unknown Student"}"? This action cannot be undone.`,
+        message: `Are you sure you want to delete the submission for "${submission.user?.fullName || submission.user?.email || t("common:unknown_student")}"? This action cannot be undone.`,
         data: submission,
       }).then((result) => {
         if (result.reason === "confirm") {
@@ -107,14 +108,14 @@ export default function QuizSubmissions() {
         }
       });
     },
-    [toast, deleteSubmissionMutation],
+    [t, deleteSubmissionMutation],
   );
 
   const columns: ColumnDef<QuizAttemptType>[] = useMemo(() => {
     return [
       {
         accessorKey: "userId",
-        header: "Student",
+        header: t("dashboard:lms.quiz.submissions.student"),
         cell: ({ row }) => {
           const attempt = row.original;
           return (
@@ -127,7 +128,7 @@ export default function QuizSubmissions() {
                   {attempt.user?.fullName ||
                     attempt.user?.email ||
                     attempt.userId ||
-                    "Unknown Student"}
+                    t("common:unknown_student")}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {attempt.user?.email || "No email"}
@@ -139,7 +140,7 @@ export default function QuizSubmissions() {
       },
       {
         accessorKey: "score",
-        header: "Score",
+        header: t("dashboard:lms.quiz.submissions.score_label"),
         cell: ({ row }) => {
           const attempt = row.original;
           const totalPoints = quiz?.totalPoints || 100;
@@ -150,7 +151,7 @@ export default function QuizSubmissions() {
               </span>
               <Badge
                 variant={
-                  attempt.percentageScore && attempt.percentageScore >= 70
+                  attempt.percentageScore && attempt.percentageScore >= (quiz?.passingScore || 70)
                     ? "default"
                     : "secondary"
                 }
@@ -165,7 +166,7 @@ export default function QuizSubmissions() {
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("common:status"),
         cell: ({ row }) => {
           const status = row.original.status;
           const getStatusVariant = (status: QuizAttemptStatusEnum) => {
@@ -194,7 +195,7 @@ export default function QuizSubmissions() {
               case QuizAttemptStatusEnum.ABANDONED:
                 return "Abandoned";
               default:
-                return "Unknown";
+                return t("common:not_set");
             }
           };
 
@@ -205,7 +206,7 @@ export default function QuizSubmissions() {
           );
         },
         meta: {
-          label: "Status",
+          label: t("common:status"),
           variant: "select",
           options: [
             { label: "All", value: "" },
@@ -218,7 +219,7 @@ export default function QuizSubmissions() {
       },
       {
         accessorKey: "timeSpent",
-        header: "Time Taken",
+        header: t("dashboard:lms.quiz.submissions.time_taken"),
         cell: ({ row }) => {
           const timeSpent = row.original.timeSpent;
           return (
@@ -233,7 +234,7 @@ export default function QuizSubmissions() {
       },
       {
         accessorKey: "completedAt",
-        header: "Submitted",
+        header: t("dashboard:lms.quiz.submissions.submitted_at"),
         cell: ({ row }) => {
           const attempt = row.original;
           const date = attempt.completedAt;
@@ -247,7 +248,7 @@ export default function QuizSubmissions() {
       },
       {
         id: "actions",
-        header: "Actions",
+        header: t("common:actions"),
         cell: ({ row }) => {
           const attempt = row.original;
           return (
@@ -260,21 +261,21 @@ export default function QuizSubmissions() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleViewResults(attempt)}>
                   <Eye className="h-4 w-4 mr-2" />
-                  View Results
+                  {t("dashboard:lms.quiz.submissions.view_results")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleRegradeAttempt(attempt)}
                   disabled={regradeAttemptMutation.isPending}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Regrade
+                  {t("dashboard:lms.quiz.submissions.regrade")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDeleteSubmission(attempt)}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {t("common:delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -283,7 +284,8 @@ export default function QuizSubmissions() {
       },
     ];
   }, [
-    quiz?.totalPoints,
+    quiz,
+    t,
     handleViewResults,
     handleRegradeAttempt,
     handleDeleteSubmission,
@@ -362,10 +364,10 @@ export default function QuizSubmissions() {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <FileQuestion className="h-5 w-5 text-muted-foreground" />
-          <span className="font-medium">Quiz Submissions</span>
+          <span className="font-medium">{t("dashboard:lms.quiz.tabs.submissions")}</span>
         </div>
         {parsedData.length > 0 && (
-          <Badge variant="outline">{parsedData.length} Submissions</Badge>
+          <Badge variant="outline">{parsedData.length} {t("dashboard:lms.quiz.tabs.submissions")}</Badge>
         )}
       </div>
 

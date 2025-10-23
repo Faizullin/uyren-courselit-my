@@ -1,0 +1,114 @@
+{
+  "list": {
+    "title": "Курстар",
+    "breadcrumb": "Курстар",
+    "filter_level": "Деңгей",
+    "all_levels": "Барлық деңгейлер",
+    "filter_status": "Мәртебе",
+    "all_statuses": "Барлық мәртебелер",
+    "no_courses": "Курстар табылмады",
+    "no_courses_desc": "Сүзгілерді өзгертіп көріңіз немесе жаңа курс жасаңыз"
+  },
+  "level": {
+    "beginner": "Бастапқы",
+    "intermediate": "Орташа",
+    "advanced": "Жоғарғы"
+  },
+  "status": {
+    "in_progress": "Үдерісте",
+    "under_review": "Тексеруде",
+    "approved": "Бекітілген",
+    "published": "Жарияланған",
+    "draft": "Жоба"
+  },
+  "form": {
+    "create_title": "Жаңа курс жасау",
+    "course_title": "Курс атауы",
+    "title_placeholder": "Курс атауын енгізіңіз",
+    "course_code": "Курс коды",
+    "course_code_placeholder": "мысалы, CS101, MATH201",
+    "level": "Деңгей",
+    "level_placeholder": "Курс деңгейін таңдаңыз",
+    "language": "Тіл",
+    "language_placeholder": "Тілді таңдаңыз",
+    "create_button": "Курс жасау"
+  },
+  "validation": {
+    "title_required": "Атау міндетті",
+    "title_max": "Атау 255 таңбадан аз болуы керек",
+    "course_code_required": "Курс коды міндетті",
+    "course_code_max": "Курс коды 50 таңбадан аз болуы керек",
+    "language_required": "Тіл міндетті"
+  },
+  "detail": {
+    "breadcrumb_courses": "Курстарды басқару",
+    "badge_course": "Курс",
+    "draft_notice": "Бұл курс жоба режимінде.",
+    "manage_link": "Басқару",
+    "select_time_range": "Уақыт аралығын таңдаңыз",
+    "edit_content": "Контентті өңдеу",
+    "actions": "Әрекеттер",
+    "manage_course": "Курсты басқару",
+    "cohort_groups": "Когорт топтары",
+    "preview_course": "Курсты алдын ала көру",
+    "view_all": "Барлығын көру",
+    "no_cohorts_yet": "Әзірге когорт топтары жоқ.",
+    "create_one": "Жасау",
+    "no_instructor": "Оқытушы жоқ"
+  },
+  "card": {
+    "sales": "сатылым",
+    "students": "студенттер",
+    "chapters": "тараулар",
+    "no_description": "Сипаттама жоқ"
+  },
+  "toast": {
+    "created": "Курс сәтті жасалды",
+    "updated": "Курс сәтті жаңартылды",
+    "deleted": "Курс сәтті жойылды"
+  },
+  "manage": {
+    "breadcrumb_courses": "Курстар",
+    "breadcrumb_manage": "Басқару",
+    "not_found": "Курс табылмады",
+    "loading": "Жүктелуде..."
+  },
+  "cohorts": {
+    "breadcrumb_courses": "Курстар",
+    "breadcrumb_cohorts": "Когорттар",
+    "title": "Когорт топтары",
+    "subtitle": "{{courseName}} үшін когорт топтарын басқару",
+    "add_cohort": "Когорт қосу",
+    "not_found": "Курс табылмады",
+    "search_placeholder": "Когорттарды іздеу...",
+    "filter_status": "Мәртебе бойынша сүзу",
+    "all_statuses": "Барлық мәртебелер",
+    "stats": {
+      "total_cohorts": "Барлық когорттар",
+      "active_cohorts": "Белсенді когорттар",
+      "total_capacity": "Жалпы сыйымдылық"
+    },
+    "table": {
+      "title": "Атауы",
+      "instructor": "Оқытушы",
+      "status": "Мәртебе",
+      "start_date": "Басталу күні",
+      "end_date": "Аяқталу күні",
+      "capacity": "Сыйымдылық",
+      "actions": "Әрекеттер",
+      "unlimited": "Шектеусіз",
+      "no_instructor": "-"
+    },
+    "actions": {
+      "view_details": "Толығырақ көру",
+      "edit": "Өңдеу",
+      "delete": "Жою",
+      "open_menu": "Мәзірді ашу"
+    },
+    "delete_dialog": {
+      "title": "Когортты жою",
+      "message": "\"{{name}}\" жоюға сенімдісіз бе?"
+    }
+  }
+}
+

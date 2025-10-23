@@ -37,6 +37,7 @@ import { Calendar, Clock, Paperclip, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import z from "zod";
 import { useAssignmentContext } from "./assignment-context";
 
@@ -84,6 +85,7 @@ interface CourseSelectItemType {
 export default function AssignmentSettings() {
   const { assignment, mode } = useAssignmentContext();
   const router = useRouter();
+  const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
   const trpcUtils = trpc.useUtils();
   const [attachments, setAttachments] = useState<IAttachmentMedia[]>([]);
@@ -127,14 +129,14 @@ export default function AssignmentSettings() {
     trpc.lmsModule.assignmentModule.assignment.create.useMutation({
       onSuccess: (response) => {
         toast({
-          title: "Success",
-          description: "Assignment created successfully",
+          title: t("common:success"),
+          description: t("dashboard:lms.assignment.toast.created"),
         });
         router.push(`/dashboard/lms/assignments/${response._id}`);
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: error.message,
           variant: "destructive",
         });
@@ -145,13 +147,13 @@ export default function AssignmentSettings() {
     trpc.lmsModule.assignmentModule.assignment.update.useMutation({
       onSuccess: () => {
         toast({
-          title: "Success",
-          description: "Assignment updated successfully",
+          title: t("common:success"),
+          description: t("dashboard:lms.assignment.toast.updated"),
         });
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: error.message,
           variant: "destructive",
         });
@@ -252,8 +254,8 @@ export default function AssignmentSettings() {
     async (files: File[], _type: string): Promise<any[]> => {
       if (!assignment?._id) {
         toast({
-          title: "Error",
-          description: "Please save the assignment before uploading attachments",
+          title: t("common:error"),
+          description: t("common:toast.save_before_upload", { item: "assignment" }),
           variant: "destructive",
         });
         throw new Error("Assignment not saved yet");
@@ -271,28 +273,28 @@ export default function AssignmentSettings() {
       if (result.success && result.media) {
         setAttachments([...attachments, result.media as any]);
         toast({
-          title: "Success",
-          description: "Attachment uploaded successfully",
+          title: t("common:success"),
+          description: t("common:toast.uploaded_successfully", { item: "Attachment" }),
         });
         return [result.media];
       } else {
         toast({
-          title: "Error",
-          description: result.error || "Failed to upload attachment",
+          title: t("common:error"),
+          description: result.error || t("common:toast.upload_error", { item: "attachment" }),
           variant: "destructive",
         });
         throw new Error(result.error || "Failed to upload attachment");
       }
     },
-    [assignment?._id, attachments, toast]
+    [assignment?._id, attachments, toast, t]
   );
 
   const handleRemoveAttachment = useCallback(
     async (mediaId: string) => {
       if (!assignment?._id) {
         toast({
-          title: "Error",
-          description: "Assignment not found",
+          title: t("common:error"),
+          description: t("common:toast.not_found", { item: "Assignment" }),
           variant: "destructive",
         });
         throw new Error("Assignment not found");
@@ -303,19 +305,19 @@ export default function AssignmentSettings() {
       if (result.success) {
         setAttachments(attachments.filter((att) => att.mediaId !== mediaId));
         toast({
-          title: "Success",
-          description: "Attachment removed successfully",
+          title: t("common:success"),
+          description: t("common:toast.removed_successfully", { item: "Attachment" }),
         });
       } else {
         toast({
-          title: "Error",
-          description: result.error || "Failed to remove attachment",
+          title: t("common:error"),
+          description: result.error || t("common:toast.remove_error", { item: "attachment" }),
           variant: "destructive",
         });
         throw new Error(result.error || "Failed to remove attachment");
       }
     },
-    [assignment?._id, attachments, toast]
+    [assignment?._id, attachments, toast, t]
   );
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -334,27 +336,27 @@ export default function AssignmentSettings() {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Begin</p>
+                <p className="text-xs text-muted-foreground">{t("dashboard:lms.assignment.settings.begin")}</p>
                 <p className="text-sm font-medium">
                   {watchedBeginDate
                     ? format(new Date(watchedBeginDate), "MMM dd, HH:mm")
-                    : "Not set"}
+                    : t("common:not_set")}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Due</p>
+                <p className="text-xs text-muted-foreground">{t("dashboard:lms.assignment.settings.due")}</p>
                 <p className="text-sm font-medium">
                   {watchedDueDate
                     ? format(new Date(watchedDueDate), "MMM dd, HH:mm")
-                    : "Not set"}
+                    : t("common:not_set")}
                 </p>
               </div>
             </div>
             <div className="border-l pl-6">
-              <p className="text-xs text-muted-foreground">Points</p>
+              <p className="text-xs text-muted-foreground">{t("common:points")}</p>
               <p className="text-xl font-bold">
                 {form.watch("totalPoints") || 0}
               </p>
@@ -365,17 +367,16 @@ export default function AssignmentSettings() {
               className="ml-auto"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSaving || isSubmitting ? "Saving..." : "Save"}
+              {isSaving || isSubmitting ? t("common:saving") : t("common:save")}
             </Button>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Basic Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle>{t("dashboard:lms.assignment.settings.basic_info")}</CardTitle>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -384,10 +385,10 @@ export default function AssignmentSettings() {
                 name="title"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Title *</FieldLabel>
+                    <FieldLabel>{t("dashboard:lms.assignment.settings.title")} *</FieldLabel>
                     <Input
                       {...field}
-                      placeholder="Assignment title"
+                      placeholder={t("dashboard:lms.assignment.settings.assignment_title_placeholder")}
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -402,10 +403,10 @@ export default function AssignmentSettings() {
                 name="description"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Description</FieldLabel>
+                    <FieldLabel>{t("common:description")}</FieldLabel>
                     <Textarea
                       {...field}
-                      placeholder="Brief description"
+                      placeholder={t("dashboard:lms.assignment.settings.brief_description_placeholder")}
                       rows={2}
                       aria-invalid={fieldState.invalid}
                     />
@@ -421,9 +422,9 @@ export default function AssignmentSettings() {
                 name="course"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Course *</FieldLabel>
+                    <FieldLabel>{t("dashboard:lms.assignment.settings.course")} *</FieldLabel>
                     <ComboBox2<CourseSelectItemType>
-                      title="Select a course"
+                      title={t("dashboard:lms.assignment.settings.select_course")}
                       valueKey="key"
                       value={field.value || undefined}
                       searchFn={fetchCourses}
@@ -452,7 +453,7 @@ export default function AssignmentSettings() {
                   name="type"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor="type">Type *</FieldLabel>
+                      <FieldLabel htmlFor="type">{t("dashboard:lms.assignment.settings.type")} *</FieldLabel>
                         <Select
                           name={field.name}
                           value={field.value}
@@ -462,10 +463,10 @@ export default function AssignmentSettings() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={AssignmentTypeEnum.ESSAY}>Essay</SelectItem>
-                            <SelectItem value={AssignmentTypeEnum.PROJECT}>Project</SelectItem>
-                            <SelectItem value={AssignmentTypeEnum.PRESENTATION}>Presentation</SelectItem>
-                            <SelectItem value={AssignmentTypeEnum.FILE_UPLOAD}>File Upload</SelectItem>
+                            <SelectItem value={AssignmentTypeEnum.ESSAY}>{t("dashboard:lms.assignment.types.essay")}</SelectItem>
+                            <SelectItem value={AssignmentTypeEnum.PROJECT}>{t("dashboard:lms.assignment.types.project")}</SelectItem>
+                            <SelectItem value={AssignmentTypeEnum.PRESENTATION}>{t("dashboard:lms.assignment.types.presentation")}</SelectItem>
+                            <SelectItem value={AssignmentTypeEnum.FILE_UPLOAD}>{t("dashboard:lms.assignment.types.file_upload")}</SelectItem>
                           </SelectContent>
                         </Select>
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -478,7 +479,7 @@ export default function AssignmentSettings() {
                   name="difficulty"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor="difficulty">Difficulty *</FieldLabel>
+                      <FieldLabel htmlFor="difficulty">{t("dashboard:lms.assignment.settings.difficulty")} *</FieldLabel>
                       <div className="w-full relative">
                         <Select
                           name={field.name}
@@ -489,9 +490,9 @@ export default function AssignmentSettings() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={AssignmentDifficultyEnum.EASY}>Easy</SelectItem>
-                            <SelectItem value={AssignmentDifficultyEnum.MEDIUM}>Medium</SelectItem>
-                            <SelectItem value={AssignmentDifficultyEnum.HARD}>Hard</SelectItem>
+                            <SelectItem value={AssignmentDifficultyEnum.EASY}>{t("dashboard:lms.assignment.difficulty.easy")}</SelectItem>
+                            <SelectItem value={AssignmentDifficultyEnum.MEDIUM}>{t("dashboard:lms.assignment.difficulty.medium")}</SelectItem>
+                            <SelectItem value={AssignmentDifficultyEnum.HARD}>{t("dashboard:lms.assignment.difficulty.hard")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -506,7 +507,7 @@ export default function AssignmentSettings() {
                 name="totalPoints"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Total Points *</FieldLabel>
+                    <FieldLabel>{t("dashboard:lms.assignment.settings.total_points")} *</FieldLabel>
                     <Input
                       {...field}
                       type="number"
@@ -525,17 +526,16 @@ export default function AssignmentSettings() {
                   onClick={handleCheckProject}
                   disabled={!assignment?._id}
                 >
-                  Check Project in IDE
+                  {t("dashboard:lms.assignment.settings.check_project_ide")}
                 </Button>
               )}
             </FieldGroup>
           </CardContent>
         </Card>
 
-        {/* Dates & Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle>Dates & Configuration</CardTitle>
+            <CardTitle>{t("dashboard:lms.assignment.settings.dates_config")}</CardTitle>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -547,7 +547,7 @@ export default function AssignmentSettings() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel>
-                        {dateField === "beginDate" ? "Begin Date" : dateField === "dueDate" ? "Due Date" : "Scheduled Date"}
+                        {dateField === "beginDate" ? t("dashboard:lms.assignment.settings.begin_date") : dateField === "dueDate" ? t("dashboard:lms.assignment.settings.due_date") : t("dashboard:lms.assignment.settings.scheduled_date")}
                       </FieldLabel>
                       <Input
                         type="datetime-local"
@@ -565,12 +565,12 @@ export default function AssignmentSettings() {
                 name="eventDuration"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Event Duration (minutes)</FieldLabel>
+                    <FieldLabel>{t("dashboard:lms.assignment.settings.event_duration")}</FieldLabel>
                     <Input
                       type="number"
                       min={1}
                       max={480}
-                      placeholder="Optional (1-480)"
+                      placeholder={t("dashboard:lms.assignment.settings.event_duration_placeholder")}
                       value={field.value || ""}
                       onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : "")}
                     />
@@ -586,10 +586,10 @@ export default function AssignmentSettings() {
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <div className="text-base font-medium">
-                        Allow Late Submissions
+                        {t("dashboard:lms.assignment.settings.allow_late_submissions")}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Students can submit after due date
+                        {t("dashboard:lms.assignment.settings.allow_late_submissions_desc")}
                       </div>
                     </div>
                     <Switch
@@ -606,7 +606,7 @@ export default function AssignmentSettings() {
                   name="latePenalty"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Late Penalty (%)</FieldLabel>
+                      <FieldLabel>{t("dashboard:lms.assignment.settings.late_penalty")}</FieldLabel>
                       <Input
                         type="number"
                         min={0}
@@ -624,11 +624,11 @@ export default function AssignmentSettings() {
                   name="maxAttempts"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>Max Attempts</FieldLabel>
+                      <FieldLabel>{t("dashboard:lms.assignment.settings.max_attempts")}</FieldLabel>
                       <Input
                         type="number"
                         min={1}
-                        placeholder="Unlimited"
+                        placeholder={t("common:unlimited")}
                         value={field.value || ""}
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : "")}
                       />
@@ -645,10 +645,10 @@ export default function AssignmentSettings() {
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <div className="text-base font-medium">
-                        Allow Peer Review
+                        {t("dashboard:lms.assignment.settings.allow_peer_review")}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Enable students to review each other
+                        {t("dashboard:lms.assignment.settings.allow_peer_review_desc")}
                       </div>
                     </div>
                     <Switch
@@ -663,10 +663,9 @@ export default function AssignmentSettings() {
         </Card>
       </div>
 
-      {/* Instructions & Requirements */}
       <Card>
         <CardHeader>
-          <CardTitle>Instructions & Requirements</CardTitle>
+          <CardTitle>{t("dashboard:lms.assignment.settings.instructions_requirements")}</CardTitle>
         </CardHeader>
         <CardContent>
           <FieldGroup>
@@ -675,10 +674,10 @@ export default function AssignmentSettings() {
               name="instructions"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Instructions</FieldLabel>
+                  <FieldLabel>{t("dashboard:lms.assignment.settings.instructions")}</FieldLabel>
                   <Textarea
                     {...field}
-                    placeholder="Detailed instructions for students"
+                    placeholder={t("dashboard:lms.assignment.settings.detailed_instructions_placeholder")}
                     rows={4}
                     aria-invalid={fieldState.invalid}
                   />
@@ -691,7 +690,7 @@ export default function AssignmentSettings() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FieldLabel>Requirements</FieldLabel>
+                <FieldLabel>{t("dashboard:lms.assignment.settings.requirements")}</FieldLabel>
                 <Button
                   type="button"
                   variant="outline"
@@ -699,7 +698,7 @@ export default function AssignmentSettings() {
                   onClick={() => requirementsFieldArray.append("")}
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Requirement
+                  {t("dashboard:lms.assignment.settings.add_requirement")}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -712,7 +711,7 @@ export default function AssignmentSettings() {
                         <div className="flex-1">
                           <Input
                             {...field}
-                            placeholder={`Requirement ${index + 1}`}
+                            placeholder={t("dashboard:lms.assignment.settings.requirement_number", { number: index + 1 })}
                             aria-invalid={fieldState.invalid}
                           />
                         </div>
@@ -730,7 +729,7 @@ export default function AssignmentSettings() {
                 ))}
                 {requirementsFieldArray.fields.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    No requirements added yet
+                    {t("dashboard:lms.assignment.settings.no_requirements")}
                   </p>
                 )}
               </div>
@@ -739,11 +738,10 @@ export default function AssignmentSettings() {
         </CardContent>
       </Card>
 
-      {/* Rubrics */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Grading Rubrics</CardTitle>
+            <CardTitle>{t("dashboard:lms.assignment.settings.grading_rubrics")}</CardTitle>
             <Button
               type="button"
               variant="outline"
@@ -753,7 +751,7 @@ export default function AssignmentSettings() {
               }
             >
               <Plus className="h-4 w-4 mr-1" />
-              Add Rubric
+              {t("dashboard:lms.assignment.settings.add_rubric")}
             </Button>
           </div>
         </CardHeader>
@@ -770,10 +768,10 @@ export default function AssignmentSettings() {
                           name={`rubrics.${index}.criterion`}
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel>Criterion</FieldLabel>
+                              <FieldLabel>{t("dashboard:lms.assignment.settings.criterion")}</FieldLabel>
                               <Input
                                 {...field}
-                                placeholder="Grading criterion"
+                                placeholder={t("dashboard:lms.assignment.settings.grading_criterion_placeholder")}
                                 aria-invalid={fieldState.invalid}
                               />
                             </Field>
@@ -786,7 +784,7 @@ export default function AssignmentSettings() {
                           name={`rubrics.${index}.points`}
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel>Points</FieldLabel>
+                              <FieldLabel>{t("common:points")}</FieldLabel>
                               <Input
                                 {...field}
                                 type="number"
@@ -819,10 +817,10 @@ export default function AssignmentSettings() {
                       name={`rubrics.${index}.description`}
                       render={({ field, fieldState }) => (
                         <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel>Description</FieldLabel>
+                          <FieldLabel>{t("dashboard:lms.assignment.settings.rubric_description")}</FieldLabel>
                           <Textarea
                             {...field}
-                            placeholder="Describe this grading criterion"
+                            placeholder={t("dashboard:lms.assignment.settings.grading_criterion_desc_placeholder")}
                             rows={2}
                             aria-invalid={fieldState.invalid}
                           />
@@ -835,41 +833,34 @@ export default function AssignmentSettings() {
             ))}
             {rubricsFieldArray.fields.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No rubrics added yet. Add rubrics to define grading criteria.
+                {t("dashboard:lms.assignment.settings.no_rubrics")}
               </p>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Attachments */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Paperclip className="h-5 w-5" />
-            <CardTitle>Attachments</CardTitle>
+            <CardTitle>{t("dashboard:lms.assignment.settings.attachments")}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Add files, documents, or resources for students to reference when completing this assignment.
-              {!assignment?._id && " (Save the assignment first to enable file uploads)"}
+              {t("dashboard:lms.assignment.settings.attachments_desc")}
+              {!assignment?._id && ` (${t("dashboard:lms.assignment.messages.save_first_upload")})`}
             </p>
             <div className="space-y-2">
               {attachments.map((attachment) => (
                 <MediaSelector
                   key={attachment.mediaId}
                   media={attachment}
-                  onSelection={(media) => {
-                    // Selection handler if needed
-                  }}
+                  onSelection={(media) => {}}
                   onRemove={() => handleRemoveAttachment(attachment.mediaId)}
                   type="course"
-                  strings={{
-                    buttonCaption: "Upload Attachment",
-                    removeButtonCaption: "Remove",
-                  }}
                   functions={{
                     uploadFile: handleUploadAttachment,
                     removeFile: handleRemoveAttachment,
@@ -880,14 +871,11 @@ export default function AssignmentSettings() {
               {assignment?._id && (
                 <MediaSelector
                   media={null}
-                  onSelection={(media) => {
-                    // Will be handled by upload
-                  }}
+                  onSelection={(media) => {}}
                   onRemove={() => {}}
                   type="course"
                   strings={{
-                    buttonCaption: attachments.length === 0 ? "Upload First Attachment" : "Upload Another Attachment",
-                    removeButtonCaption: "Remove",
+                    buttonCaption: attachments.length === 0 ? t("dashboard:lms.assignment.settings.upload_first_attachment") : t("dashboard:lms.assignment.settings.upload_another_attachment"),
                   }}
                   functions={{
                     uploadFile: handleUploadAttachment,
@@ -898,7 +886,7 @@ export default function AssignmentSettings() {
               )}
               {attachments.length === 0 && !assignment?._id && (
                 <p className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
-                  Save the assignment first to upload attachments
+                  {t("dashboard:lms.assignment.messages.save_first_upload_attachments")}
                 </p>
               )}
             </div>
