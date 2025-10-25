@@ -28,7 +28,7 @@ type QueryParams = Parameters<typeof trpc.lmsModule.courseModule.course.getMyEnr
 
 export default function Page() {
     const { t } = useTranslation(["dashboard", "common"]);
-    const breadcrumbs = [{ label: t("common:dashboard.student.courses.title"), href: "#" }];
+    const breadcrumbs = [{ label: t("dashboard:instructor.my_courses.title"), href: "#" }];
 
     const [search, setSearch] = useState("");
     const [levelFilter, setLevelFilter] = useState<CourseLevelEnum | "all">("all");
@@ -77,7 +77,7 @@ export default function Page() {
         <DashboardContent breadcrumbs={breadcrumbs}>
             <HeaderTopbar
                 header={{
-                    title: t("common:dashboard.student.courses.title"),
+                    title: t("dashboard:instructor.my_courses.title"),
                     subtitle: "Track your enrolled courses and progress",
                 }}
             />
@@ -93,7 +93,6 @@ export default function Page() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium">Level</Label>
                         <Select value={levelFilter} onValueChange={(value) => setLevelFilter(value as CourseLevelEnum | "all")}>
                             <SelectTrigger className="w-full sm:w-[180px]">
                                 <SelectValue />

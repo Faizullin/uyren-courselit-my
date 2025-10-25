@@ -217,7 +217,7 @@ export default function Header() {
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <Settings className="w-4 h-4 inline mr-2" />
-                      {t("common:dashboard.dashboard")}
+                      {t("common:dashboard")}
                     </Link>
                     <button
                       onClick={handleSignOut}
