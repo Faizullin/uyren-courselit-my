@@ -3,7 +3,7 @@
 import { getActionContext } from "@/server/api/core/actions";
 import { ValidationException } from "@/server/api/core/exceptions";
 import DomainManager from "@/server/lib/domain";
-import { CloudinaryService } from "@/server/services/cloudinary";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import { DomainModel, IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { ISiteInfo } from "@workspace/common-logic/models/organization.types";
@@ -34,7 +34,7 @@ export async function uploadLogo(formData: FormData): Promise<UploadMediaResult>
     const domain = await DomainModel.findOne({ name: ctx.domainData.domainObj.name });
     if (!domain) throw new ValidationException("Domain not found");
 
-    const attachment = await CloudinaryService.uploadFile(
+    const attachment = await getStorageProvider().uploadFile(
       {
         file,
         userId: ctx.user._id as mongoose.Types.ObjectId,
@@ -66,7 +66,7 @@ export async function removeLogo(mediaId: string): Promise<RemoveMediaResult> {
     if (!domain) throw new ValidationException("Domain not found");
     if (!domain.siteInfo?.logo) throw new ValidationException("Logo not found");
 
-    await CloudinaryService.deleteFile(domain.siteInfo.logo);
+    await getStorageProvider(domain.siteInfo.logo.storageProvider).deleteFile(domain.siteInfo.logo);
 
     domain.siteInfo.logo = undefined;
     await domain.save();

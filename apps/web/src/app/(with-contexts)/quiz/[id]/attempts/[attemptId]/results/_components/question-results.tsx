@@ -1,6 +1,7 @@
 "use client";
 
 import { saveTeacherFeedback } from "@/server/actions/quiz-attempt";
+import { trpc } from "@/utils/trpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -36,15 +37,16 @@ interface QuestionResultsProps {
   questions: Question[];
   answers: Answer[];
   attemptId: string;
-  canLeaveFeedback?: boolean;
 }
 
-export default function QuestionResults({ questions, answers, attemptId, canLeaveFeedback = false }: QuestionResultsProps) {
+export default function QuestionResults({ questions, answers, attemptId }: QuestionResultsProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
   const [savingFeedback, setSavingFeedback] = useState<string | null>(null);
   const { toast } = useToast();
   const { t } = useTranslation(["quiz", "common"]);
+  const { data: permissionData } = trpc.lmsModule.quizModule.quizAttempt.canLeaveFeedback.useQuery();
+  const canLeaveFeedback = permissionData?.canLeaveFeedback ?? false;
 
   const toggleQuestion = (questionId: string) => {
     setExpandedQuestions((prev) => {

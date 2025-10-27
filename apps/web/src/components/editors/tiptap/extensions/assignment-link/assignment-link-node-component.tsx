@@ -1,5 +1,5 @@
 import { trpc } from "@/utils/trpc";
-import { NodeViewProps, NodeViewWrapper } from "@tiptap/react";
+import { NodeViewProps, NodeViewWrapper, useCurrentEditor } from "@tiptap/react";
 import {
   ComboBox2,
   NiceModal,
@@ -18,6 +18,7 @@ import { Label } from "@workspace/ui/components/label";
 import { Edit } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AssignmentLinkSubmitForm } from "./assignment-link-submit-form";
 
 export interface AssignmentLinkAttrs {
   label: string;
@@ -36,7 +37,6 @@ export function AssignmentLinkNodeComponent({
   updateAttributes: (attrs: Partial<AssignmentLinkAttrs>) => void;
 }) {
   const { label, obj } = node.attrs as AssignmentLinkAttrs;
-
   const handleSelectDialog = useCallback(() => {
     editor.commands.openAssignmentSelectDialog({
       type: obj?.type || "all",
@@ -47,32 +47,58 @@ export function AssignmentLinkNodeComponent({
   const acutalLink = useMemo(() => {
     if (!obj) return "#";
     else if (obj.type === "assignment") {
-      return `/assignments/${obj.id}`;
+      return `/dashboard/student/assignments/${obj.id}`;
     } else if (obj.type === "quiz") {
       return `/quiz/${obj.id}`;
     }
     return `#unknown-type=${obj.type}`;
   }, [obj]);
+
+  const useSubmissionForm = !editor.isEditable;
   return (
     <NodeViewWrapper
       as="div"
-      className="entity-card border rounded p-3 bg-background shadow"
+      className="entity-card"
     >
-      <div className="flex items-center justify-between">
-        <Link href={acutalLink} target="_blank">
-          {label}
-        </Link>
-        {editor.isEditable ? (
-          <Button
-            type="button"
-            onClick={handleSelectDialog}
-            variant="ghost"
-            size="icon"
-          >
-            <Edit />
-          </Button>
-        ) : null}
-      </div>
+      {/* {
+        useSubmissionForm && obj?.type === "assignment" ? (
+          <AssignmentLinkSubmitForm creds={{
+            _id: obj.id,
+            title: obj.title,
+          }} />
+        ) : (
+          <div className="border rounded p-3 bg-background shadow flex items-center justify-between">
+            <Link href={acutalLink} target="_blank">
+              {label}
+            </Link>
+            {editor.isEditable ? (
+              <Button
+                type="button"
+                onClick={handleSelectDialog}
+                variant="ghost"
+                size="icon"
+              >
+                <Edit />
+              </Button>
+            ) : null}
+          </div>
+        )
+      } */}
+      <div className="border rounded p-3 bg-background shadow flex items-center justify-between">
+          <Link href={acutalLink} target="_blank">
+            {label}
+          </Link>
+          {editor.isEditable ? (
+            <Button
+              type="button"
+              onClick={handleSelectDialog}
+              variant="ghost"
+              size="icon"
+            >
+              <Edit />
+            </Button>
+          ) : null}
+        </div>
     </NodeViewWrapper>
   );
 }
@@ -193,7 +219,13 @@ export const AssignmentSelectNiceDialog = NiceModal.create<
             showCreateButton={true}
             showEditButton={true}
             onCreateClick={() => {
-              window.open("/dashboard/lms/assignments/new", "_blank");
+              if(typeFilter === "assignment") {
+                window.open("/dashboard/lms/assignments/new", "_blank");
+              } else if (typeFilter === "quiz") {
+                window.open("/dashboard/lms/quizzes/new", "_blank");
+              } else {
+                alert("Please select a valid type");
+              }
             }}
             onEditClick={(item) => {
               if (item.type === "assignment") {

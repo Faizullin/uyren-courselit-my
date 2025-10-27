@@ -158,7 +158,7 @@ export const AssignmentSubmissionSchema = new mongoose.Schema<IAssignmentSubmiss
     },
     submittedAt: {
         type: Date,
-        required: true
+        required: false,
     },
     attemptNumber: {
         type: Number,
@@ -166,7 +166,7 @@ export const AssignmentSubmissionSchema = new mongoose.Schema<IAssignmentSubmiss
     },
     content: {
         type: String,
-        required: true
+        required: false
     },
     attachments: {
         type: [AttachmentMediaSchema],

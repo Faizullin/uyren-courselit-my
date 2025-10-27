@@ -46,7 +46,7 @@ export async function generateMetadata(
   };
 }
 
-export default async function QuizPage({ params }: QuizPageProps) {
+export default async function Page({ params }: QuizPageProps) {
   const { id } = await params;
   const { t } = await getT(["quiz", "common"]);
 
@@ -85,7 +85,7 @@ export default async function QuizPage({ params }: QuizPageProps) {
         case QuizAttemptStatusEnum.GRADED:
           return t("quiz:graded");
         default:
-          return status.replace("_", " ");
+          return "---";
       }
     };
 

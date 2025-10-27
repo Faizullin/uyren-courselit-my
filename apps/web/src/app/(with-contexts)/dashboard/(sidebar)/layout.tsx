@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/dashboard/dashboard-skeleton/app-sidebar";
+import { LayoutContextProvider } from "@/components/dashboard/layout/layout-context";
 import {
   SidebarInset,
   SidebarProvider,
@@ -10,9 +11,11 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
-    </SidebarProvider>
+    <LayoutContextProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
+    </LayoutContextProvider>
   );
 }

@@ -49,10 +49,10 @@
     "edit_content": "Редактировать контент",
     "actions": "Действия",
     "manage_course": "Управление курсом",
-    "cohort_groups": "Группы когорт",
+    "cohort_groups": "Группы",
     "preview_course": "Предпросмотр курса",
     "view_all": "Посмотреть все",
-    "no_cohorts_yet": "Пока нет групп когорт.",
+    "no_cohorts_yet": "Пока нет групп.",
     "create_one": "Создать",
     "no_instructor": "Нет инструктора"
   },
@@ -71,21 +71,43 @@
     "breadcrumb_courses": "Курсы",
     "breadcrumb_manage": "Управление",
     "not_found": "Курс не найден",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "title_label": "Название",
+    "short_description_label": "Краткое описание",
+    "short_description_placeholder": "Введите краткое описание вашего продукта (макс. 500 символов)...",
+    "description_label": "Описание",
+    "description_placeholder": "Введите подробное описание вашего продукта...",
+    "course_theme_label": "Тема курса",
+    "select_theme": "Выберите тему",
+    "instructors_label": "Инструкторы",
+    "select_instructors": "Выберите инструкторов",
+    "featured_image": "Главное изображение",
+    "featured_image_desc": "Главное изображение для вашего продукта",
+    "pricing": "Цены",
+    "pricing_desc": "Управление ценовыми планами вашего продукта",
+    "published_label": "Опубликовано",
+    "published_desc": "Сделать этот курс доступным для пользователей",
+    "allow_enrollment_label": "Разрешить регистрацию",
+    "allow_self_enrollment_label": "Разрешить самостоятельную регистрацию",
+    "allow_self_enrollment_desc": "Разрешить студентам самостоятельно записываться на этот курс",
+    "danger_zone": "Опасная зона",
+    "delete_button": "Удалить курс",
+    "delete_dialog_title": "Удалить курс",
+    "delete_dialog_message": "Вы уверены, что хотите удалить \"{{title}}\"? Это действие нельзя отменить. Это навсегда удалит курс и удалит все связанные данные с наших серверов."
   },
   "cohorts": {
     "breadcrumb_courses": "Курсы",
-    "breadcrumb_cohorts": "Когорты",
-    "title": "Группы когорт",
-    "subtitle": "Управление группами когорт для {{courseName}}",
-    "add_cohort": "Добавить когорту",
+    "breadcrumb_cohorts": "Группы",
+    "title": "Группы",
+    "subtitle": "Управление группами для {{courseName}}",
+    "add_cohort": "Добавить группу",
     "not_found": "Курс не найден",
-    "search_placeholder": "Поиск когорт...",
+    "search_placeholder": "Поиск групп...",
     "filter_status": "Фильтр по статусу",
     "all_statuses": "Все статусы",
     "stats": {
-      "total_cohorts": "Всего когорт",
-      "active_cohorts": "Активные когорты",
+      "total_cohorts": "Всего групп",
+      "active_cohorts": "Активные группы",
       "total_capacity": "Общая вместимость"
     },
     "table": {
@@ -106,9 +128,86 @@
       "open_menu": "Открыть меню"
     },
     "delete_dialog": {
-      "title": "Удалить когорту",
+      "title": "Удалить группу",
       "message": "Вы уверены, что хотите удалить \"{{name}}\"?"
     }
+  },
+  "public": {
+    "students": "студентов",
+    "not_found_title": "Курс не найден",
+    "not_found_description": "Курс, который вы ищете, не существует или был удален.",
+    "back_to_courses": "Назад к курсам",
+    "continue_learning": "Продолжить обучение",
+    "start_learning": "Начать обучение",
+    "request_enrollment": "Запросить запись",
+    "enrolling": "Регистрация...",
+    "requesting": "Отправка запроса...",
+    "buy_for": "Купить за",
+    "edit": "Редактировать курс",
+    "course_includes": "Этот курс включает:",
+    "lessons": "Уроков",
+    "rating": "Рейтинг",
+    "course_content": "Содержание курса",
+    "chapters": "Разделов",
+    "lesson": "Урок",
+    "content_coming_soon": "Содержание курса скоро появится",
+    "breadcrumb_home": "Главная",
+    "breadcrumb_courses": "Курсы"
+  },
+  "enrollment": {
+    "success": "Успешная регистрация!",
+    "success_desc": "Теперь вы можете получить доступ ко всему контенту курса.",
+    "request_success": "Запрос на запись отправлен",
+    "request_success_desc": "Ваш запрос на запись был отправлен на рассмотрение.",
+    "login_required": "Требуется вход",
+    "login_required_desc": "Пожалуйста, войдите, чтобы записаться на этот курс."
+  },
+  "errors": {
+    "enrollment_failed": "Ошибка регистрации",
+    "request_failed": "Ошибка запроса",
+    "not_allowed": "Регистрация на этот курс не разрешена",
+    "self_enrollment_disabled": "Вам не разрешено записываться на этот курс",
+    "max_capacity_reached": "Курс достиг максимальной вместимости",
+    "already_enrolled": "Вы уже записаны на этот курс",
+    "request_already_exists": "У вас уже есть ожидающий или одобренный запрос на регистрацию",
+    "generic": "Произошла ошибка. Пожалуйста, попробуйте еще раз."
+  },
+  "requests": {
+    "breadcrumb_courses": "Курсы",
+    "breadcrumb_requests": "Запросы на зачисление",
+    "title": "Запросы на зачисление",
+    "subtitle": "Управление запросами на зачисление для {{courseName}}",
+    "pending_desc": "{{count}} новых запросов на рассмотрении",
+    "not_found": "Курс не найден",
+    "search_placeholder": "Поиск запросов...",
+    "filter_status": "Фильтр по статусу",
+    "all_statuses": "Все статусы",
+    "approve_success": "Запрос успешно одобрен",
+    "reject_success": "Запрос успешно отклонен",
+    "delete_success": "Запрос успешно удален",
+    "delete_dialog_title": "Удалить запрос на зачисление",
+    "delete_dialog_message": "Вы уверены, что хотите удалить запрос на зачисление от {{email}}?",
+    "stats": {
+      "pending": "Ожидающие запросы",
+      "approved": "Одобрено",
+      "rejected": "Отклонено"
+    },
+    "status": {
+      "pending": "Ожидает",
+      "approved": "Одобрено",
+      "rejected": "Отклонено"
+    },
+    "table": {
+      "user": "Пользователь",
+      "status": "Статус",
+      "request_date": "Дата запроса",
+      "actions": "Действия"
+    },
+    "actions": {
+      "approve": "Одобрить",
+      "reject": "Отклонить"
+    },
+    "select_cohort": "Выбрать группу"
   }
 }
 

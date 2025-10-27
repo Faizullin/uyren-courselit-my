@@ -54,10 +54,14 @@ export interface ICourse {
   paidCourse: boolean;
   paymentPlanIds: mongoose.Types.ObjectId[];
   defaultPaymentPlanId?: mongoose.Types.ObjectId;
+  maxCapacity?: number;
   statsEnrollmentCount: number;
   statsCompletionRate: number;
   statsAverageRating: number;
   statsLessonCount: number;
   language: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 

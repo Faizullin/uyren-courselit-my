@@ -5,11 +5,11 @@ import { DatabaseManager } from "@/core/database";
 import { errorHandler } from "@/middlewares/error-handler";
 
 import "@/config";
-import "./domain/notification/worker";
+// import "./domain/notification/worker";
 
 // API Routes
-import { notificationRouter } from "@/api/routes/notifications";
-import { mailRouter } from "@/api/routes/mail";
+import { aiChatRouter } from "@/api/routes/ai-chat";
+import { ragRouter } from "@/api/routes/rag";
 
 class QueueServer {
   private app: express.Application;
@@ -39,10 +39,16 @@ class QueueServer {
 
   private setupRoutes() {
     // SSE Routes (directly under root for easier access)
-    this.app.use("/", notificationRouter);
+    // this.app.use("/", notificationRouter);
 
-    // Mail routes
-    this.app.use("/", mailRouter);
+    // // Mail routes
+    // this.app.use("/", mailRouter);
+
+    // AI Chat routes
+    this.app.use("/", aiChatRouter);
+
+    // RAG routes
+    this.app.use("/", ragRouter);
 
     // Root endpoint
     this.app.get("/", (req, res) => {

@@ -14,7 +14,7 @@ import {
   mediaWrappedFieldValidator,
   textEditorContentValidator
 } from "@/server/api/core/validators";
-import { deleteMedia } from "@/server/services/media";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { ReviewModel } from "@workspace/common-logic/models/review.model";
@@ -285,7 +285,7 @@ export const reviewRouter = router({
       }
 
       if (review.featuredImage) {
-        await deleteMedia(review.featuredImage);
+        await getStorageProvider(review.featuredImage.storageProvider).deleteFile(review.featuredImage);
       }
 
       await ReviewModel.findByIdAndDelete(input.id);

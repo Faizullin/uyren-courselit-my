@@ -40,10 +40,8 @@ export const siteInfoRouter = router({
       "siteInfo.paymentMethods.stripe.stripeWebhookSecret": 0,
     };
 
-    const typedDomainObj = domainObj as IDomain & { _id: string };
-
     const domain = await DomainModel.findById(
-      typedDomainObj._id,
+      domainObj._id,
       exclusionFields,
     ).lean();
 
@@ -67,15 +65,13 @@ export const siteInfoRouter = router({
         throw new NotFoundException("Domain", "current");
       }
 
-      const typedDomainObj = domainObj as IDomain & { _id: string };
-
       const exclusionFields = {
         "siteInfo.paymentMethods.stripe.stripeSecret": 0,
         "siteInfo.paymentMethods.stripe.stripeWebhookSecret": 0,
       };
 
       const domain = await DomainModel.findById(
-        typedDomainObj._id,
+        domainObj._id,
         exclusionFields,
       ).lean();
 
@@ -176,7 +172,7 @@ export const siteInfoRouter = router({
       domain.siteInfo.currencyISOCode = input.data.currencyISOCode;
       
       const saved = await domain.save();
-      await DomainManager.removeFromCache(domain.toJSON() as any);
+      await DomainManager.removeFromCache(domain.toJSON());
       return jsonify(saved.toObject().siteInfo);
     }),
 

@@ -10,6 +10,7 @@ import {
   AuthenticationException,
   NotFoundException
 } from "./exceptions";
+import mongoose from "mongoose";
 
 /**
  * Action context type matching TRPC procedures
@@ -18,7 +19,9 @@ export interface ActionContext {
   user: IUserHydratedDocument;
   session: Session;
   domainData: {
-    domainObj: IDomain;
+    domainObj: IDomain & {
+      _id: mongoose.Types.ObjectId;
+    };
     headers: any;
   };
 }

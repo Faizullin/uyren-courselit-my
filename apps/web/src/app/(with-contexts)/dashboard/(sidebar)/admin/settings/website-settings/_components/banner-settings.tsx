@@ -1,15 +1,10 @@
 "use client";
 
 import React from "react";
-import { UseFormReturn } from "react-hook-form";
+import { Controller, UseFormReturn } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Checkbox } from "@workspace/ui/components/checkbox";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormDescription,
-} from "@workspace/ui/components/form";
+import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
   Card,
@@ -23,76 +18,64 @@ interface BannerSettingsProps {
 }
 
 export const BannerSettings = React.memo<BannerSettingsProps>(({ form }) => {
+  const { t } = useTranslation(["admin", "common"]);
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Banner Settings</CardTitle>
+        <CardTitle>{t("admin:settings.banner_settings")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <FormField
+        <Controller
           control={form.control}
           name="showBanner"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Show main page banner</FormLabel>
-                <FormDescription>
-                  Display a banner section on the homepage
-                </FormDescription>
-              </div>
-            </FormItem>
+            <Field className="flex flex-row items-start space-x-3 space-y-0">
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+              <FieldContent>
+                <FieldLabel>{t("admin:settings.show_main_page_banner")}</FieldLabel>
+                <FieldDescription>
+                  {t("admin:settings.display_banner_section")}
+                </FieldDescription>
+              </FieldContent>
+            </Field>
           )}
         />
 
         {form.watch("showBanner") && (
           <div className="space-y-4 pl-6 border-l-2 border-muted">
-            <FormField
+            <Controller
               control={form.control}
               name="bannerTitle"
               render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Banner Title</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter banner title"
-                      {...field}
-                      className={fieldState.error ? "border-destructive" : ""}
-                    />
-                  </FormControl>
-                  {fieldState.error && (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  )}
-                </FormItem>
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>{t("admin:settings.banner_title")}</FieldLabel>
+                  <Input
+                    placeholder={t("admin:settings.banner_title")}
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
               )}
             />
 
-            <FormField
+            <Controller
               control={form.control}
               name="bannerSubtitle"
               render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>Banner Subtitle</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter banner subtitle"
-                      {...field}
-                      className={fieldState.error ? "border-destructive" : ""}
-                    />
-                  </FormControl>
-                  {fieldState.error && (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  )}
-                </FormItem>
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>{t("admin:settings.banner_subtitle")}</FieldLabel>
+                  <Input
+                    placeholder={t("admin:settings.banner_subtitle")}
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
               )}
             />
           </div>

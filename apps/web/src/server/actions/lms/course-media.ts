@@ -2,7 +2,7 @@
 
 import { getActionContext } from "@/server/api/core/actions";
 import { AuthorizationException, NotFoundException, ValidationException } from "@/server/api/core/exceptions";
-import { CloudinaryService } from "@/server/services/cloudinary";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
 import { MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
@@ -29,7 +29,7 @@ export async function uploadFeaturedImage(courseId: string, formData: FormData) 
         const course = await CourseModel.findOne({ _id: courseId, orgId: ctx.domainData.domainObj.orgId });
         if (!course) throw new NotFoundException("Course", courseId);
 
-        const attachment = await CloudinaryService.uploadFile(
+        const attachment = await getStorageProvider().uploadFile(
             {
                 file,
                 userId: ctx.user._id as mongoose.Types.ObjectId,
@@ -84,7 +84,7 @@ export async function removeFeaturedImage(courseId: string): Promise<RemoveMedia
         if (!course) throw new NotFoundException("Course", courseId);
         if (!course.featuredImage) throw new ValidationException("Featured image not found");
 
-        await CloudinaryService.deleteFile(course.featuredImage);
+        await getStorageProvider(course.featuredImage.storageProvider).deleteFile(course.featuredImage);
 
         course.featuredImage = null;
         await course.save();

@@ -6,6 +6,7 @@ import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
   protectedProcedure,
+  publicProcedure,
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
@@ -269,5 +270,20 @@ export const assignmentRouter = router({
         total,
         meta: paginationMeta,
       });
+    }),
+
+    publicGetById: publicProcedure
+    .input(z.object({
+      id: documentIdValidator(),
+    }))
+    .query(async ({ ctx, input }) => {
+      // TODO: add enrollment check
+      const assignment = await AssignmentModel.findOne({
+        _id: input.id,
+        orgId: ctx.domainData.domainObj!.orgId,
+        publicationStatus: PublicationStatusEnum.PUBLISHED,
+      }).lean();
+      if (!assignment) throw new NotFoundException("Assignment", input.id);
+      return jsonify(assignment);
     }),
 });

@@ -27,6 +27,21 @@
     "error_loading_description": "Не удалось загрузить запрашиваемый контент.",
     "error_validation_title": "Ошибка валидации",
     "error_validation_description": "Пожалуйста, проверьте введенные данные и попробуйте снова.",
+    "validation": {
+        "required": "{{field}} обязательно",
+        "min_length": "{{field}} должно быть не менее {{min}} символов",
+        "max_length": "{{field}} должно быть менее {{max}} символов",
+        "min_value": "{{field}} должно быть не менее {{min}}",
+        "max_value": "{{field}} должно быть не более {{max}}",
+        "invalid_email": "Недействительный email адрес",
+        "invalid_url": "Недействительный URL",
+        "invalid_phone": "Недействительный номер телефона",
+        "invalid_date": "Недействительная дата",
+        "must_match": "{{field}} должно совпадать с {{other}}",
+        "must_be_unique": "{{field}} должно быть уникальным",
+        "invalid_format": "Недействительный формат {{field}}",
+        "select_option": "Пожалуйста, выберите {{field}}"
+    },
     "auth": {
         "invalid_email": "Неверный адрес электронной почты",
         "user_not_found": "Аккаунт не найден",

@@ -19,11 +19,14 @@ import {
 import { checkPermission } from "@workspace/utils";
 import {
   BookOpen,
+  Building2,
   Calendar,
   ClipboardList,
   Database,
   FileText,
+  Globe,
   GraduationCap,
+  Key,
   LayoutDashboard,
   LibraryBig,
   type LucideIcon,
@@ -162,31 +165,31 @@ function getSidebarItems(
       isActive: path.startsWith("/dashboard/lms"),
       items: [
         {
-          title: t("lms.modules.courses.title"),
+          title: t("dashboard:lms.modules.courses.title"),
           url: "/dashboard/lms/courses",
           icon: BookOpen,
           isActive: path.startsWith("/dashboard/lms/courses"),
         },
         {
-          title: t("lms.modules.cohorts.title"),
+          title: t("dashboard:lms.modules.cohorts.title"),
           url: "/dashboard/lms/cohorts",
           icon: Users,
           isActive: path === "/dashboard/lms/cohorts",
         },
         {
-          title: t("lms.modules.quizzes.title"),
+          title: t("dashboard:lms.modules.quizzes.title"),
           url: "/dashboard/lms/quizzes",
           icon: FileText,
           isActive: path.startsWith("/dashboard/lms/quizzes"),
         },
         {
-          title: t("lms.modules.assignments.title"),
+          title: t("dashboard:lms.modules.assignments.title"),
           url: "/dashboard/lms/assignments",
           icon: ClipboardList,
           isActive: path.startsWith("/dashboard/lms/assignments"),
         },
         {
-          title: t("lms.modules.live_classes.title"),
+          title: t("dashboard:lms.modules.live_classes.title"),
           url: "/dashboard/lms/live-classes",
           icon: Video,
           isActive: path === "/dashboard/lms/live-classes",
@@ -198,13 +201,13 @@ function getSidebarItems(
         //   isActive: path === "/dashboard/lms/schedule",
         // },
         {
-          title: t("lms.modules.reviews.title"),
+          title: t("dashboard:lms.modules.reviews.title"),
           url: "/dashboard/lms/reviews",
           icon: Star,
           isActive: path === "/dashboard/lms/reviews",
         },
         {
-          title: t("lms.modules.themes.title"),
+          title: t("dashboard:lms.modules.themes.title"),
           url: "/dashboard/lms/themes",
           icon: Palette,
           isActive: path.startsWith("/dashboard/lms/themes"),
@@ -228,6 +231,12 @@ function getSidebarItems(
           isActive: path.startsWith("/dashboard/admin/users"),
         },
         {
+          title: t("sidebar.organizations"),
+          url: "/dashboard/admin/organizations",
+          icon: Building2,
+          isActive: path.startsWith("/dashboard/admin/organizations"),
+        },
+        {
           title: t("sidebar.tags"),
           url: "/dashboard/admin/tags",
           icon: Tag,
@@ -237,7 +246,19 @@ function getSidebarItems(
           title: t("sidebar.settings"),
           url: "/dashboard/admin/settings",
           icon: Settings,
-          isActive: path.startsWith("/dashboard/admin/settings"),
+          isActive: path.startsWith("/dashboard/admin/settings") && !path.includes("/website-settings") && !path.includes("/external-api-keys"),
+        },
+        {
+          title: t("sidebar.website_settings"),
+          url: "/dashboard/admin/settings/website-settings",
+          icon: Globe,
+          isActive: path.startsWith("/dashboard/admin/settings/website-settings"),
+        },
+        {
+          title: t("sidebar.external_api_keys"),
+          url: "/dashboard/admin/settings/external-api-keys",
+          icon: Key,
+          isActive: path.includes("/external-api-keys"),
         },
         {
           title: t("sidebar.studio"),

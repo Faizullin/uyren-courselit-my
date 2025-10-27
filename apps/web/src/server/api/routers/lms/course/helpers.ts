@@ -1,11 +1,14 @@
 import {
+  AuthenticationException,
   AuthorizationException,
   NotFoundException
 } from "@/server/api/core/exceptions";
 import { MainContextType } from "@/server/api/core/procedures";
-import { deleteMedia } from "@/server/services/media";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
+import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
 import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
@@ -26,7 +29,7 @@ export const deleteAllLessons = async (
   );
   for (let l of allLessonsWithMedia) {
     if (l.media) {
-      await deleteMedia(l.media);
+      await getStorageProvider(l.media.storageProvider).deleteFile(l.media);
     }
   }
   await LessonModel.deleteMany({
@@ -84,4 +87,39 @@ export const syncCourseLessons = async ({
   }
   await course.save();
   return course;
+};
+
+export const checkEnrollmentAccess = async ({
+  ctx,
+  courseId,
+  requiresEnrollment = true,
+}: {
+  ctx: MainContextType;
+  courseId: mongoose.Types.ObjectId | string;
+  requiresEnrollment?: boolean;
+}) => {
+  if (!requiresEnrollment) {
+    return true;
+  }
+
+  if (!ctx.session?.user) {
+    throw new AuthenticationException();
+  }
+
+  const enrollment = await EnrollmentModel.findOne({
+    userId: ctx.session.user.id,
+    courseId,
+    orgId: ctx.domainData.domainObj.orgId,
+  });
+
+  if (!enrollment || enrollment.status !== EnrollmentStatusEnum.ACTIVE) {
+    if (!checkPermission(ctx.session.user.permissions, [
+      UIConstants.permissions.manageCourse,
+      UIConstants.permissions.manageAnyCourse,
+    ])) {
+      throw new AuthorizationException();
+    }
+  }
+
+  return true;
 };

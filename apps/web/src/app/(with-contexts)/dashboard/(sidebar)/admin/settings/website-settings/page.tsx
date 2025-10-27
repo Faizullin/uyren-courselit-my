@@ -2,7 +2,7 @@
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { useTranslation } from "react-i18next";
-import WebsiteSettings from "./_components/website-settings";
+import MainPageSettings from "./_components/main-page-settings";
 
 export default function WebsiteSettingsPage() {
   const { t } = useTranslation(["dashboard", "common"]);
@@ -12,7 +12,7 @@ export default function WebsiteSettingsPage() {
   ];
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <WebsiteSettings />
+       <MainPageSettings />
     </DashboardContent>
   );
 }

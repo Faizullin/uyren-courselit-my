@@ -1,8 +1,8 @@
 "use client";
 
+import { useCourseDetail } from "@/components/course/detail/course-detail-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { trpc } from "@/utils/trpc";
-import { useToast } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -27,28 +27,34 @@ import {
   ChevronDown,
   Eye,
   Settings,
-  Users
+  Users,
+  UserPlus
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-// import MetricCard from "./_components/metric-card";
-// import SalesCard from "./_components/sales-card";
-import { useCourseContext } from "./_components/course-context";
 
 export default function Page() {
   const { t } = useTranslation(["course", "dashboard", "common"]);
   const [timeRange, setTimeRange] = useState("7d");
-  const { toast } = useToast();
-  const { course, isLoading: courseLoading } = useCourseContext();
+  const { initialCourse, currentLessonId } = useCourseDetail();
 
-  const breadcrumbs = [
-    { label: t("course:detail.breadcrumb_courses"), href: "/dashboard/lms/courses" },
-    {
-      label: course ? truncate(course.title || "", 20) || "..." : "...",
-      href: "#",
-    },
-  ];
+  const breadcrumbs = useMemo(() => {
+    const breadcrumbs =[
+      { label: t("course:detail.breadcrumb_courses"), href: "/dashboard/lms/courses" },
+      {
+        label: initialCourse ? truncate(initialCourse.title, 20) || "..." : "...",
+        href: "#",
+      },
+    ];
+    if (currentLessonId) {
+      breadcrumbs.push({
+        label: truncate(initialCourse.chapters.find((chapter) => chapter._id === currentLessonId)?.title || "", 20) || "...",
+        href: `/dashboard/lms/courses/${initialCourse._id}/lessons/${currentLessonId}`,
+      });
+    }
+    return breadcrumbs;
+  }, [initialCourse, currentLessonId, t]);
 
   // const { data: salesData, loading: salesLoading } = useActivities(
   //   ActivityTypeEnum.ENROLLED,
@@ -59,12 +65,18 @@ export default function Page() {
 
   const loadCohortsQuery = trpc.lmsModule.cohortModule.cohort.list.useQuery({
     pagination: { skip: 0, take: 5 },
-    filter: { courseId: course?._id },
+    filter: { courseId: initialCourse._id },
   }, {
-    enabled: !!course?._id,
+    enabled: !!initialCourse._id,
   });
 
-  if (courseLoading || !course) {
+  const enrollmentRequestStatsQuery = trpc.lmsModule.enrollmentRequest.stats.useQuery({
+    courseId: initialCourse._id,
+  }, {
+    enabled: !!initialCourse._id,
+  });
+
+  if (loadCohortsQuery.isLoading) {
     return (
       <DashboardContent breadcrumbs={breadcrumbs}>
         <div className="space-y-8">
@@ -84,11 +96,11 @@ export default function Page() {
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      {!course?.published && (
+      {!initialCourse.published && (
         <div className="bg-red-400 p-2 mb-4 text-sm text-white rounded-md">
           {t("course:detail.draft_notice")}{" "}
           <Link
-            href={`/dashboard/lms/courses/${course._id}/manage#publish`}
+            href={`/dashboard/lms/courses/${initialCourse._id}/manage#publish`}
             className="underline"
           >
             {t("course:detail.manage_link")}
@@ -99,17 +111,17 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-4xl font-semibold flex items-center gap-2">
-              {course?.title || <Skeleton className="h-9 w-64" />}
+              {initialCourse.title}
             </h1>
             <div className="flex items-center gap-2">
-              {course ? (
+              {initialCourse ? (
                 <>
                   <Badge variant="secondary">
                     <BookOpen className="h-4 w-4 mr-1" />
                     {t("course:detail.badge_course")}
                   </Badge>
                   <Badge variant="outline">
-                    {course.published ? t("course:status.published") : t("course:status.draft")}
+                    {initialCourse.published ? t("course:status.published") : t("course:status.draft")}
                   </Badge>
                 </>
               ) : (
@@ -131,7 +143,7 @@ export default function Page() {
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/dashboard/lms/courses/${course._id}/content`}>
+              <Link href={`/dashboard/lms/courses/${initialCourse._id}/content`}>
                 {t("course:detail.edit_content")}
               </Link>
             </Button>
@@ -144,20 +156,20 @@ export default function Page() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/lms/courses/${course._id}/manage`}>
+                  <Link href={`/dashboard/lms/courses/${initialCourse._id}/manage`}>
                     <Settings className="mr-2 h-4 w-4" />
                     {t("course:detail.manage_course")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
+                  <Link href={`/dashboard/lms/courses/${initialCourse._id}/cohorts`}>
                     <Users className="mr-2 h-4 w-4" />
                     {t("course:detail.cohort_groups")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/courses/${course._id}`}>
+                  <Link href={`/courses/${initialCourse._id}`}>
                     <Eye className="mr-2 h-4 w-4" />
                     {t("course:detail.preview_course")}
                   </Link>
@@ -197,11 +209,35 @@ export default function Page() {
 
       {/* <SalesCard data={salesData} loading={salesLoading} /> */}
 
+      {enrollmentRequestStatsQuery.isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : (
+        <Card className="mt-6 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => window.location.href = `/dashboard/lms/courses/${initialCourse._id}/requests`}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between text-base">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                {t("course:requests.title")}
+              </div>
+              <Badge variant="default">{enrollmentRequestStatsQuery.data?.pending}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {t("course:requests.pending_desc", { count: enrollmentRequestStatsQuery.data?.pending })}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{t("course:detail.cohort_groups")}</CardTitle>
           <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/lms/courses/${course._id}/cohorts`}>
+            <Link href={`/dashboard/lms/courses/${initialCourse._id}/cohorts`}>
               {t("course:detail.view_all")}
             </Link>
           </Button>
@@ -215,7 +251,7 @@ export default function Page() {
           ) : loadCohortsQuery.data?.items.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {t("course:detail.no_cohorts_yet")}{" "}
-              <Link href={`/dashboard/lms/courses/${course._id}/cohorts`} className="text-primary hover:underline">
+              <Link href={`/dashboard/lms/courses/${initialCourse._id}/cohorts`} className="text-primary hover:underline">
                 {t("course:detail.create_one")}
               </Link>
             </div>

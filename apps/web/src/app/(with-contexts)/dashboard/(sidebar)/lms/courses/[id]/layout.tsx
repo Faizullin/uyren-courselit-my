@@ -1,32 +1,53 @@
-"use client";
+import { CourseDetailProvider } from "@/components/course/detail/course-detail-context";    
+import { getCachedCourseData } from "@/lib/course/get-course-data";
+import { Metadata } from "next";
 
-import { trpc } from "@/utils/trpc";
-import { useParams } from "next/navigation";
-import { CourseProvider } from "./_components/course-context";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
 
-export default function CourseLayout({
+  try {
+    const courseData = await getCachedCourseData(id);
+
+    return {
+      title: courseData.title,
+      description: courseData.shortDescription?.slice(0, 160),
+      openGraph: {
+        title: courseData.title,
+        description: courseData.shortDescription?.slice(0, 160),
+        images: courseData.featuredImage ? [courseData.featuredImage.url] : [],
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: courseData.title,
+        description: courseData.shortDescription?.slice(0, 160),
+        images: courseData.featuredImage ? [courseData.featuredImage.url] : [],
+      },
+    };
+  } catch (error) {
+    return {
+      title: 'Course Not Found',
+      description: 'The requested course could not be found.',
+    };
+  }
+}
+
+export default async function CourseLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ id: string }>;
 }) {
-  const params = useParams<{ id: string }>();
-  const courseId = params.id;
-
-  const loadCourseQuery = trpc.lmsModule.courseModule.course.getById.useQuery({
-    id: courseId,
-  }, {
-    enabled: !!courseId,
-  });
-
+  const { id } = await params;
+  const courseData = await getCachedCourseData(id);
   return (
-    <CourseProvider
-      value={{
-        course: loadCourseQuery.data || null,
-        isLoading: loadCourseQuery.isLoading,
-        refetch: () => loadCourseQuery.refetch(),
-      }}
-    >
+    <CourseDetailProvider initialCourse={courseData as any}>
       {children}
-    </CourseProvider>
+    </CourseDetailProvider>
   );
 }

@@ -49,10 +49,10 @@
     "edit_content": "Edit Content",
     "actions": "Actions",
     "manage_course": "Manage Course",
-    "cohort_groups": "Cohort Groups",
+    "cohort_groups": "Groups",
     "preview_course": "Preview Course",
     "view_all": "View All",
-    "no_cohorts_yet": "No cohort groups yet.",
+    "no_cohorts_yet": "No groups yet.",
     "create_one": "Create one",
     "no_instructor": "No instructor"
   },
@@ -71,21 +71,43 @@
     "breadcrumb_courses": "Courses",
     "breadcrumb_manage": "Manage",
     "not_found": "Course not found",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "title_label": "Title",
+    "short_description_label": "Short Description",
+    "short_description_placeholder": "Enter a brief description for your product (max 500 characters)...",
+    "description_label": "Description",
+    "description_placeholder": "Enter a detailed description for your product...",
+    "course_theme_label": "Course Theme",
+    "select_theme": "Select a theme",
+    "instructors_label": "Instructors",
+    "select_instructors": "Select instructors",
+    "featured_image": "Featured image",
+    "featured_image_desc": "The hero image for your product",
+    "pricing": "Pricing",
+    "pricing_desc": "Manage your product's pricing plans",
+    "published_label": "Published",
+    "published_desc": "Make this course available to users",
+    "allow_enrollment_label": "Allow enrollment",
+    "allow_self_enrollment_label": "Allow self enrollment",
+    "allow_self_enrollment_desc": "Allow students to enroll themselves in this course",
+    "danger_zone": "Danger Zone",
+    "delete_button": "Delete Course",
+    "delete_dialog_title": "Delete Course",
+    "delete_dialog_message": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone. This will permanently delete the course and remove all associated data from our servers."
   },
   "cohorts": {
     "breadcrumb_courses": "Courses",
-    "breadcrumb_cohorts": "Cohorts",
-    "title": "Cohort Groups",
-    "subtitle": "Manage cohort groups for {{courseName}}",
-    "add_cohort": "Add Cohort",
+    "breadcrumb_cohorts": "Groups",
+    "title": "Groups",
+    "subtitle": "Manage groups for {{courseName}}",
+    "add_cohort": "Add Group",
     "not_found": "Course not found",
-    "search_placeholder": "Search cohorts...",
+    "search_placeholder": "Search groups...",
     "filter_status": "Filter by status",
     "all_statuses": "All Statuses",
     "stats": {
-      "total_cohorts": "Total Cohorts",
-      "active_cohorts": "Active Cohorts",
+      "total_cohorts": "Total Groups",
+      "active_cohorts": "Active Groups",
       "total_capacity": "Total Capacity"
     },
     "table": {
@@ -106,9 +128,86 @@
       "open_menu": "Open menu"
     },
     "delete_dialog": {
-      "title": "Delete Cohort",
+      "title": "Delete Group",
       "message": "Are you sure you want to delete \"{{name}}\"?"
     }
+  },
+  "public": {
+    "students": "students",
+    "not_found_title": "Course Not Found",
+    "not_found_description": "The course you're looking for doesn't exist or has been removed.",
+    "back_to_courses": "Back to Courses",
+    "continue_learning": "Continue Learning",
+    "start_learning": "Start Learning",
+    "request_enrollment": "Request Enrollment",
+    "enrolling": "Enrolling...",
+    "requesting": "Requesting...",
+    "buy_for": "Buy for",
+    "edit": "Edit Course",
+    "course_includes": "This course includes:",
+    "lessons": "Lessons",
+    "rating": "Rating",
+    "course_content": "Course Content",
+    "chapters": "Chapters",
+    "lesson": "Lesson",
+    "content_coming_soon": "Course content coming soon",
+    "breadcrumb_home": "Home",
+    "breadcrumb_courses": "Courses"
+  },
+  "enrollment": {
+    "success": "Successfully Enrolled!",
+    "success_desc": "You can now access all course content.",
+    "request_success": "Enrollment Request Sent",
+    "request_success_desc": "Your enrollment request has been submitted for review.",
+    "login_required": "Login Required",
+    "login_required_desc": "Please log in to enroll in this course."
+  },
+  "errors": {
+    "enrollment_failed": "Enrollment Failed",
+    "request_failed": "Request Failed",
+    "not_allowed": "Enrollment is not allowed for this course",
+    "self_enrollment_disabled": "You are not allowed to enroll in this course",
+    "max_capacity_reached": "Course has reached maximum capacity",
+    "already_enrolled": "You are already enrolled in this course",
+    "request_already_exists": "You already have a pending or approved enrollment request",
+    "generic": "An error occurred. Please try again."
+  },
+  "requests": {
+    "breadcrumb_courses": "Courses",
+    "breadcrumb_requests": "Enrollment Requests",
+    "title": "Enrollment Requests",
+    "subtitle": "Manage enrollment requests for {{courseName}}",
+    "pending_desc": "{{count}} new enrollment request(s) waiting for review",
+    "not_found": "Course not found",
+    "search_placeholder": "Search requests...",
+    "filter_status": "Filter by status",
+    "all_statuses": "All Statuses",
+    "approve_success": "Request approved successfully",
+    "reject_success": "Request rejected successfully",
+    "delete_success": "Request deleted successfully",
+    "delete_dialog_title": "Delete Enrollment Request",
+    "delete_dialog_message": "Are you sure you want to delete the enrollment request from {{email}}?",
+    "stats": {
+      "pending": "Pending Requests",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "table": {
+      "user": "User",
+      "status": "Status",
+      "request_date": "Request Date",
+      "actions": "Actions"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "select_cohort": "Select Group"
   }
 }
 

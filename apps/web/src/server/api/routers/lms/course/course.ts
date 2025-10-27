@@ -21,7 +21,7 @@ import {
   mediaWrappedFieldValidator,
   textEditorContentValidator,
 } from "@/server/api/core/validators";
-import { deleteMedia } from "@/server/services/media";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import {
@@ -222,13 +222,13 @@ export const courseRouter = router({
         _id: input.id,
       })
         .populate<{
-          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          owner: Pick<IUserHydratedDocument, "_id" | "username" | "firstName" | "lastName" | "fullName" | "email">;
         }>("owner", "username firstName lastName fullName email")
         .populate<{
           paymentPlans: Pick<IPaymentPlanHydratedDocument, "name" | "type" | "status">[];
         }>("paymentPlans", "name type status")
         .populate<{
-          tags: Pick<ITagHydratedDocument, "name">[];
+          tags: Pick<ITagHydratedDocument, "_id" | "name">[];
         }>("tags", "name")
         .populate<{
           theme: Pick<IThemeHydratedDocument, "name">;
@@ -350,12 +350,23 @@ export const courseRouter = router({
         allowSelfEnrollment: z.boolean().optional(),
         paidCourse: z.boolean().optional(),
         themeId: documentIdValidator().nullish(),
+        instructors: z.array(z.object({
+          userId: documentIdValidator(),
+          firstName: z.string(),
+          lastName: z.string(),
+          fullName: z.string(),
+        })).optional(),
       }, {
         id: documentIdValidator(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const course = await getCourseOrThrow({ ctx, courseId: input.id });
+      if (input.data.instructors !== undefined) {
+        if (!ctx.user.roles.includes(UIConstants.roles.admin)) {
+          throw new AuthorizationException();
+        }
+      }
       const updatedCourse = await CourseModel.findOneAndUpdate(
         { _id: course.id, orgId: ctx.domainData.domainObj.orgId },
         { $set: input.data },
@@ -381,7 +392,7 @@ export const courseRouter = router({
       });
       await deleteAllLessons(course, ctx);
       if (course.featuredImage) {
-        await deleteMedia(course.featuredImage);
+        await getStorageProvider(course.featuredImage.storageProvider).deleteFile(course.featuredImage);
       }
       await CourseModel.deleteOne({
         _id: input.id,
@@ -564,13 +575,13 @@ export const courseRouter = router({
         published: true,
       })
         .populate<{
-          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          owner: Pick<IUserHydratedDocument, "_id" | "username" | "firstName" | "lastName" | "fullName" | "email">;
         }>("owner", "username firstName lastName fullName email")
         .populate<{
-          paymentPlans: Pick<IPaymentPlanHydratedDocument, "name" | "type" | "status">[];
+          paymentPlans: Pick<IPaymentPlanHydratedDocument, "_id" | "name" | "type" | "status">[];
         }>("paymentPlans", "name type status")
         .populate<{
-          tags: Pick<ITagHydratedDocument, "name">[];
+          tags: Pick<ITagHydratedDocument, "_id" | "name">[];
         }>("tags", "name")
         .lean();
 

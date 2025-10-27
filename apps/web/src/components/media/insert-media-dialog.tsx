@@ -1,26 +1,29 @@
 "use client";
 
-import { listLessonMedia, removeLessonMedia, uploadLessonMedia } from "@/server/actions/lms/lesson-media";
+import { listLessonMedia } from "@/server/actions/lms/lesson-media";
 import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 import { BaseDialog, MediaComponents, NiceModal, NiceModalHocProps, useToast } from "@workspace/components-library";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { useCallback, useEffect, useState } from "react";
 
+type FilterType  = "document" | "image" | "video" | "audio" | "json" | "all";
+
 
 function InsertMediaDialog(props: {
-    selectMode?: boolean;
-    selectedMedia?: IAttachmentMedia | null;
-    initialFileType?: string;
-    courseId: string;
-    lessonId?: string;
+    args: {
+      selectMode?: boolean;
+      selectedMedia?: IAttachmentMedia | null;
+      initialFileType?: FilterType;
+      courseId: string;
+      lessonId?: string;
+    }
   } & NiceModalHocProps) {
-    const { selectMode = false, selectedMedia, initialFileType, courseId, lessonId } = props;
     const { visible, hide, resolve } = NiceModal.useModal();
     const { toast } = useToast();
     
     const [activeTab, setActiveTab] = useState<"browse" | "upload">("browse");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-    const [type, setType] = useState<string>(initialFileType || "all");
+    const [type, setType] = useState<FilterType>(props.args.initialFileType ?? "all");
     const [search, setSearch] = useState<string>("");
     const [page, setPage] = useState(0);
     const take = 20;
@@ -35,8 +38,8 @@ function InsertMediaDialog(props: {
         try {
             const result = await listLessonMedia({
                 filter: {
-                    courseId,
-                    lessonId,
+                    courseId: props.args.courseId,
+                    lessonId: props.args.lessonId,
                     mimeType: type !== "all" ? mapTypeToMime(type) : undefined,
                 },
                 search: search ? { q: search } : undefined,
@@ -64,7 +67,7 @@ function InsertMediaDialog(props: {
         } finally {
             setIsLoading(false);
         }
-    }, [courseId, lessonId, type, search, page, take, toast]);
+    }, [props.args.courseId, props.args.lessonId, type, search, page, take, toast]);
 
     useEffect(() => {
         if (visible) {
@@ -73,10 +76,10 @@ function InsertMediaDialog(props: {
     }, [visible, loadMedia]);
 
     const handleDelete = useCallback(async (item: IAttachmentMedia) => {
-        if (!lessonId) {
+        if (!item.mediaId) {
             toast({
                 title: "Error",
-                description: "Cannot delete media without lesson ID",
+                description: "Invalid media item",
                 variant: "destructive",
             });
             return;
@@ -84,7 +87,14 @@ function InsertMediaDialog(props: {
 
         setIsDeleting(true);
         try {
-            const result = await removeLessonMedia(lessonId);
+            const response = await fetch("/api/lms/course/lesson/remove", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mediaId: item.mediaId }),
+            });
+
+            const result = await response.json();
+
             if (result.success) {
                 toast({
                     title: "Success",
@@ -108,7 +118,7 @@ function InsertMediaDialog(props: {
         } finally {
             setIsDeleting(false);
         }
-    }, [lessonId, loadMedia, toast]);
+    }, [loadMedia, toast]);
 
     const handleRetry = useCallback(() => {
         loadMedia();
@@ -131,8 +141,8 @@ function InsertMediaDialog(props: {
 
   const config = {
     title: "Media Library",
-    allowUpload: !!lessonId,
-    allowDelete: !!lessonId,
+    allowUpload: !!props.args.lessonId,
+    allowDelete: !!props.args.lessonId,
     allowSelection: true,
     showFilters: true,
     showPagination: true,
@@ -165,7 +175,7 @@ function InsertMediaDialog(props: {
           <TabsContent value="browse" className="flex-1 min-h-0 flex flex-col mt-4">
             <MediaComponents.MediaFilters
               typeValue={type}
-              setTypeValue={setType}
+              setTypeValue={setType} 
               searchTermValue={search}
               setSearchTermValue={setSearch}
               viewModeValue={viewMode}
@@ -180,14 +190,14 @@ function InsertMediaDialog(props: {
                 isLoading={isLoading}
                 isError={false}
                 onRetry={handleRetry}
-                onSelect={selectMode ? handleChoose : undefined}
+                onSelect={props.args.selectMode ? handleChoose : undefined}
                 onDelete={config.allowDelete ? handleDelete : undefined}
                 deleting={isDeleting}
               />
             ) : (
               <MediaComponents.MediaList
                 items={items}
-                onSelect={selectMode ? handleChoose : undefined}
+                onSelect={props.args.selectMode ? handleChoose : undefined}
               />
             )}
 
@@ -202,19 +212,25 @@ function InsertMediaDialog(props: {
             </div>
           </TabsContent>
 
-          {config.allowUpload && lessonId && (
+          {config.allowUpload && props.args.lessonId && (
             <TabsContent value="upload" className="flex-1 overflow-auto mt-4">
               <MediaComponents.UploadArea
                 onUploaded={handleUploaded}
-                uploadFile={async (file) => {
+                uploadFile={async (file: File, _storageProvider?: string) => {
                   if (!file) {
                     throw new Error("File is required");
                   }
 
                   const formData = new FormData();
                   formData.append("file", file);
+                  formData.append("lessonId", props.args.lessonId!);
 
-                  const result = await uploadLessonMedia(lessonId, formData);
+                  const response = await fetch("/api/lms/course/lesson/upload", {
+                    method: "POST",
+                    body: formData,
+                  });
+
+                  const result = await response.json();
                   
                   if (!result.success || !result.media) {
                     throw new Error(result.error || "Upload failed");

@@ -137,10 +137,10 @@ const item = loadItemQuery.data;
 
 **DO**: Use Field components from `@workspace/ui`
 ```typescript
-import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Controller } from "react-hook-form";
 
-// ✅ Good - Consistent field components
+// ✅ Good - Basic field
 <Controller
   name="title"
   control={form.control}
@@ -155,6 +155,26 @@ import { Controller } from "react-hook-form";
       {fieldState.invalid && (
         <FieldError errors={[fieldState.error]} />
       )}
+    </Field>
+  )}
+/>
+
+// ✅ Good - With description (wrap with FieldContent)
+<Controller
+  name="showBanner"
+  control={form.control}
+  render={({ field }) => (
+    <Field className="flex flex-row items-start space-x-3 space-y-0">
+      <Checkbox
+        checked={field.value}
+        onCheckedChange={field.onChange}
+      />
+      <FieldContent>
+        <FieldLabel>Show main page banner</FieldLabel>
+        <FieldDescription>
+          Display a banner section on the homepage
+        </FieldDescription>
+      </FieldContent>
     </Field>
   )}
 />
@@ -180,13 +200,14 @@ import { Form, FormField, FormControl, FormItem, FormLabel, FormMessage } from "
 />
 ```
 
-### ✅ Form Structure
+### ✅ Form Structure with Generic Validation
 
 **DO**: Use react-hook-form with zod validation
 ```typescript
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 
 const FormSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
@@ -213,8 +234,19 @@ export function MyForm() {
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)}>
       <FieldGroup>
-        {/* Form fields here */}
+        <Controller
+          name="title"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>Title</FieldLabel>
+              <Input {...field} aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
       </FieldGroup>
+      <Button type="submit">Save</Button>
     </form>
   );
 }
@@ -1082,6 +1114,44 @@ const handleSubmit = useCallback(async (data: FormData) => {
 
 ---
 
+### ✅ Field with Description Pattern
+
+**DO**: When using FieldLabel with FieldDescription, wrap with FieldContent
+```typescript
+<Controller
+  name="showBanner"
+  control={form.control}
+  render={({ field }) => (
+    <Field className="flex flex-row items-start space-x-3 space-y-0">
+      <Checkbox
+        checked={field.value}
+        onCheckedChange={field.onChange}
+      />
+      <FieldContent>
+        <FieldLabel>Show main page banner</FieldLabel>
+        <FieldDescription>
+          Display a banner section on the homepage
+        </FieldDescription>
+      </FieldContent>
+    </Field>
+  )}
+/>
+```
+
+**DON'T**: Use plain div wrapper
+```typescript
+// ❌ Bad - Don't use plain div
+<Field>
+  <Checkbox />
+  <div className="space-y-1">
+    <FieldLabel>Label</FieldLabel>
+    <p className="text-sm">Description</p>
+  </div>
+</Field>
+```
+
+---
+
 ## Migration Checklist
 
 When updating existing components:
@@ -1089,13 +1159,22 @@ When updating existing components:
 - [ ] Rename queries to `load...Query` pattern
 - [ ] Rename mutations to `...Mutation` pattern
 - [ ] Remove API unwrapping
-- [ ] Replace shadcn Form with `@workspace/ui/components/field`
+- [ ] Replace shadcn Form components with `@workspace/ui/components/field`
+  - [ ] `FormField` → `Controller`
+  - [ ] `FormItem` → `Field`
+  - [ ] `FormLabel` → `FieldLabel`
+  - [ ] `FormMessage` → `FieldError`
+  - [ ] `FormDescription` → `FieldDescription`
+  - [ ] Remove `FormControl` wrapper
+  - [ ] Remove `Form` wrapper (keep `<form>` element)
+  - [ ] Wrap `FieldLabel + FieldDescription` with `FieldContent`
 - [ ] Replace `useDialogControl` with `NiceModal.show()`
 - [ ] Add proper TypeScript types
 - [ ] Organize imports consistently
 - [ ] Use `type` keyword for type-only imports
 - [ ] Import directly from source files (no index.ts)
 - [ ] Add loading and error states
+- [ ] Add translations using proper namespaces
 - [ ] Test all functionality
 
 ---

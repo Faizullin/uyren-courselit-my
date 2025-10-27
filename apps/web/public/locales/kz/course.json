@@ -49,10 +49,10 @@
     "edit_content": "Контентті өңдеу",
     "actions": "Әрекеттер",
     "manage_course": "Курсты басқару",
-    "cohort_groups": "Когорт топтары",
+    "cohort_groups": "Топтар",
     "preview_course": "Курсты алдын ала көру",
     "view_all": "Барлығын көру",
-    "no_cohorts_yet": "Әзірге когорт топтары жоқ.",
+    "no_cohorts_yet": "Әзірге топтар жоқ.",
     "create_one": "Жасау",
     "no_instructor": "Оқытушы жоқ"
   },
@@ -71,21 +71,43 @@
     "breadcrumb_courses": "Курстар",
     "breadcrumb_manage": "Басқару",
     "not_found": "Курс табылмады",
-    "loading": "Жүктелуде..."
+    "loading": "Жүктелуде...",
+    "title_label": "Тақырып",
+    "short_description_label": "Қысқаша сипаттама",
+    "short_description_placeholder": "Өніміңіз үшін қысқаша сипаттама енгізіңіз (макс. 500 таңба)...",
+    "description_label": "Сипаттама",
+    "description_placeholder": "Өніміңіз үшін толық сипаттама енгізіңіз...",
+    "course_theme_label": "Курс тақырыбы",
+    "select_theme": "Тақырыпты таңдаңыз",
+    "instructors_label": "Нұсқаушылар",
+    "select_instructors": "Нұсқаушыларды таңдаңыз",
+    "featured_image": "Негізгі сурет",
+    "featured_image_desc": "Өніміңіздің негізгі суреті",
+    "pricing": "Баға",
+    "pricing_desc": "Өніміңіздің баға жоспарларын басқару",
+    "published_label": "Жарияланды",
+    "published_desc": "Бұл курсты пайдаланушыларға қолжетімді ету",
+    "allow_enrollment_label": "Тіркелуге рұқсат беру",
+    "allow_self_enrollment_label": "Өздігінен тіркелуге рұқсат беру",
+    "allow_self_enrollment_desc": "Студенттердің өздерін бұл курсқа тіркеуіне рұқсат беру",
+    "danger_zone": "Қауіпті аймақ",
+    "delete_button": "Курсты жою",
+    "delete_dialog_title": "Курсты жою",
+    "delete_dialog_message": "\"{{title}}\" курсын жойғыңыз келетініне сенімдісіз бе? Бұл әрекетті болдырмауға болмайды. Бұл курсты біржола жояды және біздің серверлерден барлық байланысты деректерді алып тастайды."
   },
   "cohorts": {
     "breadcrumb_courses": "Курстар",
-    "breadcrumb_cohorts": "Когорттар",
-    "title": "Когорт топтары",
-    "subtitle": "{{courseName}} үшін когорт топтарын басқару",
-    "add_cohort": "Когорт қосу",
+    "breadcrumb_cohorts": "Топтар",
+    "title": "Топтар",
+    "subtitle": "{{courseName}} үшін топтарды басқару",
+    "add_cohort": "Топ қосу",
     "not_found": "Курс табылмады",
-    "search_placeholder": "Когорттарды іздеу...",
+    "search_placeholder": "Топтарды іздеу...",
     "filter_status": "Мәртебе бойынша сүзу",
     "all_statuses": "Барлық мәртебелер",
     "stats": {
-      "total_cohorts": "Барлық когорттар",
-      "active_cohorts": "Белсенді когорттар",
+      "total_cohorts": "Барлық топтар",
+      "active_cohorts": "Белсенді топтар",
       "total_capacity": "Жалпы сыйымдылық"
     },
     "table": {
@@ -106,7 +128,7 @@
       "open_menu": "Мәзірді ашу"
     },
     "delete_dialog": {
-      "title": "Когортты жою",
+      "title": "Топты жою",
       "message": "\"{{name}}\" жоюға сенімдісіз бе?"
     }
   }

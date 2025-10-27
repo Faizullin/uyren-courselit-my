@@ -10,6 +10,10 @@ import TextAlign from "@tiptap/extension-text-align";
 import { TextStyleKit } from "@tiptap/extension-text-style";
 import Typography from "@tiptap/extension-typography";
 import Underline from "@tiptap/extension-underline";
+import { TableKit } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import { AnyExtension, Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
@@ -120,6 +124,38 @@ export function ContentEditor({
       searchAndReplace: SearchAndReplace,
       typography: Typography,
       youtube: TiptapYoutube,
+      table: TableKit.configure({
+        table: { 
+          resizable: true,
+          HTMLAttributes: {
+            class: cn(
+              'relative m-0 mx-auto my-3 w-full table-fixed border-collapse overflow-hidden rounded-none text-sm'
+            ),
+          },
+          allowTableNodeSelection: true,
+         },
+      }),
+      tableRow: TableRow.configure({
+        HTMLAttributes: {
+          class: cn(
+            'relative box-border min-w-[1em] border p-1 text-start align-top'
+          ),
+        },
+      }),
+      tableCell: TableCell.configure({
+        HTMLAttributes: {
+          class: cn(
+            'relative box-border min-w-[1em] border p-1 text-start align-top'
+          ),
+        },
+      }),
+      tableHeader: TableHeader.configure({
+        HTMLAttributes: {
+          class: cn(
+            'relative box-border min-w-[1em] border bg-secondary p-1 text-start align-top font-medium font-semibold text-muted-foreground'
+          ),
+        },
+      }),
       slashCommand: SlashCommand.configure({
         suggestion: getSuggestion({ ai: true }),
       }),

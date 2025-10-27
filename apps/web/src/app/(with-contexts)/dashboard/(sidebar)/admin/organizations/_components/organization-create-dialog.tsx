@@ -3,29 +3,33 @@
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormDialog, useDialogControl, useToast } from "@workspace/components-library";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { slugify } from "@workspace/utils";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-const organizationSchema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
-  email: z.string().email("Invalid email address"),
-  description: z.string().max(1000).optional(),
-  phone: z.string().max(50).optional(),
-  address: z.string().max(500).optional(),
+const createOrganizationSchema = (t: (key: string, params?: any) => string) => z.object({
+  name: z.string()
+    .min(1, t("error:validation.required", { field: t("admin:organizations.organization_name") }))
+    .max(255, t("error:validation.max_length", { field: t("admin:organizations.organization_name"), max: 255 })),
+  email: z.string()
+    .min(1, t("error:validation.required", { field: t("admin:organizations.email") }))
+    .email(t("error:validation.invalid_email")),
+  description: z.string()
+    .max(1000, t("error:validation.max_length", { field: t("admin:organizations.description"), max: 1000 }))
+    .optional(),
+  phone: z.string()
+    .max(50, t("error:validation.max_length", { field: t("admin:organizations.phone"), max: 50 }))
+    .optional(),
+  address: z.string()
+    .max(500, t("error:validation.max_length", { field: t("admin:organizations.address"), max: 500 }))
+    .optional(),
 });
 
-type OrganizationFormData = z.infer<typeof organizationSchema>;
+type OrganizationFormData = z.infer<ReturnType<typeof createOrganizationSchema>>;
 
 interface OrganizationCreateDialogProps {
   control: ReturnType<typeof useDialogControl>;
@@ -37,10 +41,11 @@ export function OrganizationCreateDialog({
   onSuccess,
 }: OrganizationCreateDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation(["admin", "common", "error"]);
   const trpcUtils = trpc.useUtils();
 
   const form = useForm<OrganizationFormData>({
-    resolver: zodResolver(organizationSchema),
+    resolver: zodResolver(createOrganizationSchema(t)),
     defaultValues: {
       name: "",
       email: "",
@@ -54,8 +59,8 @@ export function OrganizationCreateDialog({
     trpc.siteModule.organization.create.useMutation({
       onSuccess: () => {
         toast({
-          title: "Success",
-          description: "Organization created successfully",
+          title: t("common:success"),
+          description: t("common:toast.created_successfully", { item: t("admin:organizations.create_organization") }),
         });
         control.hide();
         form.reset();
@@ -64,7 +69,7 @@ export function OrganizationCreateDialog({
       },
       onError: (error) => {
         toast({
-          title: "Error",
+          title: t("common:error"),
           description: error.message,
           variant: "destructive",
         });
@@ -93,114 +98,105 @@ export function OrganizationCreateDialog({
           form.reset();
         }
       }}
-      title="Create New Organization"
+      title={t("admin:organizations.create_new_organization")}
       onSubmit={form.handleSubmit(handleSubmit)}
       onCancel={control.hide}
-      isLoading={
-        createOrganizationMutation.isPending || form.formState.isSubmitting
-      }
-      submitText="Create Organization"
-      cancelText="Cancel"
+      isLoading={createOrganizationMutation.isPending || form.formState.isSubmitting}
+      submitText={t("admin:organizations.create_organization")}
+      cancelText={t("common:cancel")}
       maxWidth="xl"
     >
-      <Form {...form}>
-        <div className="space-y-4">
-          <FormField
+      <FieldGroup>
+        <Controller
+          control={form.control}
+          name="name"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>{t("admin:organizations.organization_name")}</FieldLabel>
+              <Input
+                {...field}
+                placeholder={t("admin:organizations.name_placeholder")}
+                disabled={createOrganizationMutation.isPending}
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>{t("admin:organizations.email")}</FieldLabel>
+              <Input
+                {...field}
+                type="email"
+                placeholder={t("admin:organizations.email_placeholder")}
+                disabled={createOrganizationMutation.isPending}
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="description"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>{t("admin:organizations.description")} ({t("common:optional")})</FieldLabel>
+              <Textarea
+                {...field}
+                placeholder={t("admin:organizations.description_placeholder")}
+                rows={3}
+                disabled={createOrganizationMutation.isPending}
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <Controller
             control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Organization Name</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    placeholder="e.g., Acme Corporation"
-                    disabled={createOrganizationMutation.isPending}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            name="phone"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>{t("admin:organizations.phone")} ({t("common:optional")})</FieldLabel>
+                <Input
+                  {...field}
+                  type="tel"
+                  placeholder={t("admin:organizations.phone_placeholder")}
+                  disabled={createOrganizationMutation.isPending}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
           />
 
-          <FormField
+          <Controller
             control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="email"
-                    placeholder="e.g., contact@acme.com"
-                    disabled={createOrganizationMutation.isPending}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            name="address"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>{t("admin:organizations.address")} ({t("common:optional")})</FieldLabel>
+                <Input
+                  {...field}
+                  placeholder={t("admin:organizations.address_placeholder")}
+                  disabled={createOrganizationMutation.isPending}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="Brief description of the organization..."
-                    rows={3}
-                    disabled={createOrganizationMutation.isPending}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="tel"
-                      placeholder="e.g., +1-555-0123"
-                      disabled={createOrganizationMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="e.g., 123 Main St, City"
-                      disabled={createOrganizationMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
         </div>
-      </Form>
+      </FieldGroup>
     </FormDialog>
   );
 }

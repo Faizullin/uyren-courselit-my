@@ -36,7 +36,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
-import { Form } from "@workspace/ui/components/form";
 import { Separator } from "@workspace/ui/components/separator";
 import { truncate } from "@workspace/utils";
 import { BookOpen, Import, Star, Trash2 } from "lucide-react";
@@ -487,28 +486,26 @@ export default function MainPageSettings() {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <BannerSettings form={form} />
-        <GeneralSettings form={form} />
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <BannerSettings form={form} />
+      <GeneralSettings form={form} />
 
-        <FeaturedCoursesSection
-          courseFields={courseFields}
-          onRemove={handleRemoveCourse}
-          onImport={handleImportCourse}
-        />
+      <FeaturedCoursesSection
+        courseFields={courseFields}
+        onRemove={handleRemoveCourse}
+        onImport={handleImportCourse}
+      />
 
-        <Separator />
+      <Separator />
 
-        <FeaturedReviewsSection
-          reviewFields={reviewFields}
-          onRemove={handleRemoveReview}
-          onImport={handleImportReview}
-        />
+      <FeaturedReviewsSection
+        reviewFields={reviewFields}
+        onRemove={handleRemoveReview}
+        onImport={handleImportReview}
+      />
 
-        {submitButton}
-      </form>
-    </Form>
+      {submitButton}
+    </form>
   );
 }
 

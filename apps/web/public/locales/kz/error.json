@@ -27,6 +27,21 @@
     "error_loading_description": "Сұралған контентті жүктеу сәтсіз аяқталды.",
     "error_validation_title": "Тексеру қатесі",
     "error_validation_description": "Енгізілген деректеріңізді тексеріп, қайталап көріңіз.",
+    "validation": {
+        "required": "{{field}} міндетті",
+        "min_length": "{{field}} кемінде {{min}} таңбадан тұруы керек",
+        "max_length": "{{field}} {{max}} таңбадан аз болуы керек",
+        "min_value": "{{field}} кемінде {{min}} болуы керек",
+        "max_value": "{{field}} ең көбі {{max}} болуы керек",
+        "invalid_email": "Жарамсыз email мекенжайы",
+        "invalid_url": "Жарамсыз URL",
+        "invalid_phone": "Жарамсыз телефон нөмірі",
+        "invalid_date": "Жарамсыз күн",
+        "must_match": "{{field}} {{other}} сәйкес болуы керек",
+        "must_be_unique": "{{field}} бірегей болуы керек",
+        "invalid_format": "Жарамсыз {{field}} форматы",
+        "select_option": "{{field}} таңдаңыз"
+    },
     "auth": {
         "invalid_email": "Жарамсыз email мекенжайы",
         "user_not_found": "Аккаунт табылмады",

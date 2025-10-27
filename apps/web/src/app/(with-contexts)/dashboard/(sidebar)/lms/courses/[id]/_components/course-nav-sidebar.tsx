@@ -1,5 +1,6 @@
 "use client";
 
+import { useCourseDetail } from "@/components/course/detail/course-detail-context";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import {
@@ -35,17 +36,15 @@ import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
-import { BookOpen, ChevronDown, ChevronRight, Edit, File, FileText, GripVertical, HelpCircle, Plus, Trash2, Video } from "lucide-react";
+import { BookOpen, ChevronDown, Edit, File, FileText, GripVertical, HelpCircle, Plus, Trash2, Video } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { SerializedChapter, SerializedCourse } from "./types";
-import { useCourseContext } from "./course-context";
 
-type CourseType = SerializedCourse;
-type ChapterType = SerializedChapter;
+type CourseType = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["getById"];
+type ChapterType = CourseType["chapters"][number];
 type ILessonItemType = GeneralRouterOutputs["lmsModule"]["courseModule"]["lesson"]["list"]["items"][number];
 
 const ChapterSchema = z.object({
@@ -67,11 +66,13 @@ function SortableLesson({
   chapterId,
   courseId,
   onDelete,
+  editable,
 }: {
   lesson: ILessonItemType;
   chapterId: string;
   courseId: string;
-  onDelete: (lessonId: string, lessonTitle: string) => void;
+  onDelete: (lesson: ILessonItemType, lessonTitle: string) => void;
+  editable?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -85,6 +86,7 @@ function SortableLesson({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   const getLessonIcon = () => {
@@ -104,41 +106,38 @@ function SortableLesson({
   const LessonIcon = getLessonIcon();
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
+    <div 
+      ref={setNodeRef} 
+      style={style} 
       className={cn(
-        "group flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-        isDragging && "opacity-50",
-        isActive ? "bg-accent text-accent-foreground font-medium" : "hover:bg-accent/50",
+        "group/lesson flex items-center gap-3 w-full py-2 px-3 rounded-md text-sm transition-colors cursor-pointer",
+        isActive ? "bg-accent text-accent-foreground font-medium" : "hover:bg-accent/50 text-muted-foreground"
       )}
+      onClick={() => router.push(href)}
     >
-      <button
-        type="button"
-        className={cn(
-          "cursor-grab active:cursor-grabbing touch-none transition-colors flex-shrink-0",
-          isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-        )}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <LessonIcon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-foreground" : "text-muted-foreground")} />
-      <button type="button" onClick={() => router.push(href)} className="flex-1 min-w-0 truncate text-left" title={lesson.title}>
-        {lesson.title}
-      </button>
-      <button
-        type="button"
-        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity flex-shrink-0"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(lesson._id, lesson.title);
-        }}
-        title="Delete lesson"
-      >
-        <Trash2 className="h-3 w-3" />
-      </button>
+      {editable && (
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing" onClick={(e) => e.stopPropagation()}>
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <LessonIcon className="h-4 w-4 shrink-0" />
+        <span className="truncate">{lesson.title}</span>
+      </div>
+      {editable && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 opacity-0 group-hover/lesson:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDelete(lesson, lesson.title);
+          }}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -154,17 +153,19 @@ function SortableChapter({
   onReorderLessons,
   onDeleteChapter,
   onDeleteLesson,
+  editable,
 }: {
   chapter: ChapterType;
   lessons: ILessonItemType[];
   courseId: string;
   isExpanded: boolean;
-  onToggle: (chapterId: string) => void;
+  onToggle: (chapter: ChapterType) => void;
   onEdit: (chapter: ChapterType) => void;
-  onAddLesson: (chapterId: string) => void;
-  onReorderLessons: (chapterId: string, lessons: ILessonItemType[]) => void;
-  onDeleteChapter: (chapterId: string, chapterTitle: string) => void;
-  onDeleteLesson: (lessonId: string, lessonTitle: string) => void;
+  onAddLesson: (chapter: ChapterType) => void;
+  onReorderLessons: (chapter: ChapterType, lessons: ILessonItemType[]) => void;
+  onDeleteChapter: (chapter: ChapterType, chapterTitle: string) => void;
+  onDeleteLesson: (lesson: ILessonItemType, lessonTitle: string) => void;
+  editable?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
     id: chapter._id 
@@ -173,6 +174,7 @@ function SortableChapter({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   const sensors = useSensors(
@@ -180,114 +182,148 @@ function SortableChapter({
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
-  );
+  )
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
       const oldIndex = lessons.findIndex((l) => l._id === active.id);
       const newIndex = lessons.findIndex((l) => l._id === over.id);
       const newLessons = arrayMove(lessons, oldIndex, newIndex);
-      onReorderLessons(chapter._id, newLessons);
+      onReorderLessons(chapter, newLessons);
     }
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={cn(isDragging && "opacity-50")}>
-      <div className="group/chapter flex items-center gap-2 rounded-md px-3 py-2 hover:bg-accent/50">
-        <button
-          className="cursor-grab touch-none text-muted-foreground hover:text-foreground flex-shrink-0"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-auto p-0 hover:bg-transparent flex-shrink-0"
-          onClick={() => onToggle(chapter._id)}
-        >
-          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </Button>
-        <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <span className="flex-1 min-w-0 truncate font-medium" title={chapter.title}>{chapter.title}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 flex-shrink-0"
-          onClick={() => onEdit(chapter)}
-          title="Edit section"
-        >
-          <Edit className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 flex-shrink-0"
-          onClick={() => onAddLesson(chapter._id)}
-          title="Add lesson"
-        >
-          <Plus className="h-3 w-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 opacity-0 group-hover/chapter:opacity-100 text-muted-foreground hover:text-destructive transition-opacity flex-shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeleteChapter(chapter._id, chapter.title);
-          }}
-          title="Delete section"
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+    <div ref={setNodeRef} style={style} className="group/chapter">
+      <div className="flex items-center justify-between w-full py-2 px-3 hover:bg-accent/50 rounded-md transition-colors group">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {editable && (
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
+          <BookOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-sm font-medium text-foreground truncate">{chapter.title}</span>
+        </div>
+        
+        
+          <div className="flex items-center gap-1">
+          {editable && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover/chapter:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddLesson(chapter);
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover/chapter:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(chapter);
+                }}
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover/chapter:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteChapter(chapter, chapter.title);
+                }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 p-0"
+              onClick={() => onToggle(chapter)}
+            >
+              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+            </Button>
+          </div>
       </div>
 
-      {isExpanded && lessons.length > 0 && (
-        <div className="ml-6 mt-1 space-y-1 border-l border-border pl-2">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={lessons.map((l) => l._id)} strategy={verticalListSortingStrategy}>
-              {lessons.map((lesson) => (
+      {isExpanded && (
+        <div className="mt-1 space-y-1 pl-3">
+          {lessons.length > 0 ? (
+            editable ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={lessons.map((l) => l._id)} strategy={verticalListSortingStrategy}>
+                  {lessons.map((lesson) => (
+                    <SortableLesson 
+                      key={lesson._id} 
+                      lesson={lesson} 
+                      chapterId={chapter._id} 
+                      courseId={courseId}
+                      onDelete={onDeleteLesson}
+                      editable={editable}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              lessons.map((lesson) => (
                 <SortableLesson 
                   key={lesson._id} 
                   lesson={lesson} 
                   chapterId={chapter._id} 
                   courseId={courseId}
                   onDelete={onDeleteLesson}
+                  editable={editable}
                 />
-              ))}
-            </SortableContext>
-          </DndContext>
+              ))
+            )
+          ) : (
+            <div className="text-xs text-muted-foreground px-3 py-2">No lessons yet</div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseId: string; isOpen?: boolean; onClose?: () => void }) {
+export function CourseNavSidebar({
+  editable = false,
+}: {
+  editable?: boolean;
+}) {
+  const pathname = usePathname();
   const { toast } = useToast();
   const trpcUtils = trpc.useUtils();
-  const { course, isLoading: courseLoading } = useCourseContext();
-  const loadLessonsQuery = trpc.lmsModule.courseModule.lesson.list.useQuery({ courseId: courseId }, { enabled: !!courseId });
-  const pathname = usePathname();
-  const chapterDialog = useDialogControl<{ args: { chapter?: ChapterType | null; course: CourseType } }>();
-  const lessonDialog = useDialogControl<{ args: { chapterId: string; courseId: string } }>();
+
+  const { initialCourse, loadCourseDetailQuery } = useCourseDetail() 
+  const loadLessonsQuery = trpc.lmsModule.courseModule.lesson.list.useQuery({ courseId: initialCourse._id }, { enabled: !!initialCourse._id });
+
+  const chapterDialog = useDialogControl<{ args: { chapter: ChapterType | null; course: CourseType } }>();
+  const lessonDialog = useDialogControl<{ args: {  chapter: ChapterType; course: CourseType  } }>();
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [pendingChapterOrder, setPendingChapterOrder] = useState<string[] | null>(null);
   const [pendingLessonOrders, setPendingLessonOrders] = useState<Map<string, string[]>>(new Map());
 
   const lessons = useMemo(() => loadLessonsQuery.data?.items || [], [loadLessonsQuery.data?.items]);
-  
   const hasChanges = pendingChapterOrder !== null || pendingLessonOrders.size > 0;
 
   const reorderStructureMutation = trpc.lmsModule.courseModule.course.reorderStructure.useMutation({
     onSuccess: () => {
       setPendingChapterOrder(null);
       setPendingLessonOrders(new Map());
-      trpcUtils.lmsModule.courseModule.course.getById.invalidate({ id: courseId });
-      trpcUtils.lmsModule.courseModule.lesson.list.invalidate({ courseId });
+      trpcUtils.lmsModule.courseModule.course.getById.invalidate({ id: initialCourse._id });
+      trpcUtils.lmsModule.courseModule.lesson.list.invalidate({ courseId: initialCourse._id });
       toast({ title: "Success", description: "Order saved successfully" });
     },
     onError: (error) => {
@@ -297,7 +333,7 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
   const deleteChapterMutation = trpc.lmsModule.courseModule.course.removeCourseChapter.useMutation({
     onSuccess: () => {
-      trpcUtils.lmsModule.courseModule.course.getById.invalidate({ id: courseId });
+      trpcUtils.lmsModule.courseModule.course.getById.invalidate({ id: initialCourse._id });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -306,26 +342,27 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
   const deleteLessonMutation = trpc.lmsModule.courseModule.lesson.delete.useMutation({
     onSuccess: () => {
-      trpcUtils.lmsModule.courseModule.course.getById.invalidate({ id: courseId });
-      trpcUtils.lmsModule.courseModule.lesson.list.invalidate({ courseId });
+      trpcUtils.lmsModule.courseModule.course.getById.invalidate({ id: initialCourse._id });
+      trpcUtils.lmsModule.courseModule.lesson.list.invalidate({ courseId: initialCourse._id });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
+  const currentChapters = loadCourseDetailQuery.data?.chapters || [];
 
   useEffect(() => {
-    if (course?.chapters) {
-      const allChapterIds = new Set(course.chapters.map((ch) => ch._id));
+    if (currentChapters) {
+      const allChapterIds = new Set(currentChapters.map((ch) => ch._id));
       setExpandedChapters(allChapterIds);
     }
-  }, [course?.chapters]);
+  }, [currentChapters]);
 
   useEffect(() => {
-    if (!reorderStructureMutation.isPending && course) {
+    if (!reorderStructureMutation.isPending && initialCourse) {
       if (pendingChapterOrder) {
-        const currentOrder = [...(course.chapters || [])].sort((a, b) => a.order - b.order).map(ch => ch._id);
+        const currentOrder = [...(currentChapters || [])].sort((a, b) => a.order - b.order).map(ch => ch._id);
         const pendingMatches = JSON.stringify(currentOrder) === JSON.stringify(pendingChapterOrder);
         if (pendingMatches) {
           setPendingChapterOrder(null);
@@ -337,7 +374,7 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
         let hasChanges = false;
 
         pendingLessonOrders.forEach((pendingLessons, chapterId) => {
-          const chapter = course.chapters?.find(ch => ch._id === chapterId);
+          const chapter = currentChapters?.find(ch => ch._id === chapterId);
           if (chapter) {
             const currentLessonIds = chapter.lessonOrderIds || [];
             const pendingMatches = JSON.stringify(currentLessonIds) === JSON.stringify(pendingLessons);
@@ -353,22 +390,22 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
         }
       }
     }
-  }, [course, reorderStructureMutation.isPending, pendingChapterOrder, pendingLessonOrders]);
+  }, [initialCourse, reorderStructureMutation.isPending, pendingChapterOrder, pendingLessonOrders]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
-  );
+  )
 
-  const handleToggleChapter = useCallback((chapterId: string) => {
+  const handleToggleChapter = useCallback((chapter: ChapterType) => {
     setExpandedChapters((prev) => {
       const next = new Set(prev);
-      if (next.has(chapterId)) {
-        next.delete(chapterId);
+      if (next.has(chapter._id)) {
+        next.delete(chapter._id);
       } else {
-        next.add(chapterId);
+        next.add(chapter._id);
       }
       return next;
     });
@@ -376,27 +413,27 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
   const handleReorderChapters = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
-    if (!course?.chapters) return;
+    if (!currentChapters) return;
 
     if (over && active.id !== over.id) {
-      const chapters = [...course.chapters].sort((a, b) => a.order - b.order);
+      const chapters = [...currentChapters].sort((a, b) => a.order - b.order);
       const oldIndex = chapters.findIndex((item) => item._id === active.id);
       const newIndex = chapters.findIndex((item) => item._id === over.id);
       const reorderedChapters = arrayMove(chapters, oldIndex, newIndex);
       setPendingChapterOrder(reorderedChapters.map(ch => ch._id));
     }
-  }, [course?.chapters]);
+  }, [currentChapters]);
 
-  const handleReorderLessons = useCallback((chapterId: string, newLessons: ILessonItemType[]) => {
+  const handleReorderLessons = useCallback((chapter: ChapterType, newLessons: ILessonItemType[]) => {
     const newLessonIds = newLessons.map(l => l._id);
     setPendingLessonOrders(prev => {
       const next = new Map(prev);
-      next.set(chapterId, newLessonIds);
+      next.set(chapter._id, newLessonIds);
       return next;
     });
   }, []);
 
-  const handleDeleteChapter = useCallback(async (chapterId: string, chapterTitle: string) => {
+  const handleDeleteChapter = useCallback(async (chapter: ChapterType, chapterTitle: string) => {
     const result = await NiceModal.show(DeleteConfirmNiceDialog, {
       title: "Delete Section",
       message: `Are you sure you want to delete "${chapterTitle}"? This will also delete all lessons in this section.`,
@@ -404,13 +441,13 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
     if (result) {
       deleteChapterMutation.mutate({
-        courseId,
-        chapterId,
+        courseId: initialCourse._id,
+        chapterId: chapter._id,
       });
     }
-  }, [courseId, deleteChapterMutation]);
+  }, [initialCourse._id, deleteChapterMutation]);
 
-  const handleDeleteLesson = useCallback(async (lessonId: string, lessonTitle: string) => {
+  const handleDeleteLesson = useCallback(async (lesson: ILessonItemType, lessonTitle: string) => {
     const result = await NiceModal.show(DeleteConfirmNiceDialog, {
       title: "Delete Lesson",
       message: `Are you sure you want to delete "${lessonTitle}"? This action cannot be undone.`,
@@ -418,20 +455,20 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 
     if (result) {
       deleteLessonMutation.mutate({
-        id: lessonId,
+        id: lesson._id,
       });
     }
   }, [deleteLessonMutation]);
 
   const handleSaveOrder = useCallback(async () => {
-    if (!course) return;
+      if (!initialCourse) return;
     
     try {
       const chapterOrder = pendingChapterOrder || 
-        [...course.chapters].sort((a, b) => a.order - b.order).map(ch => ch._id);
+        [...currentChapters].sort((a, b) => a.order - b.order).map(ch => ch._id);
       
       const chapters = chapterOrder.map((chapterId, index) => {
-        const chapter = course.chapters.find(ch => ch._id === chapterId);
+        const chapter = currentChapters.find(ch => ch._id === chapterId);
         const lessonOrderIds = pendingLessonOrders.get(chapterId) || chapter?.lessonOrderIds;
         
         return {
@@ -442,7 +479,7 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
       });
 
       await reorderStructureMutation.mutateAsync({
-        courseId,
+        courseId: initialCourse._id,
         chapters,
       });
     } catch (error) {
@@ -451,8 +488,8 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
   }, [
     pendingChapterOrder,
     pendingLessonOrders,
-    course,
-    courseId,
+    initialCourse,
+    initialCourse._id,
     reorderStructureMutation,
   ]);
 
@@ -461,21 +498,77 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
     const lessonMap = new Map(lessons.map(lesson => [lesson._id, lesson]));
     return lessonOrderIds
       .map(id => lessonMap.get(id))
-      .filter((lesson): lesson is ILessonItemType => lesson !== undefined);
+      .filter((lesson) => !!lesson);
   }, [lessons, pendingLessonOrders]);
 
   const sortedChapters = useMemo(() => {
-    if (!course?.chapters) return [];
-    const chapters = [...course.chapters].sort((a, b) => a.order - b.order);
+    if (!currentChapters) return [];
+    const chapters = [...currentChapters].sort((a, b) => a.order - b.order);
     if (pendingChapterOrder) {
       return pendingChapterOrder.map(id => chapters.find(ch => ch._id === id)).filter(Boolean) as ChapterType[];
     }
     return chapters;
-  }, [course?.chapters, pendingChapterOrder]);
+  }, [currentChapters, pendingChapterOrder]);
 
-  const isOnCoursePage = pathname?.startsWith(`/dashboard/lms/courses/${courseId}`);
+  const isOnCoursePage = pathname?.startsWith(`/dashboard/lms/courses/${initialCourse._id}`);
 
-  if (courseLoading) {
+  const courseStructureContent = (
+    <div className="space-y-1">
+      {editable && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mb-2 justify-start text-xs"
+          onClick={() => chapterDialog.show({ args: { chapter: null, course: initialCourse } })}
+        >
+          <Plus className="h-3 w-3 mr-1.5" />
+          Add Section
+        </Button>
+      )}
+
+      {editable ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorderChapters}>
+          <SortableContext items={sortedChapters.map((c) => c._id)} strategy={verticalListSortingStrategy}>
+            {sortedChapters.map((chapter) => (
+              <SortableChapter
+                key={chapter._id}
+                chapter={chapter}
+                lessons={getChapterLessons(chapter)}
+                courseId={initialCourse._id}
+                isExpanded={expandedChapters.has(chapter._id)}
+                onToggle={handleToggleChapter}
+                onEdit={(ch) => chapterDialog.show({ args: { chapter: ch, course: initialCourse } })}
+                onAddLesson={(ch) => lessonDialog.show({ args: { chapter: ch, course: initialCourse } })}
+                onReorderLessons={handleReorderLessons}
+                onDeleteChapter={handleDeleteChapter}
+                onDeleteLesson={handleDeleteLesson}
+                editable={editable}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      ) : (
+        sortedChapters.map((chapter) => (
+          <SortableChapter
+            key={chapter._id}
+            chapter={chapter}
+            lessons={getChapterLessons(chapter)}
+            courseId={initialCourse._id}
+            isExpanded={expandedChapters.has(chapter._id)}
+            onToggle={handleToggleChapter}
+            onEdit={(ch) => chapterDialog.show({ args: { chapter: ch, course: initialCourse } })}
+            onAddLesson={(ch) => lessonDialog.show({ args: { chapter: ch, course: initialCourse } })}
+            onReorderLessons={handleReorderLessons}
+            onDeleteChapter={handleDeleteChapter}
+            onDeleteLesson={handleDeleteLesson}
+            editable={editable}
+          />
+        ))
+      )}
+    </div>
+  );
+
+  if (loadCourseDetailQuery.isLoading) {
     return (
       <aside className="w-full h-full space-y-3 p-4">
         <Skeleton className="h-9 w-full" />
@@ -486,41 +579,27 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
     );
   }
 
-  if (!course) {
-    return <aside className="w-full h-full text-sm text-muted-foreground p-4">No course found.</aside>;
-  }
-
   return (
     <>
-      {isOpen && onClose && (
-        <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden" onClick={onClose} />
-      )}
-
-      <aside
-        className={cn(
-          "w-full h-full border-l bg-card",
-          isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
-        )}
-      >
+      <aside className="w-full h-full border-l bg-card">
         <div className="flex h-full flex-col">
-          <div className="border-b border-border p-4">
-            <Link
-              href={`/dashboard/lms/courses/${courseId}`}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                isOnCoursePage ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
-              )}
-            >
-              <BookOpen className="h-5 w-5 flex-shrink-0" />
-              <span className="flex-1 truncate">Course Overview</span>
-            </Link>
-          </div>
-
           <ScrollArea className="flex-1">
             <div className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-muted-foreground">COURSE STRUCTURE</h3>
-                <div className="flex items-center gap-1">
+              <Link
+                href={`/dashboard/lms/courses/${initialCourse._id}`}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors mb-4",
+                  isOnCoursePage ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
+                )}
+              >
+                <BookOpen className="h-5 w-5 shrink-0" />
+                <span className="flex-1 truncate">{initialCourse.title}</span>
+              </Link>
+
+
+              <div className="mb-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase">Course Structure</h3>
                   {hasChanges && (
                     <Button 
                       variant="default" 
@@ -528,50 +607,19 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
                       className="h-7 px-3 text-xs" 
                       onClick={handleSaveOrder}
                       disabled={reorderStructureMutation.isPending}
-                      title="Save order changes"
                     >
                       {reorderStructureMutation.isPending ? "Saving..." : "Save"}
                     </Button>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 px-2" 
-                    onClick={() => chapterDialog.show({ args: { chapter: null, course } })} 
-                    title="Add section"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
 
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleReorderChapters}>
-                <SortableContext items={sortedChapters.map((c) => c._id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-1">
-                    {sortedChapters.map((chapter) => (
-                      <SortableChapter
-                        key={chapter._id}
-                        chapter={chapter}
-                        lessons={getChapterLessons(chapter)}
-                        courseId={courseId}
-                        isExpanded={expandedChapters.has(chapter._id)}
-                        onToggle={handleToggleChapter}
-                        onEdit={(ch) => chapterDialog.show({ args: { chapter: ch, course } })}
-                        onAddLesson={(chId) => lessonDialog.show({ args: { chapterId: chId, courseId } })}
-                        onReorderLessons={handleReorderLessons}
-                        onDeleteChapter={handleDeleteChapter}
-                        onDeleteLesson={handleDeleteLesson}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              {courseStructureContent}
             </div>
           </ScrollArea>
         </div>
       </aside>
 
-      {/* Dialogs */}
       <ChapterDialog control={chapterDialog} />
       <LessonCreateDialog control={lessonDialog} />
     </>
@@ -581,13 +629,13 @@ export function CourseNavSidebar({ courseId, isOpen = true, onClose }: { courseI
 function ChapterDialog({
   control,
 }: {
-  control: IUseDialogControl<{ args: { chapter?: ChapterType | null; course: CourseType } }>;
+  control: IUseDialogControl<{ args: { chapter: ChapterType | null; course: CourseType } }>;
 }) {
   const { toast } = useToast();
   const trpcUtils = trpc.useUtils();
 
   const editingChapter = control.data?.args.chapter ?? null;
-  const course = control.data?.args.course;
+  const initialCourse = control.data?.args.course;
 
   const form = useForm<ChapterFormData>({
     resolver: zodResolver(ChapterSchema),
@@ -622,18 +670,18 @@ function ChapterDialog({
 
   const handleSubmit = useCallback(
     (data: ChapterFormData) => {
-      if (!course) return;
+      if (!initialCourse) return;
       if (editingChapter) {
         updateMutation.mutate({
-          courseId: course._id,
+          courseId: initialCourse._id,
           chapterId: editingChapter._id,
           data,
         });
       } else {
-        createMutation.mutate({ courseId: course._id, data });
+        createMutation.mutate({ courseId: initialCourse._id, data });
       }
     },
-    [course, editingChapter, createMutation, updateMutation]
+    [initialCourse, editingChapter, createMutation, updateMutation]
   );
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -671,9 +719,8 @@ function ChapterDialog({
 function LessonCreateDialog({
   control,
 }: {
-  control: IUseDialogControl<{ args: { chapterId: string; courseId: string } }>;
+  control: IUseDialogControl<{ args: { chapter: ChapterType; course: CourseType } }>;
 }) {
-  const { toast } = useToast();
   const trpcUtils = trpc.useUtils();
 
   const form = useForm<LessonCreateFormData>({
@@ -702,8 +749,8 @@ function LessonCreateDialog({
 
       createLessonMutation.mutate({
         data: {
-          courseId: args.courseId,
-          chapterId: args.chapterId,
+          courseId: args.course._id, 
+          chapterId: args.chapter._id,
           title: data.title,
           type: data.type,
           content: { type: "doc", content: "", assets: [], widgets: [], config: { editorType: "tiptap" } },
@@ -743,3 +790,4 @@ function LessonCreateDialog({
     </FormDialog>
   );
 }
+

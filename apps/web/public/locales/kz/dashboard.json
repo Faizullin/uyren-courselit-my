@@ -10,11 +10,48 @@
     "lms": "LMS",
     "admin": "Әкімші",
     "users": "Пайдаланушылар",
+    "organizations": "Ұйымдар",
     "tags": "Тегтер",
     "settings": "Баптаулар",
+    "website_settings": "Веб-сайт Баптаулары",
+    "external_api_keys": "Сыртқы API Кілттері",
     "studio": "Студия",
     "notifications": "Хабарландырулар",
     "profile": "Профиль"
+  },
+  "student": {
+    "subtitle": "Тіркелген курстар мен прогрессті қадағалаңыз",
+    "search_placeholder": "Курстарды іздеу...",
+    "no_courses_found": "Курстар табылмады",
+    "no_courses_enrolled": "Әлі ешқандай курсқа тіркелмегенсіз",
+    "adjust_search": "Іздеу критерийлерін өзгертіп көріңіз",
+    "start_journey": "Курстарға тіркелу арқылы оқу жолыңызды бастаңыз",
+    "browse_courses": "Курстарды қарау",
+    "start_learning": "Оқуды бастау",
+    "started": "Басталды",
+    "ends": "Аяқталады",
+    "completed": "аяқталды",
+    "no_lessons": "Әзірше сабақтар жоқ",
+    "tabs": {
+      "lessons": "Сабақтар",
+      "ai_tutor": "AI Тьютор"
+    },
+    "ai_tutor": {
+      "welcome_message": "Сәлем! Мен сіздің AI тьюторыңызмын. Бұл сабақ туралы кез келген сұрақ қойыңыз, мен түсініктерді жақсырақ түсінуге көмектесемін.",
+      "sample_response": "Бұл тамаша сұрақ! Мұны жақсырақ түсінуге көмектесейін. Осы сабақ контекстінде бұл түсінік маңызды, өйткені ол жүйенің жұмыс істеу негізін құрайды. Кез келген нақты бөлікті толығырақ түсіндіруімді қалайсыз ба?",
+      "input_placeholder": "Бұл курс туралы сұрақ қойыңыз..."
+    },
+    "grades": {
+      "title": "Менің Бағаларым",
+      "subtitle": "Академиялық үлгеріміңізді қадағалаңыз",
+      "average_grade": "Орташа Баға",
+      "total_graded": "Барлығы Бағаланды",
+      "excellent": "Өте жақсы (90%+)",
+      "good": "Жақсы (70-89%)",
+      "recent_grades": "Соңғы Бағалар",
+      "no_grades_yet": "Әлі бағалар жоқ",
+      "graded_items_appear_here": "Бағаланған тапсырмалар мен викториналар осында көрсетіледі"
+    }
   },
   "instructor": {
     "subtitle": "Курстарыңызды басқарыңыз және прогрессті қадағалаңыз",
@@ -100,10 +137,10 @@
       "edit_content": "Мазмұнды Өңдеу",
       "actions": "Әрекеттер",
       "manage_course": "Курсты Басқару",
-      "cohort_groups": "Когорт Топтары",
+      "cohort_groups": "Топтар",
       "preview_course": "Курсты Алдын-ала Көру",
       "view_all": "Барлығын Көру",
-      "no_cohorts_yet": "Әзірге когорт топтары жоқ.",
+      "no_cohorts_yet": "Әзірге топтар жоқ.",
       "create_one": "Жасау",
       "no_instructor": "Оқытушы жоқ"
     }
@@ -117,8 +154,8 @@
         "description": "Курстарыңызды жасаңыз және басқарыңыз"
       },
       "cohorts": {
-        "title": "Когорттар",
-        "description": "Студенттерді топтарға және когорттарға ұйымдастырыңыз"
+        "title": "Топтар",
+        "description": "Студенттерді топтарға ұйымдастырыңыз"
       },
       "quizzes": {
         "title": "Викториналар",
@@ -236,7 +273,9 @@
         "submitted": "Жіберілді",
         "not_graded": "Бағаланбаған",
         "edit_grade": "Бағаны өңдеу",
-        "grade": "Бағалау"
+        "grade": "Бағалау",
+        "submission_deleted": "Жіберу жойылды",
+        "submission_deleted_desc": "Студенттің жіберуі сәтті жойылды"
       },
       "submission_status": {
         "graded": "Бағаланған",
@@ -281,8 +320,19 @@
       "toast": {
         "created": "Тапсырма сәтті жасалды",
         "updated": "Тапсырма сәтті жаңартылды",
-        "submission_graded": "Жіберу сәтті бағаланды"
+        "submission_graded": "Жіберу сәтті бағаланды",
+        "submission_success": "Тапсырма сәтті жіберілді",
+        "submission_failed": "Тапсырманы жіберу сәтсіз аяқталды",
+        "draft_saved": "Нобай сәтті сақталды"
       },
+      "confirm_submit": {
+        "title": "Тапсырманы жіберу",
+        "description": "Бұл тапсырманы жібергіңіз келетініне сенімдісіз бе? Жібергеннен кейін жауабыңызды өзгерте алмайсыз."
+      },
+      "attempts_info": "Әрекет {{current}}/{{max}}",
+      "attempts_left": "{{count}} әрекет қалды",
+      "max_attempts_reached": "Ең көп әрекет саны толды",
+      "resubmit": "Қайта жіберу",
       "publicationStatus": "Жариялау күйі"
     },
     "quiz": {
@@ -292,8 +342,8 @@
       "edit_subtitle": "Викторина параметрлерін және сұрақтарды өңдеңіз",
       "archive_confirm": "Бұл викторинаны мұрағаттағыңыз келетініне сенімдісіз бе?",
       "delete_question_confirm": "Бұл сұрақты жойғыңыз келетініне сенімдісіз бе?",
-      "tabs": {
-        "quiz_settings": "Викторина параметрлері",
+      "tabs": { 
+        "basic_info": "Негізгі ақпарат",
         "questions": "Сұрақтар",
         "submissions": "Жіберулер"
       },
@@ -302,8 +352,6 @@
         "save_first_submissions": "Жіберулерді көру үшін алдымен викторинаны сақтаңыз."
       },
       "settings": {
-        "quiz_title": "Викторина атауы",
-        "quiz_description": "Сипаттама",
         "course": "Курс",
         "time_limit": "Уақыт шектеуі (минут)",
         "passing_score": "Өту бағасы (%)",
@@ -317,7 +365,6 @@
         "quiz_description_placeholder": "Викторина сипаттамасын енгізіңіз",
         "select_course": "Курсты таңдаңыз",
         "copy_link": "Сілтемені көшіру",
-        "save_settings": "Параметрлерді сақтау",
         "attempts": {
           "one": "1 әрекет",
           "two": "2 әрекет",
@@ -338,8 +385,6 @@
         "add_option": "Нұсқа қосу",
         "correct_answers": "Дұрыс жауаптар",
         "add_answer": "Жауап қосу",
-        "save_question": "Сұрақты сақтау",
-        "update_question": "Сұрақты жаңарту",
         "question_number": "Сұрақ {{number}}",
         "option_placeholder": "Нұсқа {{number}}",
         "answer_placeholder": "Дұрыс жауап {{number}}",
@@ -499,6 +544,14 @@
     "requires_enrollment_description": "Студенттер осы сабаққа қол жеткізу үшін тіркелуі керек",
     "downloadable": "Жүктеп алуға болады",
     "downloadable_description": "Студенттерге осы сабақты жүктеп алуға рұқсат беру",
+    "not_found": "Сабақ табылмады",
+    "not_found_desc": "Іздеген сабағыңыз жоқ немесе оған қол жеткізу құқығыңыз жоқ.",
+    "back_to_course": "Курсқа қайту",
+    "about_lesson": "Осы сабақ туралы",
+    "mark_complete": "Аяқталған деп белгілеу",
+    "completed": "Аяқталды",
+    "progress_updated": "Прогресс сәтті жаңартылды",
+    "lesson": "Сабақ",
     "types": {
       "text": "Мәтін",
       "video": "Бейне",
@@ -579,7 +632,22 @@
   "create_button": {
     "new": "Жаңа"
   },
-  "media": {
+  "my_courses": "Менің Курстарым",
+  "welcome_to": "{{title}} курсына қош келдіңіз",
+  "start_learning": "Бұл кешенді курспен оқу жолыңызды бастаңыз.",
+  "total_lessons": "Барлық сабақтар",
+  "completed": "Аяқталды",
+  "progress": "Прогресс",
+  "course_information": "Курс туралы ақпарат",
+  "instructor_label": "Оқытушы",
+  "cohort": "Топ",
+  "course_progress": "Курс прогрессі",
+  "lessons_completed": "сабақтар аяқталды",
+  "quick_actions": "Жылдам әрекеттер",
+  "continue_learning": "Оқуды жалғастыру",
+  "view_all_lessons": "Барлық сабақтарды көру",
+  "of": "бастап",
+  "media_manager": {
     "selector": {
       "button_caption": "Медиа таңдау",
       "dialog_title": "Медиа таңдау",
@@ -613,7 +681,10 @@
       "uploading_count": "{{count}} файл жүктелуде",
       "uploading_count_plural": "Файлдар жүктелуде: {{count}}",
       "upload_success": "{{count}} файл сәтті жүктелді",
-      "upload_success_plural": "Файлдар сәтті жүктелді: {{count}}"
+      "upload_success_plural": "Файлдар сәтті жүктелді: {{count}}",
+      "storage_provider": "Сақтау провайдері",
+      "local_storage": "Жергілікті сақтау",
+      "cloudinary_storage": "Cloudinary"
     },
     "toast": {
       "file_uploaded": "Файл сәтті жүктелді",

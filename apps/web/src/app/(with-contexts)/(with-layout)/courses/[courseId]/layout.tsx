@@ -1,20 +1,15 @@
+import { CoursePublicDetailProvider } from "@/components/course/detail/course-public-detail-context";
 import Footer from "@/components/layout/footer";
 import Header from "@/components/layout/header";
+import { getCachedCoursePublicData } from "@/lib/course/get-course-data";
 import { trpcCaller } from "@/server/api/_app";
 import { NotFoundException } from "@/server/api/core/exceptions";
+import { IThemeAsset } from "@workspace/common-logic/models/theme.types";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cache } from "react";
 import CourseBreadcrumbs from "./_components/course-breadcrumbs";
 import CourseLayoutContent from "./_components/course-layout-content";
-import { CourseProvider } from "./_components/course-provider";
-import { IThemeAsset } from "@workspace/common-logic/models/theme.types";
 
-const getCachedCourseData = cache(async (courseId: string) => {
-  return await trpcCaller.lmsModule.courseModule.course.publicGetById({
-    id: courseId,
-  });
-});
 
 interface CourseLayoutProps {
   children: React.ReactNode;
@@ -27,25 +22,22 @@ export async function generateMetadata({
   params: Promise<{ courseId: string }>;
 }): Promise<Metadata> {
   const { courseId } = await params;
-
+ 
   try {
-    const courseData = await getCachedCourseData(courseId);
-
-    const description = `Learn ${courseData.title} - A comprehensive course covering all essential topics and practical skills.`;
-
+    const courseData = await getCachedCoursePublicData(courseId);
     return {
       title: courseData.title,
-      description: description?.slice(0, 160),
+      description: courseData.shortDescription?.slice(0, 160),
       openGraph: {
         title: courseData.title,
-        description: description?.slice(0, 160),
+        description: courseData.shortDescription?.slice(0, 160),
         images: courseData.featuredImage ? [courseData.featuredImage.url] : [],
         type: 'website',
       },
       twitter: {
         card: 'summary_large_image',
         title: courseData.title,
-        description: description?.slice(0, 160),
+        description: courseData.shortDescription?.slice(0, 160),
         images: courseData.featuredImage ? [courseData.featuredImage.url] : [],
       },
     };
@@ -64,26 +56,16 @@ export default async function CourseLayout({
   const { courseId } = await params;
 
   try {
-    const courseData = await getCachedCourseData(courseId);
-    
-    const serializedCourseData = {
-      _id: courseData._id.toString(),
-      title: courseData.title,
-      shortDescription: courseData.shortDescription,
-      statsAverageRating: courseData.statsAverageRating,
-      statsEnrollmentCount: courseData.statsEnrollmentCount,
-      statsLessonCount: courseData.statsLessonCount,
-      statsCompletionRate: courseData.statsCompletionRate,
-    }
-    const theme = courseData.themeId
+    const initialCourseData = await getCachedCoursePublicData(courseId);
+    const theme = initialCourseData.themeId
       ? await trpcCaller.lmsModule.themeModule.theme.publicGetById({
-        id: courseData.themeId,
+        id: initialCourseData.themeId,
       })
       : null;
     const assets = theme?.assets || [];
 
     return (
-      <CourseProvider courseData={serializedCourseData}>
+      <CoursePublicDetailProvider initialCourse={initialCourseData as any}>  
         <ThemeAssets assets={assets} />
 
         <div className="min-h-screen bg-background m--course-page">
@@ -93,27 +75,26 @@ export default async function CourseLayout({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 m--course-layout">
               {/* Main Content Area */}
               <div className="lg:col-span-2 space-y-6 m--course-content">
-                <CourseBreadcrumbs courseId={serializedCourseData._id} />
+                <CourseBreadcrumbs />
                 {children}
               </div>
 
               {/* Persistent Sidebar */}
               <CourseLayoutContent 
-                courseData={serializedCourseData}
+                courseData={initialCourseData}
                 showEnrollmentCard={true}
-              />
+              />  
             </div>
           </main>
 
           <Footer />
         </div>
-      </CourseProvider>
+      </CoursePublicDetailProvider>
     );
   } catch (error) {
     if (error instanceof NotFoundException) {
       return notFound();
     }
-    console.error("Error fetching course data:", error);
     throw error;
   }
 }

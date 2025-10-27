@@ -9,7 +9,7 @@ export async function generateMetadata(
     title: `Courses | ${(await parent)?.title?.absolute || "Uyren AI"}`,
   };
 }
-
+ 
 export default function Layout({ children }: { children: ReactNode }) {
   return children;
 }

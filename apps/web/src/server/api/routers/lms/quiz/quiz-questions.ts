@@ -145,42 +145,34 @@ export const quizQuestionsRouter = router({
     .use(createDomainRequiredMiddleware())
     .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(
-      getFormDataSchema({
-        text: z.string().min(1),
-        type: z.nativeEnum(QuestionTypeEnum),
-        points: z.number().min(0),
-        explanation: z.string().optional(),
-        options: z
-          .array(
-            z.object({
-              uid: z.string(),
-              text: z.string(),
-              isCorrect: z.boolean(),
-            }),
-          )
-          .optional(),
-        correctAnswers: z.array(z.string()).optional(),
-      }).extend({
+      z.object({
         quizId: documentIdValidator(),
+        data: z.object({
+          type: z.nativeEnum(QuestionTypeEnum),
+        }).passthrough(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const quiz = await findOrAssertQuiz(input.quizId, ctx);
+      
+      const provider = getQuestionProvider(input.data.type);
+      const validatedData = provider.getValidatedData(
+        input.data as any, 
+        ctx,
+      );
+
       const question = await QuizQuestionModel.create({
-        text: input.data.text,
+        ...validatedData,
         type: input.data.type,
-        points: input.data.points,
-        explanation: input.data.explanation,
-        options: input.data.options,
-        correctAnswers: input.data.correctAnswers,
         orgId: ctx.domainData.domainObj.orgId,
       });
+
       const newQuestionIds = Array.from(
         new Set([...quiz.questionIds, question._id]),
       );
       await QuizModel.findByIdAndUpdate(input.quizId, {
         questionIds: newQuestionIds,
-        totalPoints: quiz.totalPoints + input.data.points,
+        totalPoints: quiz.totalPoints + (validatedData.points || 0),
       });
       return jsonify(question.toObject());
     }),

@@ -1,25 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useTranslation } from "react-i18next";
-import { BookOpen, PlayCircle, CheckCircle2, User2, Users, Calendar } from "lucide-react";
-import { trpc } from "@/utils/trpc";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { Card, CardContent } from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
-import { Badge } from "@workspace/ui/components/badge";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import { useDataTable } from "@/components/data-table/use-data-table";
-import { cn } from "@workspace/ui/lib/utils";
-import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
-import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course.types";
 import type { GeneralRouterOutputs } from "@/server/api/types";
+import { trpc } from "@/utils/trpc";
+import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course.types";
+import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
+import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent } from "@workspace/ui/components/card";
+import { Input } from "@workspace/ui/components/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { cn } from "@workspace/ui/lib/utils";
+import { BookOpen, Calendar, PlayCircle, User2, Users } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type MyCoursesOutput = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["getMyEnrolledCourses"];
 type EnrolledCourse = MyCoursesOutput["items"][number];
@@ -27,8 +26,8 @@ type EnrolledCourse = MyCoursesOutput["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.courseModule.course.getMyEnrolledCourses.useQuery>[0];
 
 export default function Page() {
-    const { t } = useTranslation(["dashboard", "common"]);
-    const breadcrumbs = [{ label: t("dashboard:instructor.my_courses.title"), href: "#" }];
+    const { t } = useTranslation(["dashboard", "common", "course"]);
+    const breadcrumbs = [{ label: t("dashboard:my_courses"), href: "#" }];
 
     const [search, setSearch] = useState("");
     const [levelFilter, setLevelFilter] = useState<CourseLevelEnum | "all">("all");
@@ -77,8 +76,8 @@ export default function Page() {
         <DashboardContent breadcrumbs={breadcrumbs}>
             <HeaderTopbar
                 header={{
-                    title: t("dashboard:instructor.my_courses.title"),
-                    subtitle: "Track your enrolled courses and progress",
+                    title: t("dashboard:my_courses"),
+                    subtitle: t("dashboard:student.subtitle"),
                 }}
             />
 
@@ -87,7 +86,7 @@ export default function Page() {
                 <div className="flex flex-col sm:flex-row gap-4 flex-1">
                     <div className="flex-1 max-w-md">
                         <Input
-                            placeholder="Search courses..."
+                            placeholder={t("dashboard:student.search_placeholder")}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -98,10 +97,10 @@ export default function Page() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Levels</SelectItem>
-                                <SelectItem value={CourseLevelEnum.BEGINNER}>Beginner</SelectItem>
-                                <SelectItem value={CourseLevelEnum.INTERMEDIATE}>Intermediate</SelectItem>
-                                <SelectItem value={CourseLevelEnum.ADVANCED}>Advanced</SelectItem>
+                                <SelectItem value="all">{t("course:list.all_levels")}</SelectItem>
+                                <SelectItem value={CourseLevelEnum.BEGINNER}>{t("course:level.beginner")}</SelectItem>
+                                <SelectItem value={CourseLevelEnum.INTERMEDIATE}>{t("course:level.intermediate")}</SelectItem>
+                                <SelectItem value={CourseLevelEnum.ADVANCED}>{t("course:level.advanced")}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -142,6 +141,7 @@ interface CourseCardProps {
 }
 
 function CourseCard({ course }: CourseCardProps) {
+    const { t } = useTranslation(["dashboard", "common"]);
     const { progress, instructors, owner, cohort } = course;
     const { percentComplete = 0, completedLessons = 0, totalLessons = 0 } = progress || {};
     
@@ -217,8 +217,8 @@ function CourseCard({ course }: CourseCardProps) {
                         {/* Progress Section */}
                         <div className="space-y-2 pt-2 border-t">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Progress</span>
-                                <span className="font-medium">{completedLessons}/{totalLessons} lessons</span>
+                                <span className="text-muted-foreground">{t("dashboard:progress")}</span>
+                                <span className="font-medium">{completedLessons}/{totalLessons} {t("common:lessons")}</span>
                             </div>
                             <ProgressBar value={percentComplete} />
                         </div>
@@ -230,7 +230,7 @@ function CourseCard({ course }: CourseCardProps) {
                             size="sm"
                         >
                             <PlayCircle className="h-4 w-4 mr-2" />
-                            {percentComplete === 0 ? "Start Learning" : "Continue"}
+                            {percentComplete === 0 ? t("dashboard:student.start_learning") : t("common:continue")}
                         </Button>
                     </div>
                 </CardContent>
@@ -273,23 +273,25 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ search }: EmptyStateProps) {
+    const { t } = useTranslation(["dashboard", "common"]);
+    
     return (
         <div className="text-center py-16">
             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-                {search ? "No courses found" : "No courses enrolled yet"}
+                {search ? t("dashboard:student.no_courses_found") : t("dashboard:student.no_courses_enrolled")}
             </h3>
             <p className="text-muted-foreground mb-6">
                 {search 
-                    ? "Try adjusting your search criteria"
-                    : "Start your learning journey by enrolling in courses"
+                    ? t("dashboard:student.adjust_search")
+                    : t("dashboard:student.start_journey")
                 }
             </p>
             {!search && (
                 <Link href="/courses">
                     <Button>
                         <BookOpen className="h-4 w-4 mr-2" />
-                        Browse Courses
+                        {t("dashboard:student.browse_courses")}
                     </Button>
                 </Link>
             )}

@@ -79,7 +79,7 @@ QuizSchema.virtual("course", {
 
 export const OptionSchema = new mongoose.Schema<IOption>(
     {
-        uid: { type: String, required: true, unique: true },
+        uid: { type: String, required: true },
         text: { type: String, required: true, trim: true, maxlength: 500 },
         isCorrect: { type: Boolean, default: false },
         order: { type: Number, default: 0 },
@@ -108,6 +108,15 @@ export const QuizQuestionSchema = new mongoose.Schema<IQuizQuestion>(
         timestamps: true,
     },
 );
+
+QuizQuestionSchema.pre("validate", function (next) {
+    const uids = this.options?.map(opt => opt.uid) || [];
+    const uniqueUids = new Set(uids);
+    if (uids.length !== uniqueUids.size) {
+      return next(new Error("Duplicate option UID within question"));
+    }
+    next();
+  });
 
 export const QuizModel = createModel('Quiz', QuizSchema);
 export type IQuizHydratedDocument = HydratedDocument<IQuiz>;

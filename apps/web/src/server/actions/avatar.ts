@@ -2,7 +2,7 @@
 
 import { getActionContext } from "@/server/api/core/actions";
 import { ValidationException } from "@/server/api/core/exceptions";
-import { CloudinaryService } from "@/server/services/cloudinary";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
 import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { UserModel } from "@workspace/common-logic/models/user.model";
@@ -21,7 +21,7 @@ export async function uploadAvatar(formData: FormData) {
         const user = await UserModel.findOne({ _id: ctx.user._id, orgId: ctx.domainData.domainObj.orgId });
         if (!user) throw new ValidationException("User not found");
 
-        const attachment = await CloudinaryService.uploadFile(
+        const attachment = await getStorageProvider().uploadFile(
             {
                 file,
                 userId: ctx.user._id as mongoose.Types.ObjectId,
@@ -69,7 +69,7 @@ export async function removeAvatar() {
         if (!user) throw new ValidationException("User not found");
         if (!user.avatar) throw new ValidationException("Avatar not found");
 
-        await CloudinaryService.deleteFile(user.avatar);
+        await getStorageProvider(user.avatar.storageProvider).deleteFile(user.avatar);
 
         user.avatar = undefined;
         await user.save();

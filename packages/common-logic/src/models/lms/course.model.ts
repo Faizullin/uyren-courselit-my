@@ -87,6 +87,7 @@ export const CourseSchema = new mongoose.Schema<ICourse>(
       ref: "PaymentPlan",
       required: false,
     },
+    maxCapacity: { type: Number, required: false, min: 1 },
     statsEnrollmentCount: { type: Number, required: true, default: 0 },
     statsCompletionRate: { type: Number, required: true, default: 0 },
     statsAverageRating: { type: Number, required: true, default: 0 },

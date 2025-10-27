@@ -1,6 +1,6 @@
 import express from "express";
 import { mailQueueManager } from "@/domain/notification/mail-queue";
-import { MailJob } from "@/domain/notification/models/mail-job";
+import { MailJob } from "@/domain/notification/mail-job.types";
 import { logger } from "@/core/logger";
 import { verifyJWTMiddleware } from "@/middlewares/verify-jwt";
 

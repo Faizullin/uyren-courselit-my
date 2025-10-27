@@ -10,11 +10,48 @@
     "lms": "LMS",
     "admin": "Админ",
     "users": "Пользователи",
+    "organizations": "Организации",
     "tags": "Теги",
     "settings": "Настройки",
+    "website_settings": "Настройки Сайта",
+    "external_api_keys": "Внешние API Ключи",
     "studio": "Студия",
     "notifications": "Уведомления",
     "profile": "Профиль"
+  },
+  "student": {
+    "subtitle": "Отслеживайте зачисленные курсы и прогресс",
+    "search_placeholder": "Поиск курсов...",
+    "no_courses_found": "Курсы не найдены",
+    "no_courses_enrolled": "Еще не записались ни на один курс",
+    "adjust_search": "Попробуйте изменить критерии поиска",
+    "start_journey": "Начните свой путь обучения, записавшись на курсы",
+    "browse_courses": "Просмотреть курсы",
+    "start_learning": "Начать обучение",
+    "started": "Начало",
+    "ends": "Окончание",
+    "completed": "завершено",
+    "no_lessons": "Уроков пока нет",
+    "tabs": {
+      "lessons": "Уроки",
+      "ai_tutor": "AI Репетитор"
+    },
+    "ai_tutor": {
+      "welcome_message": "Здравствуйте! Я ваш AI репетитор. Задавайте мне любые вопросы об этом уроке, и я помогу вам лучше понять концепции.",
+      "sample_response": "Отличный вопрос! Позвольте мне помочь вам лучше понять это. В контексте этого урока эта концепция важна, потому что она формирует основу работы системы. Хотите, чтобы я объяснил какую-то конкретную часть более подробно?",
+      "input_placeholder": "Задайте вопрос об этом курсе..."
+    },
+    "grades": {
+      "title": "Мои Оценки",
+      "subtitle": "Отслеживайте свою академическую успеваемость",
+      "average_grade": "Средний Балл",
+      "total_graded": "Всего Оценено",
+      "excellent": "Отлично (90%+)",
+      "good": "Хорошо (70-89%)",
+      "recent_grades": "Последние Оценки",
+      "no_grades_yet": "Пока нет оценок",
+      "graded_items_appear_here": "Ваши оцененные задания и викторины появятся здесь"
+    }
   },
   "instructor": {
     "subtitle": "Управляйте курсами и отслеживайте прогресс",
@@ -100,10 +137,10 @@
       "edit_content": "Редактировать Контент",
       "actions": "Действия",
       "manage_course": "Управление Курсом",
-      "cohort_groups": "Группы Когорт",
+      "cohort_groups": "Группы",
       "preview_course": "Предпросмотр Курса",
       "view_all": "Посмотреть Все",
-      "no_cohorts_yet": "Пока нет групп когорт.",
+      "no_cohorts_yet": "Пока нет групп.",
       "create_one": "Создать",
       "no_instructor": "Нет преподавателя"
     }
@@ -117,8 +154,8 @@
         "description": "Создавайте и управляйте вашими курсами"
       },
       "cohorts": {
-        "title": "Когорты",
-        "description": "Организуйте студентов в группы и когорты"
+        "title": "Группы",
+        "description": "Организуйте студентов в группы"
       },
       "quizzes": {
         "title": "Викторины",
@@ -236,7 +273,9 @@
         "submitted": "Отправлено",
         "not_graded": "Не оценено",
         "edit_grade": "Редактировать оценку",
-        "grade": "Оценить"
+        "grade": "Оценить",
+        "submission_deleted": "Отправка удалена",
+        "submission_deleted_desc": "Отправка студента успешно удалена"
       },
       "submission_status": {
         "graded": "Оценено",
@@ -281,8 +320,19 @@
       "toast": {
         "created": "Задание успешно создано",
         "updated": "Задание успешно обновлено",
-        "submission_graded": "Отправка успешно оценена"
+        "submission_graded": "Отправка успешно оценена",
+        "submission_success": "Задание успешно отправлено",
+        "submission_failed": "Не удалось отправить задание",
+        "draft_saved": "Черновик успешно сохранён"
       },
+      "confirm_submit": {
+        "title": "Отправить задание",
+        "description": "Вы уверены, что хотите отправить это задание? Вы не сможете изменить свой ответ после отправки."
+      },
+      "attempts_info": "Попытка {{current}}/{{max}}",
+      "attempts_left": "Осталось {{count}} попыток",
+      "max_attempts_reached": "Достигнуто максимальное количество попыток",
+      "resubmit": "Отправить повторно",
       "publicationStatus": "Статус публикации"
     },
     "quiz": {
@@ -293,7 +343,7 @@
       "archive_confirm": "Вы уверены, что хотите архивировать эту викторину?",
       "delete_question_confirm": "Вы уверены, что хотите удалить этот вопрос?",
       "tabs": {
-        "quiz_settings": "Настройки викторины",
+        "basic_info": "Основная информация", 
         "questions": "Вопросы",
         "submissions": "Отправки"
       },
@@ -302,10 +352,8 @@
         "save_first_submissions": "Сначала сохраните викторину для просмотра отправок."
       },
       "settings": {
-        "quiz_title": "Название викторины",
-        "quiz_description": "Описание",
         "course": "Курс",
-        "time_limit": "Ограничение времени (минуты)",
+        "time_limit": "Ограничение (минуты)",
         "passing_score": "Проходной балл (%)",
         "max_attempts": "Макс. попыток",
         "total_points": "Всего баллов",
@@ -317,7 +365,6 @@
         "quiz_description_placeholder": "Введите описание викторины",
         "select_course": "Выберите курс",
         "copy_link": "Копировать ссылку",
-        "save_settings": "Сохранить настройки",
         "attempts": {
           "one": "1 попытка",
           "two": "2 попытки",
@@ -338,8 +385,6 @@
         "add_option": "Добавить вариант",
         "correct_answers": "Правильные ответы",
         "add_answer": "Добавить ответ",
-        "save_question": "Сохранить вопрос",
-        "update_question": "Обновить вопрос",
         "question_number": "Вопрос {{number}}",
         "option_placeholder": "Вариант {{number}}",
         "answer_placeholder": "Правильный ответ {{number}}",
@@ -499,6 +544,14 @@
     "requires_enrollment_description": "Студенты должны быть зарегистрированы для доступа к этому уроку",
     "downloadable": "Доступно для скачивания",
     "downloadable_description": "Разрешить студентам скачивать этот урок",
+    "not_found": "Урок не найден",
+    "not_found_desc": "Урок, который вы ищете, не существует или у вас нет доступа к нему.",
+    "back_to_course": "Вернуться к курсу",
+    "about_lesson": "Об этом уроке",
+    "mark_complete": "Отметить как завершенный",
+    "completed": "Завершено",
+    "progress_updated": "Прогресс успешно обновлен",
+    "lesson": "Урок",
     "types": {
       "text": "Текст",
       "video": "Видео",
@@ -579,7 +632,22 @@
   "create_button": {
     "new": "Новый"
   },
-  "media": {
+  "my_courses": "Мои Курсы",
+  "welcome_to": "Добро пожаловать на {{title}}",
+  "start_learning": "Начните свой путь обучения с этим комплексным курсом.",
+  "total_lessons": "Всего уроков",
+  "completed": "Завершено",
+  "progress": "Прогресс",
+  "course_information": "Информация о курсе",
+  "instructor_label": "Преподаватель",
+  "cohort": "Группа",
+  "course_progress": "Прогресс курса",
+  "lessons_completed": "уроков завершено",
+  "quick_actions": "Быстрые действия",
+  "continue_learning": "Продолжить обучение",
+  "view_all_lessons": "Посмотреть все уроки",
+  "of": "из",
+  "media_manager": {
     "selector": {
       "button_caption": "Выбрать медиа",
       "dialog_title": "Выбрать медиа",
@@ -613,7 +681,10 @@
       "uploading_count": "Загрузка {{count}} файла",
       "uploading_count_plural": "Загрузка файлов: {{count}}",
       "upload_success": "Успешно загружен {{count}} файл",
-      "upload_success_plural": "Успешно загружено файлов: {{count}}"
+      "upload_success_plural": "Успешно загружено файлов: {{count}}",
+      "storage_provider": "Провайдер хранения",
+      "local_storage": "Локальное хранилище",
+      "cloudinary_storage": "Cloudinary"
     },
     "toast": {
       "file_uploaded": "Файл успешно загружен",

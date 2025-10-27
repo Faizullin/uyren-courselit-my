@@ -70,7 +70,6 @@ const AssignmentSettingsSchema = z.object({
     })
   ),
   requirements: z.array(z.string()),
-  attachments: z.array(z.any()).optional(),
 });
 
 type AssignmentSettingsFormDataType = z.infer<
@@ -83,7 +82,7 @@ interface CourseSelectItemType {
 }
 
 export default function AssignmentSettings() {
-  const { assignment, mode } = useAssignmentContext();
+  const { loadDetailQuery, mode } = useAssignmentContext();
   const router = useRouter();
   const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
@@ -110,20 +109,19 @@ export default function AssignmentSettings() {
       maxAttempts: undefined,
       allowPeerReview: false,
       rubrics: [],
-      attachments: [],
     },
     mode: "onSubmit",
   });
 
   const rubricsFieldArray = useFieldArray({
     control: form.control,
-    name: "rubrics",
+    name: "rubrics" as never,
   });
 
   const requirementsFieldArray = useFieldArray({
     control: form.control,
-    name: "requirements",
-  } as any);
+    name: "requirements" as never,
+  } );
 
   const createMutation =
     trpc.lmsModule.assignmentModule.assignment.create.useMutation({
@@ -180,19 +178,18 @@ export default function AssignmentSettings() {
         maxAttempts: data.maxAttempts || undefined,
         allowPeerReview: data.allowPeerReview,
         rubrics: data.rubrics,
-        // attachments are handled separately via upload/remove actions
       };
 
       if (mode === "create") {
         await createMutation.mutateAsync({ data: transformedData });
-      } else if (mode === "edit" && assignment) {
+      } else if (mode === "edit" && loadDetailQuery.data) {
         await updateMutation.mutateAsync({
-          id: assignment._id,
+          id: loadDetailQuery.data._id,
           data: transformedData,
         });
       }
     },
-    [mode, assignment, createMutation, updateMutation]
+    [mode, createMutation, updateMutation, loadDetailQuery.data]
   );
 
   const fetchCourses = useCallback(
@@ -211,48 +208,47 @@ export default function AssignmentSettings() {
   );
 
   useEffect(() => {
-    if (assignment && mode === "edit") {
+    if (loadDetailQuery.data && !loadDetailQuery.isLoading && mode === "edit") {
       form.reset({
-        title: assignment.title || "",
-        description: assignment.description || "",
-        course: assignment.course
+        title: loadDetailQuery.data.title || "",
+        description: loadDetailQuery.data.description || "",
+        course: loadDetailQuery.data.course
           ? {
-              key: assignment.courseId || "",
-              title: assignment.course.title,
+              key: loadDetailQuery.data.courseId || "",
+              title: loadDetailQuery.data.course.title,
             }
           : null,
-        difficulty: assignment.difficulty || AssignmentDifficultyEnum.MEDIUM,
-        type: AssignmentTypeEnum.ESSAY,
-        totalPoints: assignment.totalPoints || 100,
-        instructions: assignment.instructions || "",
-        requirements: assignment.requirements || [],
-        beginDate: assignment.beginDate
-          ? new Date(assignment.beginDate)
+        difficulty: loadDetailQuery.data.difficulty || AssignmentDifficultyEnum.MEDIUM,
+        type: loadDetailQuery.data.type || AssignmentTypeEnum.PROJECT,
+        totalPoints: loadDetailQuery.data.totalPoints || 100,
+        instructions: loadDetailQuery.data.instructions || "",
+        requirements: loadDetailQuery.data.requirements || [],
+        beginDate: loadDetailQuery.data.beginDate
+          ? new Date(loadDetailQuery.data.beginDate)
           : undefined,
-        dueDate: assignment.dueDate ? new Date(assignment.dueDate) : undefined,
-        scheduledDate: assignment.scheduledDate
-          ? new Date(assignment.scheduledDate)
+        dueDate: loadDetailQuery.data.dueDate ? new Date(loadDetailQuery.data.dueDate) : undefined,
+        scheduledDate: loadDetailQuery.data.scheduledDate
+          ? new Date(loadDetailQuery.data.scheduledDate)
           : undefined,
-        eventDuration: assignment.eventDuration,
-        allowLateSubmission: assignment.allowLateSubmission ?? true,
-        latePenalty: assignment.latePenalty || 0,
-        maxAttempts: assignment.maxAttempts,
-        allowPeerReview: assignment.allowPeerReview || false,
-        rubrics: assignment.rubrics || [],
-        attachments: assignment.attachments || [],
+        eventDuration: loadDetailQuery.data.eventDuration,
+        allowLateSubmission: loadDetailQuery.data.allowLateSubmission ?? true,
+        latePenalty: loadDetailQuery.data.latePenalty || 0,
+        maxAttempts: loadDetailQuery.data.maxAttempts,
+        allowPeerReview: loadDetailQuery.data.allowPeerReview || false,
+        rubrics: loadDetailQuery.data.rubrics || [],
       });
-      setAttachments((assignment.attachments as unknown as IAttachmentMedia[]) || []);
+      setAttachments((loadDetailQuery.data.attachments as unknown as IAttachmentMedia[]) || []);
     }
-  }, [assignment, mode, form]);
+  }, [mode, form, loadDetailQuery.isLoading, loadDetailQuery.data]);
 
   const handleCheckProject = useCallback(() => {
-    const url = `${process.env.NEXT_PUBLIC_TUTOR_IDE_URL}/projects/init?externalAssignmentId=${assignment?._id}`;
+    const url = `${process.env.NEXT_PUBLIC_TUTOR_IDE_URL}/projects/init?externalAssignmentId=${loadDetailQuery.data?._id}`;
     window.open(url, "_blank");
-  }, [assignment?._id]);
+  }, [loadDetailQuery.data?._id]);
 
   const handleUploadAttachment = useCallback(
-    async (files: File[], _type: string): Promise<any[]> => {
-      if (!assignment?._id) {
+    async (files: File[], _type: string, _storageProvider?: string, _caption?: string): Promise<any[]> => {
+      if (!loadDetailQuery.data?._id) {
         toast({
           title: t("common:error"),
           description: t("common:toast.save_before_upload", { item: "assignment" }),
@@ -268,7 +264,7 @@ export default function AssignmentSettings() {
       const formData = new FormData();
       formData.append("file", files[0]);
 
-      const result = await uploadAssignmentMedia(assignment._id, formData);
+      const result = await uploadAssignmentMedia(loadDetailQuery.data._id, formData);
 
       if (result.success && result.media) {
         setAttachments([...attachments, result.media as any]);
@@ -286,12 +282,12 @@ export default function AssignmentSettings() {
         throw new Error(result.error || "Failed to upload attachment");
       }
     },
-    [assignment?._id, attachments, toast, t]
+    [loadDetailQuery.data?._id, attachments, toast, t]
   );
 
   const handleRemoveAttachment = useCallback(
     async (mediaId: string) => {
-      if (!assignment?._id) {
+      if (!loadDetailQuery.data?._id) {
         toast({
           title: t("common:error"),
           description: t("common:toast.not_found", { item: "Assignment" }),
@@ -300,7 +296,7 @@ export default function AssignmentSettings() {
         throw new Error("Assignment not found");
       }
 
-      const result = await removeAssignmentMedia(assignment._id, mediaId);
+      const result = await removeAssignmentMedia(loadDetailQuery.data._id, mediaId);
 
       if (result.success) {
         setAttachments(attachments.filter((att) => att.mediaId !== mediaId));
@@ -317,7 +313,7 @@ export default function AssignmentSettings() {
         throw new Error(result.error || "Failed to remove attachment");
       }
     },
-    [assignment?._id, attachments, toast, t]
+    [loadDetailQuery.data?._id, attachments, toast, t]
   );
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -328,6 +324,7 @@ export default function AssignmentSettings() {
   const watchedType = form.watch("type");
 
   return (
+    <>
     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
       {/* Summary Card */}
       <Card>
@@ -457,7 +454,11 @@ export default function AssignmentSettings() {
                         <Select
                           name={field.name}
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={(value) => {
+                            if (!loadDetailQuery.data?._id) {
+                              field.onChange(value as AssignmentTypeEnum);
+                            }
+                          }}
                         >
                           <SelectTrigger id="type">
                             <SelectValue />
@@ -524,7 +525,7 @@ export default function AssignmentSettings() {
                   type="button"
                   variant="outline"
                   onClick={handleCheckProject}
-                  disabled={!assignment?._id}
+                  disabled={!loadDetailQuery.data?._id || loadDetailQuery.isLoading}
                 >
                   {t("dashboard:lms.assignment.settings.check_project_ide")}
                 </Button>
@@ -840,7 +841,8 @@ export default function AssignmentSettings() {
         </CardContent>
       </Card>
 
-      <Card>
+     
+    </form> <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Paperclip className="h-5 w-5" />
@@ -851,28 +853,24 @@ export default function AssignmentSettings() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {t("dashboard:lms.assignment.settings.attachments_desc")}
-              {!assignment?._id && ` (${t("dashboard:lms.assignment.messages.save_first_upload")})`}
+              {!loadDetailQuery.data?._id && !loadDetailQuery.isLoading && ` (${t("dashboard:lms.assignment.messages.save_first_upload")})`} 
             </p>
             <div className="space-y-2">
               {attachments.map((attachment) => (
                 <MediaSelector
                   key={attachment.mediaId}
                   media={attachment}
-                  onSelection={(media) => {}}
-                  onRemove={() => handleRemoveAttachment(attachment.mediaId)}
                   type="course"
                   functions={{
                     uploadFile: handleUploadAttachment,
                     removeFile: handleRemoveAttachment,
                   }}
-                  disabled={!assignment?._id}
+                  disabled={!loadDetailQuery.data?._id || loadDetailQuery.isLoading}
                 />
               ))}
-              {assignment?._id && (
+              {loadDetailQuery.data?._id && !loadDetailQuery.isLoading && (
                 <MediaSelector
                   media={null}
-                  onSelection={(media) => {}}
-                  onRemove={() => {}}
                   type="course"
                   strings={{
                     buttonCaption: attachments.length === 0 ? t("dashboard:lms.assignment.settings.upload_first_attachment") : t("dashboard:lms.assignment.settings.upload_another_attachment"),
@@ -881,10 +879,10 @@ export default function AssignmentSettings() {
                     uploadFile: handleUploadAttachment,
                     removeFile: handleRemoveAttachment,
                   }}
-                  disabled={!assignment?._id}
+                  disabled={!loadDetailQuery.data?._id || loadDetailQuery.isLoading}
                 />
               )}
-              {attachments.length === 0 && !assignment?._id && (
+              {attachments.length === 0 && !loadDetailQuery.data?._id && !loadDetailQuery.isLoading && (
                 <p className="text-sm text-muted-foreground text-center py-4 border-2 border-dashed rounded-lg">
                   {t("dashboard:lms.assignment.messages.save_first_upload_attachments")}
                 </p>
@@ -893,6 +891,6 @@ export default function AssignmentSettings() {
           </div>
         </CardContent>
       </Card>
-    </form>
+      </>
   );
 }

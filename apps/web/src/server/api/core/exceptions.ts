@@ -26,6 +26,8 @@ function getTRPCCode(statusCode: number): TRPCError["code"] {
 
 // Base exception class for API errors
 export class APIException extends TRPCError {
+
+  details?: Record<string, any>;
   constructor(
     message: string,
     code: string = "INTERNAL_SERVER_ERROR",
@@ -40,6 +42,7 @@ export class APIException extends TRPCError {
     // this.code = code;
     // this.statusCode = statusCode;
     // this.details = details;
+    this.details = details;
   }
 
   // toTRPCError(): TRPCError {

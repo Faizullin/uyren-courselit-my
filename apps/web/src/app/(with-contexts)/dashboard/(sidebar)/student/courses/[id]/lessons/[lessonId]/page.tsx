@@ -1,156 +1,105 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useTranslation } from "react-i18next";
-import { ArrowLeft, PlayCircle, Clock, CheckCircle2, BookOpen } from "lucide-react";
-import DashboardContent from "@/components/dashboard/dashboard-content";
-import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Button } from "@workspace/ui/components/button";
-import { Badge } from "@workspace/ui/components/badge";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { useCourseContext } from "../../_components/course-context";
+import { useCoursePublicDetail } from "@/components/course/detail/course-public-detail-context";
 import { trpc } from "@/utils/trpc";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent } from "@workspace/ui/components/card";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import dynamic from "next/dynamic";
+import { ITextEditorContent } from "@workspace/common-logic/lib/text-editor-content";
+
+const LessonContentEditor = dynamic(
+    () => import("@/components/editors/tiptap/templates/lesson-content/lesson-content-editor").then((mod) => ({ default: mod.LessonContentEditor })),
+    { ssr: false },
+);
 
 export default function LessonPage() {
     const { t } = useTranslation(["dashboard", "common"]);
     const params = useParams<{ id: string; lessonId: string }>();
-    const { course, enrollment } = useCourseContext();
+    const { initialCourse } = useCoursePublicDetail();
+    const router = useRouter();
+    
+    const loadLessonQuery = trpc.lmsModule.courseModule.lesson.publicGetById.useQuery({
+        courseId: initialCourse._id,
+        lessonId: params.lessonId,
+    }, { enabled: !!params.lessonId && !!initialCourse._id });
 
-    const loadLessonQuery = trpc.lmsModule.courseModule.lesson.getById.useQuery(
-        { id: params.lessonId },
-        { enabled: !!params.lessonId }
-    );
-
-    const lesson = loadLessonQuery.data;
     const isLessonLoading = loadLessonQuery.isLoading;
+    const lesson = loadLessonQuery.data;
 
-    const breadcrumbs = [
-        { label: "Courses", href: "/dashboard/student/courses" },
-        { label: course?.title || "Course", href: `/dashboard/student/courses/${params.id}` },
-        { label: lesson?.title || "Lesson", href: "#" },
-    ];
+    const nav = useMemo(() => ({
+        prev: loadLessonQuery.data?.meta.prevLesson?._id,
+        next: loadLessonQuery.data?.meta.nextLesson?._id,
+    }), [loadLessonQuery.data])
 
     if (isLessonLoading) {
         return (
-            <DashboardContent breadcrumbs={breadcrumbs}>
-                <div className="space-y-6">
-                    <Skeleton className="h-8 w-64" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
-            </DashboardContent>
+            <div className="space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-64 w-full" />
+            </div>
         );
     }
 
-    if (!course || !lesson) {
+    if (!initialCourse || !lesson) {
         return (
-            <DashboardContent breadcrumbs={breadcrumbs}>
-                <div className="text-center py-16">
-                    <h3 className="text-lg font-semibold mb-2">Lesson not found</h3>
-                    <p className="text-muted-foreground mb-6">
-                        The lesson you're looking for doesn't exist or you don't have access to it.
-                    </p>
-                    <Link href={`/dashboard/student/courses/${params.id}`}>
-                        <Button>
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Course
-                        </Button>
-                    </Link>
-                </div>
-            </DashboardContent>
+            <div className="text-center py-12 px-4">
+                <h3 className="text-lg font-semibold mb-2">{t("dashboard:lesson.not_found")}</h3>
+                <p className="text-muted-foreground mb-6">
+                    {t("dashboard:lesson.not_found_desc")}
+                </p>
+                <Link href={`/dashboard/student/courses/${params.id}`}>
+                    <Button>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        {t("dashboard:lesson.back_to_course")}
+                    </Button>
+                </Link>
+            </div>
         );
     }
 
     return (
-        <DashboardContent breadcrumbs={breadcrumbs}>
-            <HeaderTopbar
-                header={{
-                    title: lesson.title,
-                    subtitle: course.title,
-                }}
-                backLink={`/dashboard/student/courses/${params.id}`}
-            />
+        <div className="space-y-4">
+            <Card>
+                <CardContent className="p-4 lg:p-6">
+                    <LessonContentEditor
+                        lesson={lesson}
+                        editable={false}
+                        toolbar={false}
+                        onEditor={(editor, meta) => {
+                            if (meta.reason === "create") {
+                                editor!.commands.setMyContent(lesson.content as unknown as ITextEditorContent);
+                            }
+                        }}
+                    />
+                </CardContent>
+            </Card>
 
-            {/* Lesson Content */}
-            <div className="space-y-6">
-                {/* Lesson Title and Author */}
-                <div>
-                    <h1 className="text-3xl font-bold mb-2">{lesson.title}</h1>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>{course.owner?.fullName || 'Unknown Instructor'}</span>
-                        <span>•</span>
-                        <span>Course</span>
-                    </div>
-                </div>
-
-                {/* Video Player Area */}
-                <Card>
-                    <CardContent className="p-0">
-                        <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-                            {lesson.content ? (
-                                <div className="text-center text-white">
-                                    <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                                    <h3 className="text-xl font-semibold mb-2">Understanding {lesson.title}</h3>
-                                    <p className="text-sm opacity-70">Click to start the lesson</p>
-                                </div>
-                            ) : (
-                                <div className="text-center text-white">
-                                    <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                                    <h3 className="text-xl font-semibold mb-2">Lesson Video</h3>
-                                    <p className="text-sm opacity-70">Video content coming soon</p>
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Lesson Description */}
-                <Card>
-                    <CardContent className="p-6">
-                        <h2 className="text-xl font-semibold mb-4">About this lesson</h2>
-                        {lesson.content ? (
-                            <div 
-                                className="prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ __html: lesson.content }}
-                            />
-                        ) : (
-                            <div>
-                                <p className="text-muted-foreground mb-4">
-                                    This tutorial dives into the core concepts covered in this lesson. 
-                                    You'll learn the fundamental principles and practical applications.
-                                </p>
-                                
-                                <h3 className="text-lg font-semibold mb-3">What you'll learn:</h3>
-                                <ul className="space-y-2 text-sm text-muted-foreground">
-                                    <li>• Understanding key concepts and their importance</li>
-                                    <li>• Practical applications and real-world examples</li>
-                                    <li>• Step-by-step implementation guide</li>
-                                    <li>• Best practices and common pitfalls to avoid</li>
-                                </ul>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Navigation */}
-                <div className="flex items-center justify-between pt-4 border-t">
-                    <Button variant="outline" disabled>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Previous Lesson
-                    </Button>
-                    
-                    <div className="flex items-center gap-4">
-                        <Button variant="outline" size="sm">
-                            Mark as Complete
-                        </Button>
-                        <Button size="sm">
-                            Next Lesson
-                            <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
-                        </Button>
-                    </div>
-                </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t">
+                <Button 
+                    variant="outline" 
+                    className="w-full sm:w-auto"
+                    onClick={() => router.push(`/dashboard/student/courses/${params.id}/lessons/${nav.prev}`)}
+                    disabled={!nav.prev}
+                >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    {t("common:previous")}
+                </Button>
+                
+                <Button 
+                    className="w-full sm:w-auto"
+                    onClick={() => router.push(`/dashboard/student/courses/${params.id}/lessons/${nav.next}`)}
+                    disabled={!nav.next}
+                >
+                    {t("common:next")}
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
             </div>
-        </DashboardContent>
+        </div>
     );
 }

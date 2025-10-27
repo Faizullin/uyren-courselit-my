@@ -41,7 +41,7 @@ export const QuizAttemptSchema = new mongoose.Schema<IQuizAttempt>(
         timeSpent: { type: Number, min: 0 },
         abandonedAt: { type: Date },
         gradedAt: { type: Date },
-        gradedById: { type: mongoose.Schema.Types.ObjectId },
+        gradedById: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     },
     {
         timestamps: true,
@@ -61,6 +61,13 @@ QuizAttemptSchema.virtual("user", {
 QuizAttemptSchema.virtual("quiz", {
     ref: "Quiz",
     localField: "quizId",
+    foreignField: "_id",
+    justOne: true,
+});
+
+QuizAttemptSchema.virtual("gradedBy", {
+    ref: "User",
+    localField: "gradedById",
     foreignField: "_id",
     justOne: true,
 });

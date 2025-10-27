@@ -280,4 +280,14 @@ export const quizAttemptRouter = router({
 
       return jsonify(attempt);
     }),
+
+  canLeaveFeedback: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .query(async ({ ctx }) => {
+      const hasPermission = checkPermission(ctx.user.permissions, [
+        UIConstants.permissions.manageCourse,
+        UIConstants.permissions.manageAnyCourse,
+      ]);
+      return { canLeaveFeedback: hasPermission };
+    }),
 });

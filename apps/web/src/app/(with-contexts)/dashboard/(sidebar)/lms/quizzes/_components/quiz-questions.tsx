@@ -14,14 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
@@ -45,7 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { UseFormReturn, useFieldArray, useForm } from "react-hook-form";
+import { Controller, UseFormReturn, useFieldArray, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import z from "zod";
 import { useQuizContext } from "./quiz-context";
@@ -78,7 +71,6 @@ const ShortAnswerSchema = BaseQuestionSchema.extend({
   correctAnswers: z
     .array(z.string().min(1, "Answer cannot be empty"))
     .min(1, "At least one correct answer is required"),
-  options: z.array(z.any()).optional(),
 });
 
 // Union schema for all question types
@@ -206,6 +198,8 @@ export default function QuizQuestions() {
         return <CheckSquare className="h-4 w-4" />;
       case QuestionTypeEnum.SHORT_ANSWER:
         return <Type className="h-4 w-4" />;
+      default:
+        return <FileQuestion className="h-4 w-4" />;
     }
   };
 
@@ -215,6 +209,8 @@ export default function QuizQuestions() {
         return t("dashboard:lms.quiz.questions.types.multiple_choice");
       case QuestionTypeEnum.SHORT_ANSWER:
         return t("dashboard:lms.quiz.questions.types.short_answer");
+      default:
+        return type;
     }
   };
 
@@ -276,7 +272,7 @@ export default function QuizQuestions() {
                                 {question.points} {t("dashboard:lms.assignment.grading.pts")}
                               </Badge>
                               <Badge variant="secondary" className="text-xs">
-                                {getQuestionTypeLabel(question.type as QuestionTypeEnum)}
+                                {getQuestionTypeLabel(question.type)}
                               </Badge>
                             </div>
                             <p className="text-sm line-clamp-2">
@@ -488,8 +484,8 @@ function QuestionViewer({
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Badge variant="outline">{question.points} points</Badge>
               <Badge variant="secondary" className="flex items-center gap-1">
-                {getQuestionTypeIcon(question.type as QuestionTypeEnum)}
-                {getQuestionTypeLabel(question.type as QuestionTypeEnum)}
+                {getQuestionTypeIcon(question.type)}
+                {getQuestionTypeLabel(question.type)}
               </Badge>
             </div>
           </div>
@@ -543,7 +539,7 @@ function QuestionEditor({
   const { t } = useTranslation(["dashboard", "common"]);
   const trpcUtils = trpc.useUtils();
   const [currentType, setCurrentType] = useState<QuestionTypeEnum>(
-    (question?.type as QuestionTypeEnum) || QuestionTypeEnum.MULTIPLE_CHOICE
+    question?.type || QuestionTypeEnum.MULTIPLE_CHOICE
   );
 
   const createQuestionMutation =
@@ -624,7 +620,7 @@ function QuestionEditor({
             };
 
       form.reset(formData);
-      setCurrentType(question.type as QuestionTypeEnum);
+      setCurrentType(question.type);
     }
   }, [question, isEdit, form]);
 
@@ -635,33 +631,36 @@ function QuestionEditor({
 
   const handleSubmit = useCallback(
     async (data: QuestionFormDataType) => {
-      const transformedData = {
+      const baseData = {
         text: data.text,
         type: data.type,
         points: data.points,
         explanation: data.explanation,
-        ...(data.type === QuestionTypeEnum.MULTIPLE_CHOICE
-          ? {
-              options: data.options,
-              correctAnswers: data.options
-                ?.filter((opt) => opt.isCorrect)
-                .map((opt) => opt.uid),
-            }
-          : {
-              correctAnswers: data.correctAnswers,
-            }),
       };
+
+      const transformedData = data.type === QuestionTypeEnum.MULTIPLE_CHOICE
+        ? {
+            ...baseData,
+            options: data.options,
+            correctAnswers: data.options
+              ?.filter((opt) => opt.isCorrect)
+              .map((opt) => opt.uid),
+          }
+        : {
+            ...baseData,
+            correctAnswers: data.correctAnswers,
+          };
 
       if (isEdit && question) {
         await updateQuestionMutation.mutateAsync({
           id: question._id,
           quizId: quiz!._id!,
-          data: transformedData as never,
+          data: transformedData,
         });
       } else {
         await createQuestionMutation.mutateAsync({
           quizId: quiz!._id!,
-          data: transformedData as never,
+          data: transformedData,
         });
       }
     },
@@ -688,15 +687,15 @@ function QuestionEditor({
         </Button>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <FieldGroup>
           <div className="grid grid-cols-2 gap-4">
-            <FormField
+            <Controller
               control={form.control}
               name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("dashboard:lms.quiz.questions.question_type")} *</FormLabel>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>{t("dashboard:lms.quiz.questions.question_type")} *</FieldLabel>
                   <Select
                     value={field.value}
                     onValueChange={(value) => handleTypeChange(value as QuestionTypeEnum)}
@@ -720,68 +719,65 @@ function QuestionEditor({
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
               )}
             />
 
-            <FormField
+            <Controller
               control={form.control}
               name="points"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("common:points")} *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="number"
-                      placeholder="5"
-                      min="1"
-                      max="100"
-                      onChange={(e) =>
-                        field.onChange(parseInt(e.target.value) || 0)
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>{t("common:points")} *</FieldLabel>
+                  <Input
+                    {...field}
+                    type="number"
+                    placeholder="5"
+                    min="1"
+                    max="100"
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value) || 0)
+                    }
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
               )}
             />
           </div>
 
-          <FormField
+          <Controller
             control={form.control}
             name="text"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("dashboard:lms.quiz.questions.question_text")} *</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder={t("dashboard:lms.quiz.questions.question_text_placeholder")}
-                    rows={3}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>{t("dashboard:lms.quiz.questions.question_text")} *</FieldLabel>
+                <Textarea
+                  {...field}
+                  placeholder={t("dashboard:lms.quiz.questions.question_text_placeholder")}
+                  rows={3}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
           />
 
-          <FormField
+          <Controller
             control={form.control}
             name="explanation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("dashboard:lms.quiz.questions.explanation")}</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder={t("dashboard:lms.quiz.questions.explanation_placeholder")}
-                    rows={2}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>{t("dashboard:lms.quiz.questions.explanation")}</FieldLabel>
+                <Textarea
+                  {...field}
+                  placeholder={t("dashboard:lms.quiz.questions.explanation_placeholder")}
+                  rows={2}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
           />
 
@@ -802,17 +798,17 @@ function QuestionEditor({
               removeCorrectAnswer={removeCorrectAnswer}
             />
           )}
+        </FieldGroup>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              {t("common:cancel")}
-            </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? t("common:saving") : isEdit ? t("dashboard:lms.quiz.questions.update_question") : t("dashboard:lms.quiz.questions.save_question")}
-            </Button>
-          </div>
-        </form>
-      </Form>
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            {t("common:cancel")}
+          </Button>
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? t("common:saving") : t("common:save")}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -833,7 +829,7 @@ function MultipleChoiceFields({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <FormLabel className="text-base">{t("dashboard:lms.quiz.questions.options")} *</FormLabel>
+        <FieldLabel className="text-base">{t("dashboard:lms.quiz.questions.options")} *</FieldLabel>
         <Button type="button" variant="outline" size="sm" onClick={addOption}>
           <Plus className="h-3 w-3 mr-1" />
           {t("dashboard:lms.quiz.questions.add_option")}
@@ -848,33 +844,33 @@ function MultipleChoiceFields({
             <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-medium">
               {String.fromCharCode(65 + index)}
             </div>
-            <FormField
+            <Controller
               control={form.control}
               name={`options.${index}.text`}
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input {...field} placeholder={t("dashboard:lms.quiz.questions.option_placeholder", { number: index + 1 })} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field className="flex-1" data-invalid={fieldState.invalid}>
+                  <Input
+                    {...field}
+                    placeholder={t("dashboard:lms.quiz.questions.option_placeholder", { number: index + 1 })}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
               )}
             />
-            <FormField
+            <Controller
               control={form.control}
               name={`options.${index}.isCorrect`}
               render={({ field }) => (
-                <FormItem className="flex items-center gap-2">
-                  <FormLabel className="text-sm font-normal">{t("dashboard:lms.quiz.questions.mark_correct")}</FormLabel>
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </FormControl>
-                </FormItem>
+                <Field className="flex items-center gap-2">
+                  <FieldLabel className="text-sm font-normal">{t("dashboard:lms.quiz.questions.mark_correct")}</FieldLabel>
+                  <input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </Field>
               )}
             />
             <Button
@@ -913,7 +909,7 @@ function ShortAnswerFields({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <FormLabel className="text-base">{t("dashboard:lms.quiz.questions.correct_answers")} *</FormLabel>
+        <FieldLabel className="text-base">{t("dashboard:lms.quiz.questions.correct_answers")} *</FieldLabel>
         <Button
           type="button"
           variant="outline"
@@ -933,21 +929,20 @@ function ShortAnswerFields({
             <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-medium">
               {index + 1}
             </div>
-            <FormField
+            <Controller
               control={form.control}
               name={`correctAnswers.${index}`}
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder={t("dashboard:lms.quiz.questions.answer_placeholder", { number: index + 1 })}
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field className="flex-1" data-invalid={fieldState.invalid}>
+                  <Input
+                    {...field}
+                    placeholder={t("dashboard:lms.quiz.questions.answer_placeholder", { number: index + 1 })}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
               )}
             />
             <Button

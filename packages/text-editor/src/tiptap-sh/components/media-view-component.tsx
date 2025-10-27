@@ -17,6 +17,8 @@ import {
   AlignLeft,
   AlignRight,
   Edit,
+  ExternalLink,
+  FileIcon,
   Maximize,
   MoreVertical,
   Trash,
@@ -58,11 +60,40 @@ function AudioMedia({ url }: { url: string }) {
 
 function PdfMedia({ url, title }: { url: string; title?: string }) {
   return (
-    <iframe
-      src={url}
-      className="w-full h-96 rounded-lg border"
-      title={title || "PDF Document"}
-    />
+    <div className="w-full rounded-lg border bg-background overflow-hidden">
+      <iframe
+        src={url}
+        className="w-full h-96 border-0"
+        title={title || "PDF Document"}
+      />
+    </div>
+  );
+}
+
+function UnsupportedMedia({ url, title, mimeType }: { url: string; title?: string; mimeType?: string }) {
+  const fileName = title || url.split("/").pop() || "Download File";
+  const fileType = mimeType ? mimeType.split("/")[1]?.toUpperCase() : "FILE";
+  
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-full rounded-lg border bg-card p-6 transition-colors hover:bg-accent"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <FileIcon className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-sm truncate">{fileName}</p>
+            <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">{fileType}</p>
+        </div>
+      </div>
+    </a>
   );
 }
 
@@ -73,16 +104,16 @@ const getMediaType = (url: string, mimeType?: string): string => {
     if (mimeType.startsWith("image/")) return "image";
     if (mimeType.startsWith("video/")) return "video";
     if (mimeType.startsWith("audio/")) return "audio";
-    if (mimeType === "application/pdf") return "pdf";
+    if (mimeType === "application/pdf" || mimeType.includes("pdf")) return "pdf";
   }
 
-  // Fallback to URL extension
   const extension = url.split(".").pop()?.toLowerCase();
-  if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(extension || ""))
+  if (["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"].includes(extension || ""))
     return "image";
-  if (["mp4", "webm", "ogg", "mov", "avi"].includes(extension || ""))
+  if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv"].includes(extension || ""))
     return "video";
-  if (["mp3", "wav", "ogg", "aac"].includes(extension || "")) return "audio";
+  if (["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(extension || "")) 
+    return "audio";
   if (extension === "pdf") return "pdf";
 
   return "unknown";
@@ -102,7 +133,6 @@ export function MediaViewComponent(props: NodeViewProps) {
 
   const { url, media } = asset || {};
   const { width, align } = display || {};
-  console.log("[url]", url);
   const handleCaptionUpdate = useCallback((newCaption: string) => {
     setCaption(newCaption);
     updateAttributes({
@@ -126,7 +156,7 @@ export function MediaViewComponent(props: NodeViewProps) {
     });
   }, [node.attrs.display, updateAttributes]);
 
-  const mediaType = useMemo(() => getMediaType(url, media?.mimeType), [url, media?.mimeType, getMediaType]);
+  const mediaType = useMemo(() => getMediaType(url, media?.mimeType), [url, media?.mimeType]);
 
   const renderMediaContent = useMemo(() => {
     switch (mediaType) {
@@ -146,12 +176,14 @@ export function MediaViewComponent(props: NodeViewProps) {
         return <PdfMedia url={url} title={media?.originalFileName} />;
       default:
         return (
-          <div className="w-full h-32 rounded-lg border bg-muted flex items-center justify-center text-muted-foreground">
-            <span>Unsupported media type</span>
-          </div>
+          <UnsupportedMedia 
+            url={url} 
+            title={media?.originalFileName || caption} 
+            mimeType={media?.mimeType}
+          />
         );
     }
-  }, [mediaType, url, caption, media?.originalFileName, handleAspectRatioUpdate]);
+  }, [mediaType, url, caption, media?.originalFileName, media?.mimeType, handleAspectRatioUpdate]);
 
   const handleAlignLeft = useCallback(() => {
     updateAttributes({

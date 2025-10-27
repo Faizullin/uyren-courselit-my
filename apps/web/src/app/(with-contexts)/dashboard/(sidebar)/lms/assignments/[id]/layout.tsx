@@ -1,15 +1,13 @@
-"use client";
-
 import { AssignmentProvider } from "../_components/assignment-context";
-import { useParams } from "next/navigation";
 
-export default function AssignmentLayout({
+export default async function Layout({ 
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ id: string }>;
 }) {
-  const params = useParams<{ id: string }>();
-  const assignmentId = params.id;
+  const assignmentId = (await params).id;
   const initialMode = assignmentId === "new" ? "create" : "edit";
 
   return (

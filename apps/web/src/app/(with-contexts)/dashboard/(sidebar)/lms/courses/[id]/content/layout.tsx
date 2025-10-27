@@ -1,36 +1,40 @@
-"use client";
-
 import DashboardContent from "@/components/dashboard/dashboard-content";
+import { getCachedCourseData } from "@/lib/course/get-course-data";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@workspace/ui/components/resizable";
+import { truncate } from "@workspace/utils";
 import { CourseNavSidebar } from "../_components/course-nav-sidebar";
-import { useParams } from "next/navigation";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
-export default function ContentLayout({
+export default async function ContentLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ id: string }>;
 }) {
-  const params = useParams<{ id: string }>();
-  const courseId = params.id;
-
+  const { id } = await params;
+  const courseData = await getCachedCourseData(id);
   return (
     <DashboardContent
       breadcrumbs={[
         { label: "Courses", href: "/dashboard/lms/courses" },
-        { label: "Content", href: `/dashboard/lms/courses/${courseId}/content` },
+        { label: truncate(courseData.title, 20), href: `/dashboard/lms/courses/${id}/content` },
       ]}
     >
-      <PanelGroup direction="horizontal" className="h-full">
-        <Panel defaultSize={70} minSize={30} className="mr-4">
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={70} minSize={30} className="mr-4">
           <div className="h-full">{children}</div>
-        </Panel>
+        </ResizablePanel>
 
-        <PanelResizeHandle className="w-1.5 bg-border hover:bg-primary/20 transition-colors data-[resize-handle-state=drag]:bg-primary/30" />
+        <ResizableHandle withHandle />
 
-        <Panel defaultSize={30} minSize={0} maxSize={50}>
-          <CourseNavSidebar courseId={courseId} />
-        </Panel>
-      </PanelGroup>
+        <ResizablePanel defaultSize={30} minSize={0} maxSize={50}>
+          <CourseNavSidebar editable={true} />
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </DashboardContent>
   );
 }

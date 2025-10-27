@@ -7,13 +7,14 @@ import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Progress } from "@workspace/ui/components/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
-import { Upload, X } from "lucide-react";
+import { FileAudio, FileVideo, FileText, File as FileIcon, Upload, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -53,14 +54,14 @@ interface Strings {
 }
 
 interface MediaSelectorFunctions {
-  uploadFile: (files: File[], type: string) => Promise<any[]>;
+  uploadFile: (files: File[], type: string, storageProvider?: string, caption?: string) => Promise<any[]>;
   removeFile?: (mediaId: string) => Promise<void>;
 }
 
 interface MediaSelectorProps {
   title?: string;
   media?: IAttachmentMedia | null;
-  onSelection: (media: any) => void;
+  onSelection?: (media: any) => void;
   onRemove?: () => void;
   functions: MediaSelectorFunctions;
   strings?: Strings;
@@ -73,12 +74,36 @@ interface MediaSelectorProps {
 const mediaSelectorSchema = z.object({
   file: z.any().optional(),
   caption: z.string().optional(),
+  storageProvider: z.string().optional(),
 });
 type MediaSelectorFormData = z.infer<typeof mediaSelectorSchema>;
 
 
 const defaultSrc = "/courselit_backdrop.webp";
 const defaultSrcTitle = "Courselit Backdrop";
+
+const getFileIcon = (mimeType?: string) => {
+  if (!mimeType) return <FileIcon className="w-12 h-12 text-gray-400" />;
+  
+  if (mimeType.startsWith("video/")) {
+    return <FileVideo className="w-12 h-12 text-purple-500" />;
+  }
+  if (mimeType.startsWith("audio/")) {
+    return <FileAudio className="w-12 h-12 text-blue-500" />;
+  }
+  if (mimeType.startsWith("application/pdf")) {
+    return <FileText className="w-12 h-12 text-red-500" />;
+  }
+  if (mimeType.startsWith("application/") || mimeType.startsWith("text/")) {
+    return <FileText className="w-12 h-12 text-gray-500" />;
+  }
+  
+  return <FileIcon className="w-12 h-12 text-gray-400" />;
+};
+
+const canDisplayAsImage = (mimeType?: string) => {
+  return mimeType?.startsWith("image/") || false;
+};
 
 const MediaSelector = (props: MediaSelectorProps) => {
   const { t } = useTranslation(["dashboard", "common"]);
@@ -115,11 +140,12 @@ const MediaSelector = (props: MediaSelectorProps) => {
     defaultValues: {
       file: undefined,
       caption: "",
+      storageProvider: "local",
     },
   });
 
   const onSelection = (media: any) => {
-    props.onSelection(media);
+    props.onSelection?.(media);
   };
 
   useEffect(() => {
@@ -130,8 +156,8 @@ const MediaSelector = (props: MediaSelectorProps) => {
   }, [dialogOpened, form]);
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, caption }: { file: File; caption: string }) => {
-      const results = await functions.uploadFile([file], props.type);
+    mutationFn: async ({ file, caption, storageProvider }: { file: File; caption: string; storageProvider?: string }) => {
+      const results = await functions.uploadFile([file], props.type, storageProvider, caption);
       return results[0];
     },
     onSuccess: (media) => {
@@ -152,7 +178,11 @@ const MediaSelector = (props: MediaSelectorProps) => {
     const file = data.file;
     if (!file) return;
 
-    uploadMutation.mutate({ file, caption: data.caption || "" });
+    uploadMutation.mutate({ 
+      file, 
+      caption: data.caption || "", 
+      storageProvider: data.storageProvider 
+    });
   };
 
   const removeMutation = useMutation({
@@ -186,13 +216,19 @@ const MediaSelector = (props: MediaSelectorProps) => {
       <div className="flex items-center gap-4 rounded-lg border-2 border-dashed p-4 relative">
         {!props.hidePreview && (
           <div className="flex flex-col gap-2 items-center">
-            <Image
-              src={src || defaultSrc}
-              width={80}
-              height={80}
-              alt={srcTitle || defaultSrcTitle}
-              className="rounded-md"
-            />
+            {canDisplayAsImage(media?.mimeType) ? (
+              <Image
+                src={src || defaultSrc}
+                width={80}
+                height={80}
+                alt={srcTitle || defaultSrcTitle}
+                className="rounded-md"
+              />
+            ) : (
+              <div className="w-20 h-20 flex items-center justify-center bg-gray-50 rounded-md">
+                {getFileIcon(media?.mimeType)}
+              </div>
+            )}
             <Tooltip>
               <TooltipTrigger>
                 <p className="text-xs w-12 truncate text-muted-foreground">
@@ -259,6 +295,34 @@ const MediaSelector = (props: MediaSelectorProps) => {
                 onSubmit={form.handleSubmit((data) => handleUploadFile(data))}
               >
                 <FieldGroup>
+                  <Controller
+                    control={form.control}
+                    name="storageProvider"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="storage-provider-selector">
+                          Storage Provider
+                        </FieldLabel>
+                        <Select 
+                          value={field.value} 
+                          onValueChange={field.onChange} 
+                          disabled={uploadMutation.isPending}
+                        >
+                          <SelectTrigger id="storage-provider-selector">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="local">Local Storage</SelectItem>
+                            <SelectItem value="cloudinary">Cloudinary</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
+                    )}
+                  />
+
                   <Controller
                     control={form.control}
                     name="file"

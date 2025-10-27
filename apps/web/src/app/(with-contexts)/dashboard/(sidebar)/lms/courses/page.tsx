@@ -88,8 +88,8 @@ export default function Page() {
     >
       <HeaderTopbar
         header={{
-          title: t("lms.modules.courses.title"),
-          subtitle: t("lms.modules.courses.description"),
+          title: t("dashboard:lms.modules.courses.title"),
+          subtitle: t("dashboard:lms.modules.courses.description"),
         }}
         rightAction={<CreateButton onClick={() => createCourseDialog.show()} />}
       />

@@ -3,28 +3,33 @@ import {
   ConflictException,
   NotFoundException,
 } from "@/server/api/core/exceptions";
+import { CohortModel } from "@workspace/common-logic/models/lms/cohort.model";
 import {
   createDomainRequiredMiddleware,
   createPermissionMiddleware,
-  protectedProcedure,
-  publicProcedure,
+  protectedProcedure
 } from "@/server/api/core/procedures";
 import { getFormDataSchema, ListInputSchema } from "@/server/api/core/schema";
 import { router } from "@/server/api/core/trpc";
 import { paginate } from "@/server/api/core/utils";
 import { documentIdValidator } from "@/server/api/core/validators";
+import { ApprovalStatusEnum } from "@workspace/common-logic/lib/approval_status";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { ICohortHydratedDocument } from "@workspace/common-logic/models/lms/cohort.model";
+import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
+import { EnrollmentRequestModel } from "@workspace/common-logic/models/lms/enrollment-request.model";
 import {
-  EnrollmentModel,  
+  EnrollmentModel,
 } from "@workspace/common-logic/models/lms/enrollment.model";
 import { CourseEnrollmentMemberTypeEnum, CourseEnrollmentRoleEnum, EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
-import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
 import { UserProgressModel } from "@workspace/common-logic/models/lms/user-progress.model";
+import { UserLessonProgressStatusEnum } from "@workspace/common-logic/models/lms/user-progress.types";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
+;
 
 export const enrollmentRouter = router({
   list: protectedProcedure
@@ -34,6 +39,7 @@ export const enrollmentRouter = router({
         filter: z
           .object({
             courseId: documentIdValidator().optional(),
+            cohortId: documentIdValidator().optional(),
             userId: documentIdValidator().optional(),
             status: z.nativeEnum(EnrollmentStatusEnum).optional(),
             role: z.nativeEnum(CourseEnrollmentRoleEnum).optional(),
@@ -56,6 +62,10 @@ export const enrollmentRouter = router({
 
       if (input.filter?.courseId) {
         query.courseId = input.filter.courseId;
+      }
+
+      if (input.filter?.cohortId) {
+        query.cohortId = input.filter.cohortId;
       }
 
       if (input.filter?.userId) {
@@ -144,8 +154,7 @@ export const enrollmentRouter = router({
       return jsonify(enrollment);
     }),
 
-  // Enroll user in a course
-  enrollCourse: protectedProcedure
+  selfEnrollCourse: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
       getFormDataSchema({
@@ -162,8 +171,28 @@ export const enrollmentRouter = router({
       if (!course) {
         throw new NotFoundException("Course", input.data.courseId);
       }
-      if(!course.allowSelfEnrollment) {
+
+      if (!course.allowEnrollment) {
+        throw new AuthorizationException("Enrollment is not allowed for this course");
+      }
+
+      if (!course.allowSelfEnrollment) {
         throw new AuthorizationException("You are not allowed to enroll in this course");
+      }
+
+      if (course.maxCapacity) {
+        const enrollmentCount = await EnrollmentModel.countDocuments({
+          courseId: input.data.courseId,
+          orgId: ctx.domainData.domainObj.orgId,
+          memberType: CourseEnrollmentMemberTypeEnum.STUDENT,
+          status: EnrollmentStatusEnum.ACTIVE,
+        });
+
+        if (enrollmentCount >= course.maxCapacity) {
+          throw new ConflictException("Course has reached maximum capacity", {
+            code: "COURSE_MAX_CAPACITY_REACHED",
+          });
+        }
       }
 
       const existingEnrollment = await EnrollmentModel.findOne({
@@ -173,7 +202,9 @@ export const enrollmentRouter = router({
       });
 
       if (existingEnrollment) {
-        throw new ConflictException("You are already enrolled in this course");
+        throw new ConflictException("You are already enrolled in this course", {
+          code: "ENROLLMENT_ALREADY_EXISTS",
+        });
       }
 
       const enrollment = await EnrollmentModel.create({
@@ -188,6 +219,79 @@ export const enrollmentRouter = router({
       return jsonify(enrollment.toObject());
     }),
 
+  requestEnrollment: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      getFormDataSchema({
+        courseId: documentIdValidator(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const course = await CourseModel.findOne({
+        _id: input.data.courseId,
+        orgId: ctx.domainData.domainObj.orgId,
+        published: true,
+      });
+
+      if (!course) {
+        throw new NotFoundException("Course", input.data.courseId);
+      }
+
+      if (!course.allowEnrollment) {
+        throw new AuthorizationException("Enrollment is not allowed for this course");
+      }
+
+      if (course.maxCapacity) {
+        const enrollmentCount = await EnrollmentModel.countDocuments({
+          courseId: input.data.courseId,
+          orgId: ctx.domainData.domainObj.orgId,
+          memberType: CourseEnrollmentMemberTypeEnum.STUDENT,
+          status: EnrollmentStatusEnum.ACTIVE,
+        });
+
+        if (enrollmentCount >= course.maxCapacity) {
+          throw new ConflictException("Course has reached maximum capacity", {
+            code: "COURSE_MAX_CAPACITY_REACHED",
+          });
+        }
+      }
+
+      const existingEnrollment = await EnrollmentModel.findOne({
+        courseId: input.data.courseId,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+
+      if (existingEnrollment) {
+        throw new ConflictException("You are already enrolled in this course", {
+          code: "ENROLLMENT_ALREADY_EXISTS",
+        });
+      }
+
+      const existingRequest = await EnrollmentRequestModel.findOne({
+        courseId: input.data.courseId,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: { $in: [ApprovalStatusEnum.PENDING, ApprovalStatusEnum.APPROVED] },
+      });
+
+      if (existingRequest) {
+        throw new ConflictException("You already have a pending or approved enrollment request", {
+          code: "ENROLLMENT_REQUEST_ALREADY_EXISTS",
+        });
+      }
+
+      const enrollmentRequest = await EnrollmentRequestModel.create({
+        courseId: input.data.courseId,
+        userId: ctx.user._id,
+        email: ctx.user.email,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: ApprovalStatusEnum.PENDING,
+      });
+
+      return jsonify(enrollmentRequest.toObject());
+    }),
+
   // Update lesson progress for an enrollment
   updateProgress: protectedProcedure
     .use(createDomainRequiredMiddleware())
@@ -195,7 +299,7 @@ export const enrollmentRouter = router({
       getFormDataSchema({
         enrollmentId: documentIdValidator(),
         lessonId: documentIdValidator(),
-        status: z.enum(["completed", "in_progress", "not_started"]),
+        status: z.nativeEnum(UserLessonProgressStatusEnum).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -225,25 +329,28 @@ export const enrollmentRouter = router({
           lessons: [
             {
               lessonId: input.data.lessonId,
-              status: input.data.status as any,
-              completedAt: input.data.status === "completed" ? new Date() : undefined,
+              status: input.data.status,
+              completedAt: input.data.status === UserLessonProgressStatusEnum.COMPLETED ? new Date() : undefined,
             },
           ],
         });
       } else {
-        const lessonIndex = progress.lessons.findIndex((l: any) =>
+        const lessonIndex = progress.lessons.findIndex((l) =>
           l.lessonId.equals(input.data.lessonId),
         );
 
         if (lessonIndex >= 0) {
-          (progress.lessons[lessonIndex] as any).status = input.data.status;
-          (progress.lessons[lessonIndex] as any).completedAt =
-            input.data.status === "completed" ? new Date() : undefined;
+          if (!input.data.status) {
+            throw new ConflictException("Status is required");
+          }
+          (progress.lessons[lessonIndex]!).status = input.data.status;
+          (progress.lessons[lessonIndex]!).completedAt =
+            input.data.status === UserLessonProgressStatusEnum.COMPLETED ? new Date() : undefined;
         } else {
           progress.lessons.push({
             lessonId: input.data.lessonId,
-            status: input.data.status as any,
-            completedAt: input.data.status === "completed" ? new Date() : undefined,
+            status: input.data.status,
+            completedAt: input.data.status === UserLessonProgressStatusEnum.COMPLETED ? new Date() : undefined,
           } as any);
         }
 
@@ -300,7 +407,7 @@ export const enrollmentRouter = router({
 
       const totalLessons = progress.lessons.length;
       const totalCompleted = progress.lessons.filter(
-        (l) => l.status === "completed",
+        (l) => l.status === UserLessonProgressStatusEnum.COMPLETED,
       ).length;
       const percentComplete =
         totalLessons > 0 ? Math.round((totalCompleted / totalLessons) * 100) : 0;
@@ -339,6 +446,13 @@ export const enrollmentRouter = router({
 
       if (!canUnenroll) {
         throw new AuthorizationException();
+      }
+
+      if (enrollment.cohortId) {
+        await CohortModel.updateOne(
+          { _id: enrollment.cohortId, orgId: ctx.domainData.domainObj.orgId },
+          { $inc: { statsCurrentStudentsCount: -1 } }
+        );
       }
 
       await EnrollmentModel.deleteOne({
@@ -390,7 +504,7 @@ export const enrollmentRouter = router({
 
       const totalLessons = progress.lessons.length;
       const completedLessons = progress.lessons.filter(
-        (l) => l.status === "completed",
+        (l) => l.status === UserLessonProgressStatusEnum.COMPLETED,
       ).length;
       const percentComplete =
         totalLessons > 0
@@ -404,7 +518,7 @@ export const enrollmentRouter = router({
         totalLessons,
         completedLessons,
         lessons: progress.lessons,
-        lastActivity: (progress as any).updatedAt,
+        lastActivity: progress.updatedAt,
       });
     }),
 
@@ -454,7 +568,7 @@ export const enrollmentRouter = router({
         const progress = progressMap.get(enrollment.userId.toString());
         const totalLessons = progress?.lessons.length || 0;
         const completedLessons =
-          progress?.lessons.filter((l) => l.status === "completed").length || 0;
+          progress?.lessons.filter((l) => l.status === UserLessonProgressStatusEnum.COMPLETED).length || 0;
         const percentComplete =
           totalLessons > 0
             ? Math.round((completedLessons / totalLessons) * 100)
@@ -466,7 +580,7 @@ export const enrollmentRouter = router({
           percentComplete,
           totalLessons,
           completedLessons,
-          lastActivity: (progress as any)?.updatedAt,
+          lastActivity: progress?.updatedAt,
         };
       });
 
@@ -498,7 +612,7 @@ export const enrollmentRouter = router({
 
           const totalLessons = progress?.lessons.length || 0;
           const completedLessons =
-            progress?.lessons.filter((l) => l.status === "completed").length || 0;
+            progress?.lessons.filter((l) => l.status === UserLessonProgressStatusEnum.COMPLETED).length || 0;
           const percentComplete =
             totalLessons > 0
               ? Math.round((completedLessons / totalLessons) * 100)
@@ -510,83 +624,13 @@ export const enrollmentRouter = router({
               totalLessons,
               completedLessons,
               percentComplete,
-              currentLesson: progress?.lessons.find((l) => l.status === "in_progress"),
+              currentLesson: progress?.lessons.find((l) => l.status === UserLessonProgressStatusEnum.IN_PROGRESS),
             },
           };
         }),
       );
 
       return jsonify(enrollmentsWithProgress);
-    }),
-
-  // Save current lesson progress (like save_current_lesson from Frappe)
-  saveCurrentLesson: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      getFormDataSchema({
-        courseId: documentIdValidator(),
-        lessonId: documentIdValidator(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const enrollment = await EnrollmentModel.findOne({
-        userId: ctx.user._id,
-        courseId: input.data.courseId,
-        orgId: ctx.domainData.domainObj.orgId,
-        status: EnrollmentStatusEnum.ACTIVE,
-      });
-
-      if (!enrollment) {
-        throw new NotFoundException("Enrollment", "not found for this course");
-      }
-
-      // Update or create progress
-      let progress = await UserProgressModel.findOne({
-        userId: ctx.user._id,
-        courseId: input.data.courseId,
-        enrollmentId: enrollment._id,
-        orgId: ctx.domainData.domainObj.orgId,
-      });
-
-      if (!progress) {
-        progress = await UserProgressModel.create({
-          userId: ctx.user._id,
-          courseId: input.data.courseId,
-          enrollmentId: enrollment._id,
-          orgId: ctx.domainData.domainObj.orgId,
-          lessons: [
-            {
-              lessonId: input.data.lessonId,
-              status: "in_progress",
-            },
-          ],
-        });
-      } else {
-        // Update all other lessons to not be in progress
-        progress.lessons.forEach((lesson: any) => {
-          if (lesson.status === "in_progress" && !lesson.lessonId.equals(input.data.lessonId)) {
-            lesson.status = "not_started";
-          }
-        });
-
-        // Set current lesson to in_progress
-        const lessonIndex = progress.lessons.findIndex((l: any) =>
-          l.lessonId.equals(input.data.lessonId),
-        );
-
-        if (lessonIndex >= 0) {
-          (progress.lessons[lessonIndex] as any).status = "in_progress";
-        } else {
-          progress.lessons.push({
-            lessonId: input.data.lessonId,
-            status: "in_progress",
-          } as any);
-        }
-
-        await progress.save();
-      }
-
-      return jsonify({ success: true, currentLesson: input.data.lessonId });
     }),
 
   // Get students in a course (like get_students from Frappe)
@@ -656,7 +700,7 @@ export const enrollmentRouter = router({
       })
         .select("_id userId courseId cohortId currentLesson status role memberType createdAt")
         .populate<{
-          cohort: Pick<any, "_id" | "title" | "beginDate" | "endDate" | "maxCapacity">;
+          cohort: Pick<ICohortHydratedDocument, "_id" | "title" | "beginDate" | "endDate" | "maxCapacity">;
         }>("cohort", "_id title beginDate endDate maxCapacity")
         .lean();
 
@@ -673,7 +717,7 @@ export const enrollmentRouter = router({
 
       const totalLessons = progress?.lessons.length || 0;
       const completedLessons =
-        progress?.lessons.filter((l) => l.status === "completed").length || 0;
+        progress?.lessons.filter((l) => l.status === UserLessonProgressStatusEnum.COMPLETED).length || 0;
       const percentComplete =
         totalLessons > 0
           ? Math.round((completedLessons / totalLessons) * 100)
@@ -688,34 +732,6 @@ export const enrollmentRouter = router({
           completedLessons,
         },
       });
-    }),
-
-  // Get initial members for display (like get_initial_members)
-  getInitialMembers: publicProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      z.object({
-        courseId: documentIdValidator(),
-        limit: z.number().min(1).max(10).default(3),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const enrollments = await EnrollmentModel.find({
-        courseId: input.courseId,
-        orgId: ctx.domainData.domainObj.orgId,
-        memberType: CourseEnrollmentMemberTypeEnum.STUDENT,
-        status: EnrollmentStatusEnum.ACTIVE,
-      })
-        .populate<{
-          user: Pick<
-            IUserHydratedDocument,
-            "username" | "firstName" | "lastName" | "fullName" | "avatar"
-          >;
-        }>("user", "username firstName lastName fullName avatar")
-        .limit(input.limit)
-        .lean();
-
-      return jsonify(enrollments.map((e) => e.user));
     }),
 });
 

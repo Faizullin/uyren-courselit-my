@@ -63,7 +63,7 @@ export const AssignmentLinkNodeExtension = Node.create({
             const link = element.getAttribute("data-link") || "#";
 
             let obj = {
-              type: "assignment" as const,
+              type: "assignment",
               id: "",
               title: "Sample Assignment",
             };

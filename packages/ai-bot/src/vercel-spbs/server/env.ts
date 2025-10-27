@@ -7,8 +7,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
   // Supabase
-  NEXT_PUBLIC_RAG_SUPABASE_URL: z.string().url(),
-  RAG_SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  SUPABASE_SERVICE_KEY: z.string().min(1),
 
   // OpenAI
   OPENAI_API_KEY: z.string().min(1),
@@ -17,5 +17,4 @@ const envSchema = z.object({
   DEBUG: z.string().optional(),
 });
 
-// Parse and validate
 export const env = envSchema.parse(process.env);

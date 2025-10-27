@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { createModel } from "../../lib/create-model";
 import { orgaizationIdField } from "../../lib/organization"; 
-import { IUserLessonProgress, IUserProgress, UserLessonProgressStatus } from "./user-progress.types";
+import { IUserLessonProgress, IUserProgress, UserLessonProgressStatusEnum } from "./user-progress.types";
 
 const UserLessonProgressSchema = new mongoose.Schema<IUserLessonProgress>(
     {
@@ -12,7 +12,7 @@ const UserLessonProgressSchema = new mongoose.Schema<IUserLessonProgress>(
         },
         status: {
             type: String,
-            enum: UserLessonProgressStatus,
+            enum: UserLessonProgressStatusEnum,
             required: true
         },
         completedAt: {

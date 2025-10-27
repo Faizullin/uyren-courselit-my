@@ -1,6 +1,6 @@
 import { RedisConfig } from "@/core/redis";
 import { Queue } from "bullmq";
-import { InternalNotification } from "./models/notification";
+import { InternalNotification } from "./notification.types";
 
 class NotificationQueueManager {
   private notificationQueue: Queue<InternalNotification>;

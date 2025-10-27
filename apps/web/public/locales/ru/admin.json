@@ -1,0 +1,76 @@
+{
+  "settings": {
+    "title": "Заголовок",
+    "subtitle": "Подзаголовок",
+    "logo": "Логотип",
+    "save_settings": "Сохранить настройки",
+    "upload_image": "Загрузить изображение",
+    "basic_settings": "Основные настройки",
+    "banner_settings": "Настройки баннера",
+    "show_main_page_banner": "Показать баннер на главной странице",
+    "display_banner_section": "Отображать раздел баннера на главной странице",
+    "banner_title": "Заголовок баннера",
+    "banner_subtitle": "Подзаголовок баннера",
+    "general_page_settings": "Общие настройки страницы",
+    "show_statistics_section": "Показать раздел статистики",
+    "display_student_count": "Отображать количество студентов, курсов и лет опыта",
+    "show_features_section": "Показать раздел функций",
+    "display_platform_features": "Отображать функции платформы, такие как систематическое обучение, практика, рост и поддержка",
+    "show_testimonials_section": "Показать раздел отзывов",
+    "display_student_testimonials": "Отображать отзывы и обзоры студентов на главной странице",
+    "code_injection_head": "Внедрение кода в Head",
+    "code_injection_body": "Внедрение кода в Body",
+    "code_injection_head_placeholder": "Введите HTML-код для внедрения в раздел head...",
+    "code_injection_body_placeholder": "Введите HTML-код для внедрения в раздел body...",
+    "website_settings_subtitle": "Настройки сайта",
+    "featured_courses": "Избранные курсы",
+    "featured_reviews": "Избранные отзывы",
+    "import_course": "Импортировать курс",
+    "import_review": "Импортировать отзыв",
+    "select_course": "Выберите курс",
+    "select_review": "Выберите отзыв"
+  },
+  "organizations": {
+    "organization_name": "Название организации",
+    "email": "Электронная почта",
+    "description": "Описание",
+    "phone": "Телефон",
+    "address": "Адрес",
+    "create_organization": "Создать организацию",
+    "create_new_organization": "Создать новую организацию",
+    "name_placeholder": "например, Acme Corporation",
+    "email_placeholder": "например, contact@acme.com",
+    "description_placeholder": "Краткое описание организации...",
+    "phone_placeholder": "например, +7-777-123-45-67",
+    "address_placeholder": "например, ул. Главная 123, Город"
+  },
+  "users": {
+    "user_details": "Данные пользователя",
+    "username": "Имя пользователя",
+    "full_name": "Полное имя",
+    "roles": "Роли",
+    "permissions": "Разрешения",
+    "email_verified": "Email подтвержден",
+    "created_at": "Создано",
+    "updated_at": "Обновлено"
+  },
+  "tags": {
+    "tag_name": "Название тега",
+    "slug": "Slug",
+    "create_tag": "Создать тег",
+    "edit_tag": "Редактировать тег",
+    "name_placeholder": "Введите название тега"
+  },
+  "external_api_keys": {
+    "title": "Внешние API ключи",
+    "key_name": "Название ключа",
+    "api_key": "API ключ",
+    "provider": "Провайдер",
+    "create_api_key": "Создать API ключ",
+    "edit_api_key": "Редактировать API ключ",
+    "key_name_placeholder": "Введите название ключа",
+    "api_key_placeholder": "Введите API ключ",
+    "provider_placeholder": "Выберите провайдера"
+  }
+}
+

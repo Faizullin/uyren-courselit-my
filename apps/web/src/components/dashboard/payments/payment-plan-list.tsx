@@ -1,6 +1,8 @@
 "use client";
 
+import { Serialized } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { IPaymentPlan, PaymentPlanTypeEnum } from "@workspace/common-logic/models/payment/payment-plan.types";
 import { DeleteConfirmNiceDialog, NiceModal } from "@workspace/components-library";
 import { Badge } from "@workspace/ui/components/badge";
@@ -21,9 +23,10 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { capitalize } from "@workspace/utils";
-import { Archive, Plus, Star, X } from "lucide-react";
+import { Archive, ArchiveRestore, Plus, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import * as z from "zod";
 
 const formSchema = z
@@ -94,7 +97,7 @@ function formatAmount(
 }
 
 function getPlanAmount(
-  plan: IPaymentPlan,
+  plan: Serialized<IPaymentPlan>,
   currencySymbol: string,
 ): string | { amount: string; installments: number } {
   switch (plan.type) {
@@ -117,7 +120,7 @@ function getPlanAmount(
   }
 }
 
-function getPlanTypeLabel(plan: IPaymentPlan): string {
+function getPlanTypeLabel(plan: Serialized<IPaymentPlan>): string {
   const { type } = plan;
 
   switch (type) {
@@ -134,11 +137,30 @@ function getPlanTypeLabel(plan: IPaymentPlan): string {
   }
 }
 
-type IPaymentPlanWithId = IPaymentPlan & { _id: string };
+type IPaymentPlanWithId = Serialized<IPaymentPlan & { _id: string }>;
+
+interface PaymentPlanListProps {
+  paymentPlans: Array<IPaymentPlanWithId>;
+  archivedPlans?: Array<IPaymentPlanWithId>;
+  onPlanSubmit: (values: z.infer<typeof formSchema>) => void;
+  onPlanArchived: (plan: IPaymentPlanWithId) => void;
+  onPlanRestored?: (plan: IPaymentPlanWithId) => void;
+  onPlanDeleted?: (plan: IPaymentPlanWithId) => void;
+  allowedPlanTypes?: PaymentPlanTypeEnum[];
+  currencySymbol?: string;
+  currencyISOCode?: string;
+  onDefaultPlanChanged?: (plan: IPaymentPlanWithId) => void;
+  defaultPaymentPlanId?: string;
+  userRoles?: string[];
+}
+
 export default function PaymentPlanList({
   paymentPlans = [],
+  archivedPlans = [],
   onPlanSubmit,
   onPlanArchived,
+  onPlanRestored,
+  onPlanDeleted,
   allowedPlanTypes = [
     PaymentPlanTypeEnum.FREE,
     PaymentPlanTypeEnum.ONE_TIME,
@@ -149,16 +171,9 @@ export default function PaymentPlanList({
   currencyISOCode = "USD",
   onDefaultPlanChanged,
   defaultPaymentPlanId,
-}: {
-    paymentPlans: Array<IPaymentPlanWithId>;
-  onPlanSubmit: (values: z.infer<typeof formSchema>) => void;
-  onPlanArchived: (plan: IPaymentPlanWithId) => void;
-  allowedPlanTypes: PaymentPlanTypeEnum[];
-  currencySymbol?: string;
-  currencyISOCode?: string;
-  onDefaultPlanChanged?: (plan: IPaymentPlanWithId) => void;
-  defaultPaymentPlanId?: string;
-}) {
+  userRoles = [],
+}: PaymentPlanListProps) {
+  const { t } = useTranslation(["payment", "common"]);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [planType, setPlanType] = useState<PaymentPlanTypeEnum>(
     PaymentPlanTypeEnum.FREE,
@@ -166,6 +181,8 @@ export default function PaymentPlanList({
   const [subscriptionType, setSubscriptionType] = useState<
     "monthly" | "yearly"
   >("monthly");
+
+  const isAdmin = userRoles.includes(UIConstants.roles.admin);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -207,39 +224,33 @@ export default function PaymentPlanList({
   }
 
   return (
-    <div className="w-full max-w-md mx-auto p-2 space-y-2">
-      <div className="space-y-2">
+    <div className="space-y-4">
+      <div className="space-y-3">
         {paymentPlans.map((plan, index) => (
           <div
             key={index}
-            className="p-2 border rounded-md bg-background hover:border-primary/50 transition-colors"
+            className="p-4 border rounded-lg bg-background hover:border-primary/50 transition-colors"
           >
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="text-sm font-medium">{plan.name}</h3>
-              <div className="flex items-center space-x-2">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-base font-semibold">{plan.name}</h3>
+              <div className="flex items-center gap-1">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-8 w-8"
                         onClick={() => onDefaultPlanChanged?.(plan)}
                         disabled={defaultPaymentPlanId === plan._id}
                       >
                         <Star
-                          className={`h-3 w-3`}
-                          color={
-                            defaultPaymentPlanId === plan._id
-                              ? "black"
-                              : "#d3d3d3"
-                          }
+                          className="h-4 w-4"
+                          fill={defaultPaymentPlanId === plan._id ? "currentColor" : "none"}
                         />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Make default</p>
-                    </TooltipContent>
+                    <TooltipContent>Make default</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 <TooltipProvider>
@@ -248,34 +259,28 @@ export default function PaymentPlanList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-8 w-8"
                         onClick={() => handleArchive(plan)}
                       >
-                        <Archive className="h-3 w-3" />
+                        <Archive className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Archive plan</p>
-                    </TooltipContent>
+                    <TooltipContent>Archive plan</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-medium">
                 {(() => {
                   const planAmount = getPlanAmount(plan, currencySymbol);
                   if (typeof planAmount === "string") {
                     return planAmount;
-                  } else {
-                    return `${planAmount.amount} × ${planAmount.installments}`;
                   }
+                  return `${planAmount.amount} × ${planAmount.installments}`;
                 })()}
               </span>
-              <Badge
-                variant="secondary"
-                className="rounded-full px-1.5 py-0.5 text-[10px]"
-              >
+              <Badge variant="secondary" className="rounded-full">
                 {getPlanTypeLabel(plan)}
               </Badge>
             </div>
@@ -284,34 +289,31 @@ export default function PaymentPlanList({
         {!isFormVisible ? (
           <div
             onClick={() => handleFormVisibility(true)}
-            className="p-2 border border-dashed rounded-md bg-background hover:border-primary/50 transition-colors group cursor-pointer mt-4"
+            className="p-4 border border-dashed rounded-lg bg-background hover:border-primary/50 transition-colors group cursor-pointer"
           >
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="text-sm font-medium text-muted-foreground group-hover:text-primary">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-base font-medium text-muted-foreground group-hover:text-primary">
                 New Plan
               </h3>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                className="h-8 w-8 opacity-50 group-hover:opacity-100"
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="text-lg text-muted-foreground">
                 {currencySymbol}0.00
               </span>
-              <Badge
-                variant="secondary"
-                className="rounded-full px-1.5 py-0.5 text-[10px]"
-              >
+              <Badge variant="secondary" className="rounded-full">
                 Payment frequency
               </Badge>
             </div>
           </div>
         ) : (
-          <div className="p-4 border rounded-md bg-background mt-4">
+          <div className="p-4 border rounded-lg bg-background">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Create New Plan</h3>
               <Button
@@ -634,6 +636,80 @@ export default function PaymentPlanList({
           </div>
         )}
       </div>
+
+      {archivedPlans.length > 0 && (
+        <div className="pt-6 border-t space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t("payment:archived_plans")}</h3>
+          <div className="space-y-2">
+            {archivedPlans.map((plan) => (
+              <div key={plan._id} className="p-3 border border-dashed rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">{plan.name}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {(() => {
+                          const amount = getPlanAmount(plan, currencySymbol);
+                          return typeof amount === "object" ? `${amount.amount} × ${amount.installments}` : amount;
+                        })()}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {getPlanTypeLabel(plan)}
+                    </Badge>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-1 shrink-0">
+                      {onPlanRestored && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => onPlanRestored(plan)}
+                              >
+                                <ArchiveRestore className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("payment:restore_plan")}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {onPlanDeleted && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                onClick={async () => {
+                                  const result = await NiceModal.show(DeleteConfirmNiceDialog, {
+                                    title: t("payment:delete_plan"),
+                                    message: t("payment:delete_plan_message", { name: plan.name }),
+                                  });
+                                  if (result.reason === "confirm") {
+                                    await onPlanDeleted(plan);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t("common:delete")}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import pug from "pug";
 
 dotenv.config();
 
-const queueServer = process.env.QUEUE_SERVER;
+const queueServer = process.env.NEXT_PUBLIC_QUEUE_SERVER;
 const jwtSecret = process.env.TRANSPORT_JWT_SECRET;
 
 if (!jwtSecret) {
@@ -25,7 +25,7 @@ console.log("From Email:", fromEmail);
 console.log("JWT Secret:", jwtSecret ? "✓ Set" : "✗ Missing");
 
 if (!queueServer) {
-  console.error("QUEUE_SERVER environment variable is required");
+  console.error("NEXT_PUBLIC_QUEUE_SERVER environment variable is required");
   process.exit(1);
 }
 

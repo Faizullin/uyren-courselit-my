@@ -4,6 +4,7 @@ import { initTRPC } from "@trpc/server";
 import { getServerSession } from "next-auth";
 import superjson from "superjson";
 import z from "zod";
+import { ConflictException } from "./exceptions";
 
 export async function createTRPCContext() {
   const session = await getServerSession(authOptions);
@@ -18,7 +19,6 @@ type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 export const t = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter: ({ shape, error }) => {
-    // Handle different error types with proper formatting
     if (error.code === "BAD_REQUEST") {
       return {
         ...shape,
@@ -31,6 +31,19 @@ export const t = initTRPC.context<Context>().create({
           name: "ValidationError",
           stack:
             process.env.NODE_ENV === "development" ? error.stack : undefined,
+        },
+      };
+    }
+
+    if (error.code === "CONFLICT") {
+      const typeError = error as ConflictException;
+      return {
+        ...shape,
+        data: {
+          ...shape.data,
+          code: typeError.code,
+          message: typeError.message,
+          details: typeError.details,
         },
       };
     }

@@ -68,9 +68,9 @@ export interface IAssignmentSubmission {
     assignmentId: mongoose.Types.ObjectId;
     userId: mongoose.Types.ObjectId;
     status: AssignmentSubmissionStatusEnum;
-    submittedAt: Date;
+    submittedAt?: Date;
     attemptNumber: number;
-    content: string;
+    content?: string;
     attachments: IAttachmentMedia[];
     score?: number;
     percentageScore?: number;

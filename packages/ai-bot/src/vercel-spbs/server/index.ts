@@ -1,15 +1,8 @@
-export * from './ai-service';
-export * from './api-routes';
-export * from './config';
-export * from './database';
-export * from './supabase-client';
-export * from './types';
+export { BaseResourceService } from './services/base-resource-service';
+export { SupFaissService } from './services/sup-faiss-service';
+export { SupResourceService } from './services/sup-resource-service';
 
-
-
-// TODO: Remove this and use sevrice files adn agents
-export { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-export { embed } from "ai";
-export { openai } from "@ai-sdk/openai";
-export { createOpenAI } from "@ai-sdk/openai";
+export { createOpenAI, openai } from "@ai-sdk/openai";
 export { createClient } from "@supabase/supabase-js";
+export { embed } from "ai";
+export { RecursiveCharacterTextSplitter } from "langchain/text_splitter";

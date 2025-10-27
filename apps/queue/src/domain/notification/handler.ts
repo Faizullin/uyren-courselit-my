@@ -1,5 +1,5 @@
-import { InternalNotification } from "./models/notification";
-import { MailJob } from "./models/mail-job";
+import { InternalNotification } from "./notification.types";
+import { MailJob } from "./mail-job.types";
 import { notificationQueueManager } from "./notification-queue";
 import { mailQueueManager } from "./mail-queue";
 

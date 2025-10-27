@@ -174,6 +174,19 @@ const list: CommandSuggestionItem[] = [
     command: ({ editor, range }) =>
       editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
   },
+  {
+    title: 'Table',
+    description: 'Add a table view to organize data.',
+    keywords: ['table'],
+    icon: TableIcon,
+    command: ({ editor, range }) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .run(),
+  },
 ];
 
 const withAiList: CommandSuggestionItem[] = [

@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { Switch } from "@workspace/ui/components/switch";
 import { Link, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
@@ -143,7 +142,6 @@ export default function QuizSettings() {
         maxAttempts: quiz.maxAttempts || 3,
         shuffleQuestions: quiz.shuffleQuestions ?? true,
         showResults: quiz.showResults ?? false,
-        totalPoints: quiz.totalPoints || 0,
       });
     }
   }, [quiz, mode, form]);
@@ -214,7 +212,7 @@ export default function QuizSettings() {
         </Button>
         <Button type="submit" disabled={isSaving || isSubmitting}>
           <Save className="h-4 w-4 mr-2" />
-          {isSaving || isSubmitting ? t("common:saving") : t("dashboard:lms.quiz.settings.save_settings")}
+          {isSaving || isSubmitting ? t("common:saving") : t("common:save")}
         </Button>
       </div>
 
@@ -230,10 +228,10 @@ export default function QuizSettings() {
                 name="title"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>{t("dashboard:lms.quiz.settings.quiz_title")}</FieldLabel>
+                    <FieldLabel>{t("common:title")}</FieldLabel>
                     <Input
                       {...field}
-                      placeholder={t("dashboard:lms.quiz.settings.quiz_title_placeholder")}
+                      placeholder={t("common:description")}
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (

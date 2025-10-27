@@ -1,10 +1,10 @@
 import { logger } from "@/core/logger";
 import { notificationEmitter } from "@/domain/notification/emitters/notification";
 import { addNotificationJob } from "@/domain/notification/handler";
-import NotificationModel from "@/domain/notification/models/notification";
 import { verifyJWTMiddleware } from "@/middlewares/verify-jwt";
 import { Request, Response, Router } from "express";
 import { ObjectId } from "mongodb";
+import { NotificationModel } from "@workspace/common-logic/models/notification.model";
 
 const router: Router = Router();
 
@@ -27,15 +27,20 @@ router.post(
 
       for (const forUserId of forUserIds) {
         const notification = await NotificationModel.create({
-          domain: new ObjectId(user!.domain),
-          userId: user!.userId,
-          forUserId,
-          entityAction,
-          entityId,
-          entityTargetId,
+          orgId: new ObjectId(user!.domain),
+          message: `${entityAction} on ${entityId}`,
+          href: `/entity/${entityId}`,
+          senderId: new ObjectId(user!.userId),
+          recipientId: new ObjectId(forUserId),
         });
 
-        await addNotificationJob(notification);
+        await addNotificationJob({
+          orgId: user!.domain,
+          message: notification.message,
+          href: notification.href,
+          senderId: user!.userId,
+          recipientId: forUserId,
+        });
       }
 
       res.status(200).json({ message: "Success" });

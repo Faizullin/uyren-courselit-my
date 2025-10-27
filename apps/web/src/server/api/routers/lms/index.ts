@@ -3,6 +3,7 @@ import { assignmentModuleRouter } from "./assignment";
 import { cohortModuleRouter } from "./cohort/index";
 import { courseModuleRouter } from "./course";
 import { enrollmentRouter } from "./enrollment";
+import { enrollmentRequestRouter } from "./enrollment-request";
 import { grantModuleRouter } from "./grant";
 import { instructorRouter } from "./instructor";
 import { liveClassRouter } from "./live-class";
@@ -17,6 +18,7 @@ export const lmsModuleRouter = router({
   cohortModule: cohortModuleRouter,
   courseModule: courseModuleRouter,
   enrollment: enrollmentRouter,
+  enrollmentRequest: enrollmentRequestRouter,
   instructor: instructorRouter,
   liveClass: liveClassRouter,
   quizModule: quizModuleRouter,

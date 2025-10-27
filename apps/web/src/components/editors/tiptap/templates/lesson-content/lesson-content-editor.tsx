@@ -31,11 +31,21 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
-import { FileTextIcon, HelpCircleIcon, ImageIcon, Plus, VideoIcon, Volume2, Palette } from "lucide-react";
+import { FileTextIcon, HelpCircleIcon, ImageIcon, Plus, VideoIcon, Volume2, FileUp } from "lucide-react";
 import { useMemo } from "react";
 import { AssignmentLinkNodeExtension } from "../../extensions/assignment-link/assignment-link-node-extension";
+import { Extension } from "@tiptap/core";
+import { ImportFileNiceDialog } from "../../dialogs/import-file-dialog";
 
 import "./lesson-content-editor.scss";
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    fileImport: {
+      openFileImportDialog: () => ReturnType;
+    };
+  }
+}
 
 interface ILessonMinimal {
   _id: string;
@@ -70,15 +80,15 @@ const createLessonMediaViewExtension = (lesson: ILessonMinimal) => {
             const storage = editor.storage.mediaView;
             
             NiceModal.show(InsertMediaNiceDialog, {
-              selectMode: true,
-              selectedMedia: null,
-              initialFileType: fileType,
-              courseId: storage?.lesson?.courseId,
-              lessonId: storage?.lesson?._id,
+              args: {
+                selectMode: true,
+                selectedMedia: null,
+                initialFileType: fileType,
+                courseId: storage?.lesson?.courseId,
+                lessonId: storage?.lesson?._id,
+              }
             })
-              .then((result) => {
-                console.log("[media dialog result]", result);
-                
+              .then((result) => {                
                 if (result.reason === "submit" && result.data) {
                   const asset: AssetType = {
                     url: result.data.url,
@@ -112,9 +122,11 @@ export const LessonContentEditor = (props: LessonContentEditorProps) => {
         description: "Insert media from media library.",
         keywords: ["image", "photo", "picture", "img", "audio", "sound", "music", "mp3", "mp4", "pdf", "document", "file", "media"],
         icon: ImageIcon,
-        command: ({ editor, range }: any) => {
+        command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).run();
-          editor.commands.openMediaSelectDialog("image/");
+          editor.commands.openMediaSelectDialog({
+            fileType: "image",
+          });
         },
       },
       {
@@ -142,6 +154,30 @@ export const LessonContentEditor = (props: LessonContentEditorProps) => {
     return getSuggestion({ ai: true, customItems: mediaItems });
   }, []);
 
+  const FileImportExtension = useMemo(() => {
+    return Extension.create({
+      name: "fileImport",
+      
+      addCommands() {
+        return {
+          openFileImportDialog: () => ({ editor }: { editor: Editor }) => {
+            NiceModal.show(ImportFileNiceDialog, {})
+              .then((result) => {
+                if (result.reason === "submit" && result.content) {
+                  console.log("result.content", result.content);
+                  editor.commands.setContent(result.content);
+                }
+              })
+              .catch((error: any) => {
+                console.error("File import error:", error);
+              });
+            return true;
+          },
+        } as any;
+      },
+    });
+  }, []);
+
   const extensionsDict: Record<string, AnyExtension | false> = useMemo(() => {
     return {
       slashCommand: SlashCommand.configure({
@@ -155,8 +191,9 @@ export const LessonContentEditor = (props: LessonContentEditorProps) => {
           };
         },
       }),
+      fileImport: FileImportExtension,
     };
-  }, [customSuggestions, lesson]);
+  }, [customSuggestions, lesson, FileImportExtension]);
 
   return (
     <ContentEditor
@@ -217,6 +254,8 @@ const EditorToolbar = ({ editor }: { editor: Editor }) => {
                 <InsertAssignmentToolbar />
 
                 <div className="flex-1" />
+                
+                <ImportFileToolbar />
 
                 {/* Utility Group */}
                 {/* <EditorToolbarItems.SearchAndReplaceToolbar /> */}
@@ -257,11 +296,17 @@ const InsertAssignmentToolbar = () => {
       </Tooltip>
 
       <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={() => handleInsertAssignment("assignment")}>
+        <DropdownMenuItem onClick={(e) => {
+          e.preventDefault();
+          handleInsertAssignment("assignment");
+        }}>
           <FileTextIcon className="h-4 w-4 mr-2" />
           Assignment
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleInsertAssignment("quiz")}>
+          <DropdownMenuItem onClick={(e) => {
+          e.preventDefault();
+          handleInsertAssignment("quiz");
+        }}>
           <HelpCircleIcon className="h-4 w-4 mr-2" />
           Quiz
         </DropdownMenuItem>
@@ -270,10 +315,39 @@ const InsertAssignmentToolbar = () => {
   );
 };
 
+const ImportFileToolbar = () => {
+  const { editor } = useToolbar();
+
+  const handleImport = () => {
+    if (editor) {
+      (editor.commands as any).openFileImportDialog();
+    }
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          type="button"
+          onClick={handleImport}
+          className="h-8 w-8 p-0 sm:h-9 sm:w-9"
+        >
+          <FileUp className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <span>Import File (PDF/DOCX)</span>
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+
 const CustomMediaInsertDropdown = () => {
   const { editor } = useToolbar();
 
-  const handleInsertMedia = (fileType: string) => {
+  const handleInsertMedia = (fileType: "document" | "image" | "video" | "audio" | "json" | "all") => {
     if (editor) {
       editor.commands.openMediaSelectDialog({fileType});
     }
@@ -289,6 +363,7 @@ const CustomMediaInsertDropdown = () => {
             <Button
               variant="ghost"
               size="icon"
+              type="button"
               className={cn(
                 "h-8 w-8 p-0 sm:h-9 sm:w-9",
                 editor?.isActive("mediaView") && "bg-accent",
@@ -304,19 +379,31 @@ const CustomMediaInsertDropdown = () => {
       </Tooltip>
 
       <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem onClick={() => handleInsertMedia("image/")}>
+        <DropdownMenuItem onClick={(e) => {
+          e.preventDefault();
+          handleInsertMedia("image");
+        }}>
           <ImageIcon className="h-4 w-4 mr-2" />
           Image
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleInsertMedia("video/")}>
+        <DropdownMenuItem onClick={(e) => {
+          e.preventDefault();
+          handleInsertMedia("video");
+        }}>
           <VideoIcon className="h-4 w-4 mr-2" />
           Video
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleInsertMedia("audio/")}>
+        <DropdownMenuItem onClick={(e) => {
+          e.preventDefault();
+          handleInsertMedia("audio");
+        }}>
           <Volume2 className="h-4 w-4 mr-2" />
           Audio
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleInsertMedia("application/pdf")}>
+        <DropdownMenuItem onClick={(e) => {
+          e.preventDefault();
+          handleInsertMedia("document");
+        }}>
           <FileTextIcon className="h-4 w-4 mr-2" />
           PDF
         </DropdownMenuItem>

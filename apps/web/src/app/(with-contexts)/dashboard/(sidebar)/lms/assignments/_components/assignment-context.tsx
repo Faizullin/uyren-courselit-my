@@ -4,33 +4,43 @@ import { FormMode } from "@/components/dashboard/layout/types";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { IAssignment } from "@workspace/common-logic/models/lms/assignment.types";
-import { useToast } from "@workspace/components-library";
-import {  
+import {
   createContext,
   ReactNode,
   useContext,
-  useEffect,
-  useState,
+  useState
 } from "react";
 
 type AssignmentType =
   GeneralRouterOutputs["lmsModule"]["assignmentModule"]["assignment"]["getById"];
 
+const useLoadAssignmentDetailQuery = ({
+  assignmentId,
+  mode,
+}: {
+  assignmentId: string;
+  mode: FormMode;
+}) => {
+  return trpc.lmsModule.assignmentModule.assignment.getById.useQuery({
+    id: assignmentId,
+  }, {
+    enabled: mode === "edit" && !!assignmentId,
+  });
+};  
+
+const useUpdateAssignmentMutation = () => {
+  return trpc.lmsModule.assignmentModule.assignment.update.useMutation();
+};
+
 interface AssignmentContextType {
   initialData: IAssignment;
-  assignment: AssignmentType | null;
   mode: FormMode;
-  loadDetailQuery: ReturnType<
-    typeof trpc.lmsModule.assignmentModule.assignment.getById.useQuery
-  >;
-  updateMutation: ReturnType<
-    typeof trpc.lmsModule.assignmentModule.assignment.update.useMutation
-  >;
+  loadDetailQuery: ReturnType<typeof useLoadAssignmentDetailQuery>;
+  updateMutation: ReturnType<typeof useUpdateAssignmentMutation>;
 }
 
 const AssignmentContext = createContext<AssignmentContextType>({
   initialData: null as any,
-  assignment: null,
   mode: "create",
   loadDetailQuery: (() => {
     throw new Error("loadDetailQuery is not implemented");
@@ -51,49 +61,17 @@ export function AssignmentProvider({
   initialMode,
   initialData,
 }: AssignmentProviderProps) {
-  const { toast } = useToast();
   const [mode] = useState<FormMode>(initialMode);
-  const [assignment, setAssignment] = useState<AssignmentType | null>(
-    initialData || null,
-  );
-
-  const loadDetailQuery =
-    trpc.lmsModule.assignmentModule.assignment.getById.useQuery(
-      {
-        id: initialData?._id!,
-      },
-      {
-        enabled: mode === "edit" && !!initialData?._id,
-      },
-    );
-  const updateMutation =
-    trpc.lmsModule.assignmentModule.assignment.update.useMutation({
-      onSuccess: (response) => {
-        setAssignment(response as any);
-        toast({
-          title: "Success",
-          description: "Assignment status updated successfully",
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    });
-  useEffect(() => {
-    if (loadDetailQuery.data) {
-      setAssignment(loadDetailQuery.data);
-    }
-  }, [loadDetailQuery.data]);
+  const loadDetailQuery = useLoadAssignmentDetailQuery({
+    assignmentId: initialData?._id!,
+    mode: mode, 
+  });
+  const updateMutation = useUpdateAssignmentMutation();
   return (
     <AssignmentContext.Provider
       value={{
         initialData,
         mode,
-        assignment,
         loadDetailQuery,
         updateMutation,
       }}

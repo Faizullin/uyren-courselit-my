@@ -24,17 +24,16 @@ import { format } from "date-fns";
 import { Archive, Edit, Eye, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useCourseContext } from "../_components/course-context";
 import { NotSupportedException } from "@/server/api/core/exceptions";
 import { useTranslation } from "react-i18next";
+import { useCourseDetail } from "@/components/course/detail/course-detail-context";
 
 type ItemType = GeneralRouterOutputs["lmsModule"]["cohortModule"]["cohort"]["list"]["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.cohortModule.cohort.list.useQuery>[0];
 
 export default function CourseCohorts() {
-  throw new NotSupportedException("Cohorts are not supported yet");
-  const { course, isLoading: courseLoading } = useCourseContext();
-  const courseId = course?._id;
+  const { initialCourse, isLoading } = useCourseDetail();
+  const courseId = initialCourse._id;
   const { t } = useTranslation("course");
   
   const [parsedData, setParsedData] = useState<ItemType[]>([]);
@@ -112,13 +111,32 @@ export default function CourseCohorts() {
         accessorKey: "maxCapacity",
         header: t("cohorts.table.capacity"),
         cell: ({ row }) => {
+          const cohort = row.original;
+          const currentCount = cohort.statsCurrentStudentsCount || 0;
           const maxCap = row.getValue("maxCapacity") as number;
-          if (!maxCap) return t("cohorts.table.unlimited");
+          
+          if (!maxCap) {
+            return (
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{currentCount} / {t("cohorts.table.unlimited")}</span>
+              </div>
+            );
+          }
+          
+          const percentage = maxCap > 0 ? Math.min((currentCount / maxCap) * 100, 100) : 0;
+          const isNearCapacity = percentage >= 80;
+          const isFull = percentage >= 100;
+          
           return (
             <div className="flex items-center gap-2">
-              <span className="text-sm">0/{maxCap}</span>
-              <div className="h-1 w-16 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500" style={{ width: "0%" }}></div>
+              <span className="text-sm font-medium">{currentCount}/{maxCap}</span>
+              <div className="h-1.5 w-16 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${
+                    isFull ? 'bg-red-500' : isNearCapacity ? 'bg-amber-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${percentage}%` }}
+                />
               </div>
             </div>
           );
@@ -222,7 +240,7 @@ export default function CourseCohorts() {
     }
   }, [courseId, loadListQuery]);
 
-  if (courseLoading) {
+  if (isLoading) {
     return (
       <DashboardContent
         breadcrumbs={[
@@ -239,7 +257,7 @@ export default function CourseCohorts() {
     );
   }
 
-  if (!course) {
+  if (!initialCourse) {
     return (
       <DashboardContent
         breadcrumbs={[
@@ -261,7 +279,7 @@ export default function CourseCohorts() {
     <DashboardContent
       breadcrumbs={[
         { label: t("cohorts.breadcrumb_courses"), href: "/dashboard/lms/courses" },
-        { label: course?.title || "", href: `/dashboard/lms/courses/${courseId}` },
+        { label: initialCourse.title || "", href: `/dashboard/lms/courses/${courseId}` },
         { label: t("cohorts.breadcrumb_cohorts"), href: "#" },
       ]}
     >
@@ -269,38 +287,12 @@ export default function CourseCohorts() {
         backLink={true}
         header={{
           title: t("cohorts.title"),
-          subtitle: t("cohorts.subtitle", { courseName: course?.title || "" }),
+          subtitle: t("cohorts.subtitle", { courseName: initialCourse.title || "" }),
         }}
         rightAction={
           <CreateButton onClick={handleCreateCohort} text={t("cohorts.add_cohort")} />
         }
       />
-
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{cohortCount}</div>
-            <p className="text-xs text-muted-foreground">{t("cohorts.stats.total_cohorts")}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
-              {parsedData.filter(c => c.status === CohortStatusEnum.LIVE).length}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("cohorts.stats.active_cohorts")}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
-              {parsedData.reduce((sum, c) => sum + (c.maxCapacity || 0), 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("cohorts.stats.total_capacity")}</p>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
         <CardContent>
           <div className="flex flex-col gap-4 pt-6">

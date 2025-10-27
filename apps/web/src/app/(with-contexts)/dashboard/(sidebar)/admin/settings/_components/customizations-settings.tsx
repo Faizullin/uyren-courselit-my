@@ -3,16 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@workspace/ui/components/form";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useSettingsContext } from "./settings-context";
 
@@ -29,6 +24,7 @@ export default function CustomizationsSettings() {
   const { settings, updateSettingsMutation, loadSettingsQuery } =
     useSettingsContext();
   const { toast } = useToast();
+  const { t } = useTranslation(["admin", "common"]);
 
   const form = useForm<CustomizationsSettingsFormData>({
     resolver: zodResolver(customizationsSettingsSchema),
@@ -57,13 +53,13 @@ export default function CustomizationsSettings() {
       });
       await loadSettingsQuery.refetch();
       toast({
-        title: "Success",
-        description: "Settings saved",
+        title: t("common:success"),
+        description: t("common:toast.updated_successfully", { item: t("common:settings") }),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to save settings",
+        title: t("common:error"),
+        description: t("common:error_occurred"),
         variant: "destructive",
       });
     }
@@ -76,59 +72,55 @@ export default function CustomizationsSettings() {
 
   return (
     <div className="space-y-6">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FieldGroup>
+          <Controller
             control={form.control}
             name="codeInjectionHead"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Code Injection Head
-                </FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    rows={10}
-                    placeholder="Enter HTML code to inject in the head section..."
-                    className="font-mono text-sm"
-                    disabled={isDisabled}
-                  />
-                </FormControl>
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>{t("admin:settings.code_injection_head")}</FieldLabel>
+                <Textarea
+                  {...field}
+                  rows={10}
+                  placeholder={t("admin:settings.code_injection_head_placeholder")}
+                  className="font-mono text-sm"
+                  disabled={isDisabled}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
           />
 
-          <FormField
+          <Controller
             control={form.control}
             name="codeInjectionBody"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Code Injection Body
-                </FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    rows={10}
-                    placeholder="Enter HTML code to inject in the body section..."
-                    className="font-mono text-sm"
-                    disabled={isDisabled}
-                  />
-                </FormControl>
-              </FormItem>
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>{t("admin:settings.code_injection_body")}</FieldLabel>
+                <Textarea
+                  {...field}
+                  rows={10}
+                  placeholder={t("admin:settings.code_injection_body_placeholder")}
+                  className="font-mono text-sm"
+                  disabled={isDisabled}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
             )}
           />
+        </FieldGroup>
 
-          <Button
-            type="submit"
-            disabled={!form.formState.isDirty || isDisabled}
-            className="w-full sm:w-auto"
-          >
-            {isSaving || isSubmitting ? "Saving..." : "Save"}
-          </Button>
-        </form>
-      </Form>
+        <Button
+          type="submit"
+          disabled={!form.formState.isDirty || isDisabled}
+          className="w-full sm:w-auto"
+        >
+          {isSaving || isSubmitting ? t("common:saving") : t("common:save")}
+        </Button>
+      </form>
     </div>
   );
 }

@@ -35,7 +35,7 @@ const HeaderTopbar = (props: HeaderProps) => {
         </Button>
       )}
       <div className="flex-1">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl md:text-3xl font-bold tracking-tight">
           {props.header.title}
         </h1>
         {props.header.subtitle && (

@@ -130,7 +130,13 @@ export class ShortAnswerProvider extends BaseQuestionProvider<ShortAnswerQuestio
         .map((answer: unknown) => String(answer).trim());
     }
 
-    return super.getValidatedData(questionData, ctx);
+    // Short answer questions don't have options - explicitly remove them
+    const { options, ...cleanData } = questionData as any;
+
+    return super.getValidatedData({
+      ...cleanData,
+      options: [],
+    }, ctx);
   }
 
   // Process short answer for display

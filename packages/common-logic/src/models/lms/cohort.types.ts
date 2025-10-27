@@ -20,6 +20,7 @@ export interface ICohort {
     description?: string;
     inviteCode?: string;
     maxCapacity?: number;
+    statsCurrentStudentsCount: number;
     ownerId: mongoose.Types.ObjectId;
 }
 

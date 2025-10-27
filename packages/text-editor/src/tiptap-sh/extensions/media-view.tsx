@@ -17,7 +17,7 @@ declare module "@tiptap/core" {
       setMediaView: (asset: AssetType) => ReturnType;
       updateMediaView: (assetId: string, updates: Partial<AssetType>) => ReturnType;
       removeMediaView: (assetId: string) => ReturnType;
-      openMediaSelectDialog: (props: { fileType: string }) => ReturnType;
+      openMediaSelectDialog: (props: { fileType: "document" | "image" | "video" | "audio" | "json" | "all" }) => ReturnType;
     };
   }
 }
@@ -148,7 +148,6 @@ export const MediaViewExtension = Node.create<MediaViewOptions>({
   },
 
   addNodeView() {
-    console.log("[addNodeView]");
     return ReactNodeViewRenderer(MediaViewComponent);
   },
 

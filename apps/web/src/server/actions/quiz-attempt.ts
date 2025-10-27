@@ -1,11 +1,13 @@
 "use server";
 
 import {
+  AuthorizationException,
   ConflictException,
   NotFoundException,
   ValidationException
 } from "@/server/api/core/exceptions";
 import { QuestionProviderFactory } from "@/server/api/routers/lms/question-bank/_providers";
+import { checkEnrollmentAccess } from "@/server/api/routers/lms/course/helpers";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
@@ -177,6 +179,11 @@ export async function startQuizAttempt(
       throw new NotFoundException("Quiz", quizId);
     }
 
+    await checkEnrollmentAccess({
+      ctx,
+      courseId: quiz.courseId,
+    });
+
     const activeAttempt = await QuizAttemptModel.findOne({
       quizId,
       userId: ctx.user._id,
@@ -237,7 +244,6 @@ export async function startQuizAttempt(
 
 export async function getQuizAttempt(attemptId: string) {
   try {
-    await connectToDatabase();
     const ctx = await getActionContext();
 
     const attempt = await QuizAttemptModel.findOne({
@@ -260,13 +266,31 @@ export async function getQuizAttempt(attemptId: string) {
   }
 }
 
+const userHasPermission = async (ctx: ActionContext, objs: {
+  attempt: IQuizAttemptHydratedDocument;
+  quiz: IQuizHydratedDocument;
+}) => {
+  if(!checkPermission(ctx.user.permissions, [
+    UIConstants.permissions.manageAnyCourse,
+  ])) {
+    if (!ctx.user.roles.includes(UIConstants.roles.admin)) {
+      if (!ctx.user._id.equals(objs.attempt.userId)) {
+        if (!objs.quiz.ownerId.equals(ctx.user._id)) {
+          if(objs.attempt.gradedById &&!objs.attempt.gradedById.equals(ctx.user._id)) {
+            throw new AuthorizationException();
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
 export async function getQuizAttemptDetails(attemptId: string) {
   try {
     const ctx = await getActionContext();
 
     const attempt = await QuizAttemptModel.findOne({
       _id: attemptId,
-      userId: ctx.user._id,
       orgId: ctx.domainData.domainObj.orgId,
     }).populate<{
       quiz: {
@@ -285,6 +309,11 @@ export async function getQuizAttemptDetails(attemptId: string) {
     if (!quiz) {
       throw new NotFoundException("Quiz", attempt.quizId.toString());
     }
+
+    await userHasPermission(ctx, {
+      attempt,
+      quiz,
+    });
 
     const questions = await QuizQuestionModel.find({
       _id: { $in: quiz.questionIds },

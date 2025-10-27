@@ -1,0 +1,76 @@
+{
+  "settings": {
+    "title": "Тақырып",
+    "subtitle": "Қосалқы тақырып",
+    "logo": "Логотип",
+    "save_settings": "Параметрлерді сақтау",
+    "upload_image": "Сурет жүктеу",
+    "basic_settings": "Негізгі параметрлер",
+    "banner_settings": "Баннер параметрлері",
+    "show_main_page_banner": "Басты бетте баннер көрсету",
+    "display_banner_section": "Басты бетте баннер бөлімін көрсету",
+    "banner_title": "Баннер тақырыбы",
+    "banner_subtitle": "Баннер қосалқы тақырыбы",
+    "general_page_settings": "Жалпы бет параметрлері",
+    "show_statistics_section": "Статистика бөлімін көрсету",
+    "display_student_count": "Студенттер саны, курс саны және тәжірибе жылдарын көрсету",
+    "show_features_section": "Мүмкіндіктер бөлімін көрсету",
+    "display_platform_features": "Жүйелі оқыту, практика, өсу және қолдау сияқты платформа мүмкіндіктерін көрсету",
+    "show_testimonials_section": "Пікірлер бөлімін көрсету",
+    "display_student_testimonials": "Басты бетте студенттердің пікірлері мен шолуларын көрсету",
+    "code_injection_head": "Head бөліміне код енгізу",
+    "code_injection_body": "Body бөліміне код енгізу",
+    "code_injection_head_placeholder": "Head бөліміне енгізілетін HTML кодты енгізіңіз...",
+    "code_injection_body_placeholder": "Body бөліміне енгізілетін HTML кодты енгізіңіз...",
+    "website_settings_subtitle": "Веб-сайт параметрлері",
+    "featured_courses": "Таңдаулы курстар",
+    "featured_reviews": "Таңдаулы пікірлер",
+    "import_course": "Курсты импорттау",
+    "import_review": "Пікірді импорттау",
+    "select_course": "Курсты таңдаңыз",
+    "select_review": "Пікірді таңдаңыз"
+  },
+  "organizations": {
+    "organization_name": "Ұйым атауы",
+    "email": "Электрондық пошта",
+    "description": "Сипаттама",
+    "phone": "Телефон",
+    "address": "Мекенжай",
+    "create_organization": "Ұйым жасау",
+    "create_new_organization": "Жаңа ұйым жасау",
+    "name_placeholder": "мысалы, Acme Corporation",
+    "email_placeholder": "мысалы, contact@acme.com",
+    "description_placeholder": "Ұйымның қысқаша сипаттамасы...",
+    "phone_placeholder": "мысалы, +7-777-123-45-67",
+    "address_placeholder": "мысалы, 123 Негізгі көше, Қала"
+  },
+  "users": {
+    "user_details": "Пайдаланушы мәліметтері",
+    "username": "Пайдаланушы аты",
+    "full_name": "Толық аты",
+    "roles": "Рөлдер",
+    "permissions": "Рұқсаттар",
+    "email_verified": "Email расталды",
+    "created_at": "Жасалған күні",
+    "updated_at": "Жаңартылған күні"
+  },
+  "tags": {
+    "tag_name": "Тег атауы",
+    "slug": "Slug",
+    "create_tag": "Тег жасау",
+    "edit_tag": "Тегті өңдеу",
+    "name_placeholder": "Тег атауын енгізіңіз"
+  },
+  "external_api_keys": {
+    "title": "Сыртқы API кілттері",
+    "key_name": "Кілт атауы",
+    "api_key": "API кілті",
+    "provider": "Провайдер",
+    "create_api_key": "API кілт жасау",
+    "edit_api_key": "API кілтті өңдеу",
+    "key_name_placeholder": "Кілт атауын енгізіңіз",
+    "api_key_placeholder": "API кілтті енгізіңіз",
+    "provider_placeholder": "Провайдерді таңдаңыз"
+  }
+}
+

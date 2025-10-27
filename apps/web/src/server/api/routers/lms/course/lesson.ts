@@ -37,9 +37,7 @@ import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
-import { getCourseOrThrow } from "./helpers";
-
-// ✓ Lesson progress tracking implemented via enrollment.saveCurrentLesson and enrollment.updateProgress
+import { checkEnrollmentAccess, getCourseOrThrow } from "./helpers";
 
 const getLessonOrThrow = async (
   id: string,
@@ -140,11 +138,8 @@ export const lessonRouter = router({
         orgId: ctx.domainData.domainObj.orgId,
       })
         .populate<{
-          owner: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
+          owner: Pick<IUserHydratedDocument, "_id" | "username" | "firstName" | "lastName" | "fullName" | "email">;
         }>("owner", "username firstName lastName fullName email")
-        .populate<{
-          course: Pick<ICourseHydratedDocument, "title">;
-        }>("course", "title")
         .lean();
 
       if (!lesson) {
@@ -312,28 +307,11 @@ export const lessonRouter = router({
         throw new NotFoundException("Lesson", input.lessonId);
       }
 
-      // Check enrollment requirement
-      if (lesson.requiresEnrollment) {
-        if (!ctx.session?.user) {
-          throw new AuthenticationException();
-        }
-
-        const enrollment = await EnrollmentModel.findOne({
-          userId: ctx.session.user.id,
-          courseId: lesson.courseId,
-          orgId: ctx.domainData.domainObj.orgId,
-        });
-
-        if (!enrollment || enrollment.status !== EnrollmentStatusEnum.ACTIVE) {
-          if (!checkPermission(ctx.session.user.permissions, [
-            UIConstants.permissions.manageCourse,
-            UIConstants.permissions.manageAnyCourse,
-          ])
-          ) {
-            throw new AuthorizationException();
-          }
-        }
-      }
+      await checkEnrollmentAccess({
+        ctx: ctx as unknown as MainContextType,
+        courseId: lesson.courseId,
+        requiresEnrollment: lesson.requiresEnrollment,
+      });
 
       // Find prev/next lessons in the course structure
       let prevLesson: Pick<ILessonHydratedDocument, "_id" | "title"> | null = null;

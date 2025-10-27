@@ -1,8 +1,8 @@
-import { type ISiteInfo } from "../models/organization";
+import { type ISiteInfo, IStripePaymentMethodData } from "../models/organization.types";
 
 type ICroppedSiteInfo = Omit<ISiteInfo, "paymentMethods"> & {
-    paymentMethods: {
-        stripe: Pick<ISiteInfo["paymentMethods"]["stripe"], "stripeKey" | "type">;
+    paymentMethods?: {
+        stripe?: Pick<IStripePaymentMethodData, "stripeKey" | "type">;
     };
 };
 

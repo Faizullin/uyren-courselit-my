@@ -433,4 +433,46 @@ export const userRouter = router({
         coursesInProgress: activeEnrollments - completedCourses,
       });
     }),
+
+
+
+  listInstructors: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(ListInputSchema)
+    .query(async ({ ctx, input }) => {
+      const query: RootFilterQuery<typeof UserModel> = {
+        orgId: ctx.domainData.domainObj.orgId,
+        roles: { $in: [UIConstants.roles.instructor] },
+      };
+
+      if (input.search?.q) {
+        query.$text = { $search: input.search.q };
+      }
+
+      const paginationMeta = paginate(input.pagination);
+      const orderBy = input.orderBy || {
+        field: "createdAt",
+        direction: "desc",
+      };
+      const sortObject: Record<string, 1 | -1> = {
+        [orderBy.field]: orderBy.direction === "asc" ? 1 : -1,
+      };
+
+      const [items, total] = await Promise.all([
+        UserModel.find(query)
+          .skip(paginationMeta.skip)
+          .limit(paginationMeta.take)
+          .sort(sortObject)
+          .lean(),
+        paginationMeta.includePaginationCount
+          ? UserModel.countDocuments(query)
+          : Promise.resolve(null),
+      ]);
+
+      return jsonify({
+        items,
+        total,
+        meta: paginationMeta,
+      });
+    }),
 });

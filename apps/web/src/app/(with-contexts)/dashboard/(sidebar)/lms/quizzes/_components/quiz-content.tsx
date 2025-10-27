@@ -130,7 +130,7 @@ export default function QuizContent() {
 
       <Tabs defaultValue="settings" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="settings">{t("dashboard:lms.quiz.tabs.quiz_settings")}</TabsTrigger>
+          <TabsTrigger value="settings">{t("dashboard:lms.quiz.tabs.basic_info")}</TabsTrigger>
           <TabsTrigger value="questions" disabled={mode === "create"}>
             {t("dashboard:lms.quiz.tabs.questions")}
           </TabsTrigger>

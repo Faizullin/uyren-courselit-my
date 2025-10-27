@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export enum UserLessonProgressStatus {
+export enum UserLessonProgressStatusEnum {
     COMPLETED = "completed",
     IN_PROGRESS = "in_progress",
     NOT_STARTED = "not_started",
@@ -8,7 +8,7 @@ export enum UserLessonProgressStatus {
 
 export interface IUserLessonProgress {
     lessonId: mongoose.Types.ObjectId;
-    status: UserLessonProgressStatus;
+    status: UserLessonProgressStatusEnum;
     completedAt?: Date;
 }
 
@@ -18,5 +18,8 @@ export interface IUserProgress {
     courseId: mongoose.Types.ObjectId;
     enrollmentId: mongoose.Types.ObjectId;
     lessons: IUserLessonProgress[];
+    
+    createdAt: Date;
+    updatedAt: Date;
 }
 

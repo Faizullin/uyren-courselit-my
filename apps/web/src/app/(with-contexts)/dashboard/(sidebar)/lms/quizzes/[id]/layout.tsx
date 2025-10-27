@@ -1,15 +1,13 @@
-"use client";
-
 import { QuizProvider } from "../_components/quiz-context";
-import { useParams } from "next/navigation";
 
-export default function QuizLayout({
+export default async function Layout({ 
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ id: string }>;
 }) {
-  const params = useParams<{ id: string }>();
-  const quizId = params.id;
+  const quizId = (await params).id;
   const initialMode = quizId === "new" ? "create" : "edit";
 
   return (

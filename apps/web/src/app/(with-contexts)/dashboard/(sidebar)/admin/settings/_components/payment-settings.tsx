@@ -163,7 +163,7 @@ export default function PaymentSettings() {
               disabled={updatePaymentMutation.isPending || isLoading}
               className="w-full sm:w-auto"
             >
-              {updatePaymentMutation.isPending ? "Saving..." : "Save Payment Settings"}
+              {updatePaymentMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </div>
         </FieldGroup>

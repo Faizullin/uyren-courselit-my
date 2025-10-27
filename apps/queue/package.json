@@ -2,6 +2,7 @@
   "name": "@apps/queue",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/server.ts",
@@ -12,13 +13,17 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.0.9",
+    "@workspace/ai-bot": "workspace:*",
     "@workspace/common-logic": "workspace:*",
     "@workspace/utils": "workspace:*",
+    "ai": "^4.0.47",
     "bullmq": "^5.56.9",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "faiss-node": "^0.5.1",
     "mongodb": "^6.18.0",
     "mongoose": "^8.17.0",
     "nodemailer": "^7.0.5",

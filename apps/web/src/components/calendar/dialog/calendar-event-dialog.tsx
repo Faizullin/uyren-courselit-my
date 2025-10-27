@@ -532,7 +532,7 @@ export default function CalendarEventDialog() {
                     <SelectTrigger id="recurrence-type" aria-invalid={fieldState.invalid}>
                       <SelectValue placeholder="Select recurrence" />
                     </SelectTrigger>
-                    <SelectContent >
+                    <SelectContent>
                       <SelectItem value={RecurrenceTypeEnum.NONE}>None</SelectItem>
                       <SelectItem value={RecurrenceTypeEnum.DAILY}>Daily</SelectItem>
                       <SelectItem value={RecurrenceTypeEnum.WEEKLY}>Weekly</SelectItem>

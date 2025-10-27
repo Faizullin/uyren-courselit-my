@@ -1,0 +1,76 @@
+{
+  "settings": {
+    "title": "Title",
+    "subtitle": "Subtitle",
+    "logo": "Logo",
+    "save_settings": "Save Settings",
+    "upload_image": "Upload Image",
+    "basic_settings": "Basic Settings",
+    "banner_settings": "Banner Settings",
+    "show_main_page_banner": "Show main page banner",
+    "display_banner_section": "Display a banner section on the homepage",
+    "banner_title": "Banner Title",
+    "banner_subtitle": "Banner Subtitle",
+    "general_page_settings": "General Page Settings",
+    "show_statistics_section": "Show statistics section",
+    "display_student_count": "Display student count, course count, and experience years",
+    "show_features_section": "Show features section",
+    "display_platform_features": "Display platform features like systematic learning, practice, growth, and support",
+    "show_testimonials_section": "Show testimonials section",
+    "display_student_testimonials": "Display student testimonials and reviews on the homepage",
+    "code_injection_head": "Code Injection Head",
+    "code_injection_body": "Code Injection Body",
+    "code_injection_head_placeholder": "Enter HTML code to inject in the head section...",
+    "code_injection_body_placeholder": "Enter HTML code to inject in the body section...",
+    "website_settings_subtitle": "Website Settings",
+    "featured_courses": "Featured Courses",
+    "featured_reviews": "Featured Reviews",
+    "import_course": "Import Course",
+    "import_review": "Import Review",
+    "select_course": "Select a course",
+    "select_review": "Select a review"
+  },
+  "organizations": {
+    "organization_name": "Organization Name",
+    "email": "Email",
+    "description": "Description",
+    "phone": "Phone",
+    "address": "Address",
+    "create_organization": "Create Organization",
+    "create_new_organization": "Create New Organization",
+    "name_placeholder": "e.g., Acme Corporation",
+    "email_placeholder": "e.g., contact@acme.com",
+    "description_placeholder": "Brief description of the organization...",
+    "phone_placeholder": "e.g., +1-555-0123",
+    "address_placeholder": "e.g., 123 Main St, City"
+  },
+  "users": {
+    "user_details": "User Details",
+    "username": "Username",
+    "full_name": "Full Name",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "email_verified": "Email Verified",
+    "created_at": "Created At",
+    "updated_at": "Updated At"
+  },
+  "tags": {
+    "tag_name": "Tag Name",
+    "slug": "Slug",
+    "create_tag": "Create Tag",
+    "edit_tag": "Edit Tag",
+    "name_placeholder": "Enter tag name"
+  },
+  "external_api_keys": {
+    "title": "External API Keys",
+    "key_name": "Key Name",
+    "api_key": "API Key",
+    "provider": "Provider",
+    "create_api_key": "Create API Key",
+    "edit_api_key": "Edit API Key",
+    "key_name_placeholder": "Enter key name",
+    "api_key_placeholder": "Enter API key",
+    "provider_placeholder": "Select provider"
+  }
+}
+

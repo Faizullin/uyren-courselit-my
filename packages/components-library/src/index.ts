@@ -10,6 +10,7 @@ import Table, { TableBody, TableHead, TableRow } from "./table";
 export * from "./nice-modal";
 
 export * from "./delete-confirm-nice-dialog";
+export * from "./media-upload";
 
 import getSymbolFromCurrency from "currency-symbol-map";
 
@@ -22,8 +23,8 @@ export {
 };
 export type { MediaDialogStrings, MediaDialogConfig, MediaDialogFunctions };
 
-  export * from "./dialogs/base-dialog";
-  export * from "./dialogs/form-dialog";
-  export * from "./hooks/use-dialog-control";
-  export * from "./hooks/use-toast";
-  export * from "./phone-input";
+export * from "./dialogs/base-dialog";
+export * from "./dialogs/form-dialog";
+export * from "./hooks/use-dialog-control";
+export * from "./hooks/use-toast";
+export * from "./phone-input";

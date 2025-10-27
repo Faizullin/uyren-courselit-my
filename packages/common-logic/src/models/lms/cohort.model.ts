@@ -46,6 +46,12 @@ export const CohortSchema = new mongoose.Schema<ICohort>({
         required: false,
         min: 1
     },
+    statsCurrentStudentsCount: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0
+    },
     ownerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

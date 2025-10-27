@@ -6,7 +6,9 @@ import { z } from "zod";
 export const documentIdValidator = (zod = z) => {
   return zod
     .string()
-    .refine((val) => mongoose.Types.ObjectId.isValid(val), {
+    .refine((val) => {
+      return mongoose.Types.ObjectId.isValid(val);
+    }, {
       message: "DocumentId must be a valid MongoDB ObjectId",
     })
     .transform((val) => val); // Keep as string for easier handling

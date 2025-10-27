@@ -78,7 +78,6 @@ export default function QuizSubmissions() {
 
   const handleViewResults = useCallback(
     (submission: QuizAttemptType) => {
-      // Open existing results page in new tab
       const resultsUrl = `/quiz/${quiz?._id}/attempts/${submission._id}/results`;
       window.open(resultsUrl, "_blank");
     },

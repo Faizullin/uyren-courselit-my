@@ -26,9 +26,11 @@ import AssignmentSettings from "./assignment-settings";
 import AssignmentSubmissions from "./assignment-submissions";
 
 export default function AssignmentContent() {
-  const { mode, assignment, updateMutation } = useAssignmentContext();
+  const { mode, loadDetailQuery, updateMutation } = useAssignmentContext();
   const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
+
+  const assignment = loadDetailQuery.data;
 
   const breadcrumbs = useMemo(
     () => [

@@ -4,7 +4,7 @@ import { getActionContext } from "@/server/api/core/actions";
 import { AuthorizationException, NotFoundException, ValidationException } from "@/server/api/core/exceptions";
 import { ListInputSchema } from "@/server/api/core/schema";
 import { paginate } from "@/server/api/core/utils";
-import { CloudinaryService } from "@/server/services/cloudinary";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { AssignmentModel } from "@workspace/common-logic/models/lms/assignment.model";
 import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
@@ -36,7 +36,7 @@ export async function uploadAssignmentMedia(assignmentId: string, formData: Form
             throw new AuthorizationException();
         }
 
-        const attachment = await CloudinaryService.uploadFile(
+        const attachment = await getStorageProvider().uploadFile(
             {
                 file,
                 userId: ctx.user._id as mongoose.Types.ObjectId,
@@ -106,7 +106,7 @@ export async function removeAssignmentMedia(assignmentId: string, mediaId: strin
             throw new ValidationException("Attachment not found");
         }
 
-        await CloudinaryService.deleteFile(attachmentToRemove);
+        await getStorageProvider(attachmentToRemove.storageProvider).deleteFile(attachmentToRemove);
 
         // Remove from assignment's attachments array
         assignment.attachments = assignment.attachments?.filter(att => att.mediaId !== mediaId) || [];

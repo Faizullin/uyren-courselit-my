@@ -1,12 +1,9 @@
 import { getQuizAttemptDetails } from "@/server/actions/quiz-attempt";
 import { getT } from "@/app/i18n/server";
-import { getActionContext } from "@/server/api/core/actions";
-import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Separator } from "@workspace/ui/components/separator";
-import { checkPermission } from "@workspace/utils";
 import { CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
 import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
@@ -36,7 +33,7 @@ export async function generateMetadata(
   }
 }
 
-export default async function QuizResultsPage({ params }: QuizResultsPageProps) {
+export default async function Page({ params }: QuizResultsPageProps) {
   const { id, attemptId } = await params;
   const { t } = await getT(["quiz", "common"]);
 
@@ -45,17 +42,6 @@ export default async function QuizResultsPage({ params }: QuizResultsPageProps) 
 
     const passed = result.passed;
     const percentageScore = Math.round(result.percentageScore);
-
-    let canLeaveFeedback = false;
-    try {
-      const ctx = await getActionContext();
-      canLeaveFeedback = checkPermission(ctx.user.permissions, [
-        UIConstants.permissions.manageCourse,
-        UIConstants.permissions.manageAnyCourse,
-      ]);
-    } catch (error) {
-      canLeaveFeedback = false;
-    }
 
     return (
       <div className="container max-w-5xl mx-auto px-4 py-8">
@@ -136,7 +122,6 @@ export default async function QuizResultsPage({ params }: QuizResultsPageProps) 
           questions={result.questions}
           answers={result.answers}
           attemptId={attemptId}
-          canLeaveFeedback={canLeaveFeedback}
         />
       </div>
     );

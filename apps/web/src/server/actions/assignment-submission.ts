@@ -1,252 +1,135 @@
 "use server";
 
-import { authOptions } from "@/lib/auth/options";
-import { getDomainData } from "@/server/lib/domain";
+import { AuthenticationException, AuthorizationException, ConflictException, NotFoundException } from "@/server/api/core/exceptions";
+import { ActionContext, getActionContext } from "@/server/api/core/actions";
+import { getStorageProvider } from "@/server/services/storage-provider";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
-import { PublicationStatusEnum } from "@workspace/common-logic/lib/publication_status";
-import { AssignmentModel, AssignmentPeerReviewModel, AssignmentSubmissionModel } from "@workspace/common-logic/models/lms/assignment.model";
+import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { AssignmentSubmissionModel } from "@workspace/common-logic/models/lms/assignment.model";
 import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
-import { UserModel } from "@workspace/common-logic/models/user.model";
+import { AttachmentModel } from "@workspace/common-logic/models/media.model";
+import { MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
+import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
+import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth";
-import { AuthenticationException, NotFoundException } from "../api/core/exceptions";
-import { MainContextType } from "../api/core/procedures";
 
+async function validateFileOwnership(url: string, ctx: ActionContext) {
+  const attachment = await AttachmentModel.findOne({
+    url,
+    ownerId: ctx.user._id,
+    orgId: ctx.domainData.domainObj.orgId,
+  });
 
-interface SubmissionData {
-  content: string;
-  attachments?: string[];
-}
-// Core functions
-async function getActionContext(): Promise<MainContextType> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    throw new AuthenticationException("User not authenticated");
+  if (!attachment) {
+    throw new NotFoundException("Attachment", url);
   }
 
-  const user = await UserModel.findById(session.user.id);
-  if (!user) {
-    throw new AuthenticationException("User not found");
-  }
-
-  const domainData = await getDomainData();
-  if (!domainData.domainObj) {
-    throw new NotFoundException("Domain");
-  }
-
-  return {
-    user: user,
-    session: session,
-    domainData: {
-      ...domainData,
-      domainObj: domainData.domainObj!
-    },
-  } as MainContextType;
+  return attachment;
 }
 
-const validateAssignment = async (assignmentId: string, ctx: MainContextType) => {
-  const assignment = await AssignmentModel.findOne({
-    _id: assignmentId,
-    orgId: ctx.domainData.domainObj.orgId
-  });
-  if (!assignment) {
-    throw new Error("Assignment not found");
-  }
-  if (assignment.publicationStatus !== PublicationStatusEnum.PUBLISHED) {
-    throw new Error("Assignment is not published");
-  }
-  if (
-    assignment.dueDate &&
-    new Date() > assignment.dueDate &&
-    !assignment.allowLateSubmission
-  ) {
-    throw new Error(
-      "Assignment is overdue and late submissions are not allowed",
-    );
-  }
-  return assignment;
-};
-
-export async function createAssignmentSubmission(
-  assignmentId: string,
-  userId: mongoose.Types.ObjectId,
-  data: SubmissionData,
-): Promise<any> {
-  const ctx = await getActionContext();
-  const assignment = await validateAssignment(assignmentId, ctx);
-  // Check existing submissions
-  const existingSubmissions = await AssignmentSubmissionModel.countDocuments({
-    assignmentId,
-    userId,
+async function validateSubmissionOwnership(submissionId: string, ctx: ActionContext) {
+  const submission = await AssignmentSubmissionModel.findOne({
+    _id: submissionId,
     orgId: ctx.domainData.domainObj.orgId,
-    status: { $in: ["submitted", "graded"] },
   });
 
-  if (assignment.maxAttempts && existingSubmissions >= assignment.maxAttempts) {
-    throw new Error("Maximum submissions reached");
+  if (!submission) {
+    throw new NotFoundException("Submission", submissionId);
   }
 
-  const submission = await AssignmentSubmissionModel.create({
-    orgId: ctx.domainData.domainObj.orgId,
-    assignmentId,
-    userId,
-    status: AssignmentSubmissionStatusEnum.SUBMITTED,
-    submittedAt: new Date(),
-    content: data.content,
-    attachments: data.attachments || [],
-    attemptNumber: existingSubmissions + 1,
-  });
+  const isOwner = submission.userId.equals(ctx.user._id);
+  const hasManagePermission = checkPermission(ctx.user.permissions, [
+    UIConstants.permissions.manageCourse,
+    UIConstants.permissions.manageAnyCourse,
+  ]);
+
+  if (!isOwner && !hasManagePermission) {
+    throw new AuthorizationException("You don't have permission to access this submission");
+  }
 
   return submission;
 }
 
-export async function gradeAssignmentSubmission(
-  submissionId: string,
-  graderId: mongoose.Types.ObjectId,
-  gradeData: {
-    score: number;
-    feedback?: string;
-    rubricScores?: Array<{
-      criterionId: mongoose.Types.ObjectId;
-      score: number;
-      feedback?: string;
-    }>;
-  },
-): Promise<any> {
+export async function uploadFileAction(formData: FormData) {
+  await connectToDatabase();
   const ctx = await getActionContext();
+  
+  const file = formData.get("file") as File;
+  const submissionId = formData.get("submissionId") as string;
 
-  const submission = await AssignmentSubmissionModel.findById(submissionId);
-  if (!submission) {
-    throw new Error("Submission not found");
+  if (!file) throw new AuthenticationException("File is required");
+  if (!submissionId) throw new AuthenticationException("Submission ID is required");
+  if (file.size > 50 * 1024 * 1024) throw new ConflictException("File size exceeds 50MB limit");
+
+  const allowedTypes = ["image/", "video/", "audio/", "application/pdf", "application/zip", "text/"];
+  const isValidType = allowedTypes.some(type => file.type.startsWith(type));
+  
+  if (!isValidType) {
+    throw new ConflictException("Unsupported file type");
   }
 
-  const assignment = await AssignmentModel.findById(submission.assignmentId);
-  if (!assignment) {
-    throw new Error("Assignment not found");
+  const submission = await validateSubmissionOwnership(submissionId, ctx);
+
+  if (submission.status !== AssignmentSubmissionStatusEnum.DRAFT) {
+    throw new ConflictException("Cannot add attachments to submitted assignment");
   }
 
-  // Calculate percentage score
-  const percentageScore =
-    assignment.totalPoints > 0
-      ? (gradeData.score / assignment.totalPoints) * 100
-      : 0;
-
-  // Apply late penalty if applicable
-  let finalScore = gradeData.score;
-  if (assignment.dueDate && submission.submittedAt > assignment.dueDate) {
-    const latePenalty = Math.min(
-      assignment.latePenalty || 0,
-      gradeData.score * (assignment.latePenalty / 100),
-    );
-    finalScore = Math.max(0, gradeData.score - latePenalty);
-  }
-
-  const updatedSubmission = await AssignmentSubmissionModel.findByIdAndUpdate(
-    submissionId,
+  const attachment = await getStorageProvider().uploadFile(
     {
-      status: AssignmentSubmissionStatusEnum.GRADED,
-      score: finalScore,
-      percentageScore: (finalScore / assignment.totalPoints) * 100,
-      feedback: gradeData.feedback,
-      gradedAt: new Date(),
-      gradedById: graderId,
-      latePenaltyApplied:
-        finalScore < gradeData.score ? gradeData.score - finalScore : 0,
+      file,
+      userId: ctx.user._id as mongoose.Types.ObjectId,
+      type: "assignment-submission",
+      caption: file.name,
+      access: MediaAccessTypeEnum.PRIVATE,
+      entityType: "assignment-submission",
+      entityId: submissionId,
     },
-    { new: true },
+    ctx.domainData.domainObj as IDomainHydratedDocument,
   );
 
-  return updatedSubmission;
+  const media = attachment.toObject();
+  submission.attachments.push(media);
+  await submission.save();
+  
+  return { 
+    success: true, 
+    url: attachment.url,
+    media: {
+      mediaId: media.mediaId,
+      url: media.url,
+      originalFileName: media.originalFileName,
+      storageProvider: media.storageProvider,
+      size: media.size,
+      mimeType: media.mimeType,
+      orgId: media.orgId,
+      access: media.access,
+      thumbnail: media.thumbnail,
+      caption: media.caption,
+    }
+  };
 }
 
-export async function addPeerReview(
-  submissionId: string,
-  reviewerId: mongoose.Types.ObjectId,
-  reviewData: {
-    score: number;
-    feedback: string;
-  },
-): Promise<any> {
-  const ctx = await getActionContext();
-
-  const submission = await AssignmentSubmissionModel.findById(submissionId);
-  if (!submission) {
-    throw new Error("Submission not found");
-  }
-
-  const assignment = await AssignmentModel.findById(submission.assignmentId);
-  if (!assignment || !assignment.allowPeerReview) {
-    throw new Error("Peer review not enabled for this assignment");
-  }
-
-  const peerReview = await AssignmentPeerReviewModel.create({
-    orgId: ctx.domainData.domainObj.orgId,
-    submissionId: submission._id,
-    reviewerId,
-    score: reviewData.score,
-    feedback: reviewData.feedback,
-    reviewedAt: new Date(),
-  });
-
-  return peerReview;
-}
-
-export async function uploadFileAction(formData: FormData) {
-  const ctx = await getActionContext();
-  const file = formData.get("file") as File;
-
-  if (!file) throw new Error("File is required");
-  if (file.size > 15 * 1024 * 1024) throw new Error("File too large");
-
-  const allowed = ["image/", "video/", "audio/", "application/pdf", "application/zip", "text/"];
-  const ok = allowed.some(t => file.type.startsWith(t));
-  if (!ok) throw new Error("Unsupported file type");
-
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("caption", file.name);
-  fd.append("access", "private");
-
-  const headersList = await (await import("next/headers")).headers();
-  const proto = headersList.get("x-forwarded-proto") || "http";
-  const host = headersList.get("host") || "localhost:3000";
-
-  const res = await fetch(`${proto}://${host}/api/services/media/upload?storageType=cloudinary`, {
-    method: "POST",
-    body: fd,
-  });
-
-  if (!res.ok) throw new Error("Upload failed");
-  const json = await res.json();
-  const url = json?.url || json?.media?.url;
-  if (!url) throw new Error("Upload response invalid");
-
-  return { success: true, url };
-}
-
-export async function submitAssignmentAction(formData: FormData) {
-  const ctx = await getActionContext();
+export async function removeSubmissionAttachment(url: string, submissionId: string) {
   await connectToDatabase();
+  const ctx = await getActionContext();
 
-  const assignmentId = String(formData.get("assignmentId") || "");
-  if (!assignmentId) throw new Error("assignmentId is required");
+  if (!submissionId) throw new AuthenticationException("Submission ID is required");
 
-  const assignment = await validateAssignment(assignmentId, ctx);
+  const attachment = await validateFileOwnership(url, ctx);
+  const submission = await validateSubmissionOwnership(submissionId, ctx);
 
-  const content = String(formData.get("content") || "");
-  const attachments = formData.getAll("attachments").filter(Boolean).map(String);
+  if (submission.status !== AssignmentSubmissionStatusEnum.DRAFT) {
+    throw new ConflictException("Cannot modify attachments of submitted assignment");
+  }
 
+  submission.attachments = submission.attachments.filter(att => att.url !== url);
+  await submission.save();
 
-  const submission = await AssignmentSubmissionModel.create({
-    orgId: ctx.domainData.domainObj.orgId,
-    assignmentId: assignment._id,
-    userId: ctx.user._id,
-    status: AssignmentSubmissionStatusEnum.SUBMITTED,
-    submittedAt: new Date(),
-    content,
-    attachments,
-    attemptNumber: 1,
-  });
+  await getStorageProvider(attachment.storageProvider).deleteFile(attachment.toObject());
+  await AttachmentModel.deleteOne({ _id: attachment._id });
 
-  return { success: true, id: submission._id.toString() };
+  return { success: true };
 }
+
+
+

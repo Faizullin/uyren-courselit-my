@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
 import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 import {
     Select,
     SelectContent,
@@ -21,6 +22,8 @@ import {
 import {
     ChevronLeft,
     ChevronRight,
+    Cloud,
+    Database,
     Download,
     Eye,
     FileAudio,
@@ -43,8 +46,9 @@ import { toast } from "sonner";
 // TYPES & UTILS
 // ============================================================================
 
-type FileKind = "image" | "video" | "audio" | "document" | "json";
-type ViewMode = "grid" | "list";
+export type FileKind = "image" | "video" | "audio" | "document" | "json";
+export type FileTypeFilter = FileKind | "all";
+export type ViewMode = "grid" | "list";
 
 const getFileType = (mimeType: string | null | undefined): FileKind => {
     if (!mimeType || typeof mimeType !== 'string') return "document";
@@ -145,7 +149,7 @@ const MediaCard = memo(function MediaCard({
                     <div className="absolute top-2 right-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 bg-white/80">
+                                <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0 bg-white/80">
                                     <MoreVertical className="h-3 w-3" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -172,10 +176,21 @@ const MediaCard = memo(function MediaCard({
                         </DropdownMenu>
                     </div>
 
-                    <div className="absolute bottom-2 left-2">
+                    <div className="absolute bottom-2 left-2 flex gap-1">
                         <Badge variant="secondary" className="text-xs">
                             {getFileIcon(fileType)}
                         </Badge>
+                        {media.storageProvider && (
+                            <Badge 
+                                variant={media.storageProvider === "cloudinary" ? "default" : "outline"} 
+                                className="text-xs flex items-center gap-1"
+                                title={media.storageProvider === "cloudinary" ? "Cloudinary" : media.storageProvider === "local" ? "Local Storage" : "Custom"}
+                            >
+                                {media.storageProvider === "cloudinary" && <Cloud className="h-3 w-3" />}
+                                {media.storageProvider === "local" && <Database className="h-3 w-3" />}
+                                {media.storageProvider === "custom" && <FileIcon className="h-3 w-3" />}
+                            </Badge>
+                        )}
                     </div>
                 </div>
 
@@ -245,7 +260,7 @@ function MediaGrid({
                     <div className="text-muted-foreground">{errorText || "Something went wrong"}</div>
                 </div>
                 {onRetry && (
-                    <Button variant="outline" size="sm" onClick={onRetry}>
+                    <Button type="button" variant="outline" size="sm" onClick={onRetry}>
                         Try Again
                     </Button>
                 )}
@@ -360,6 +375,17 @@ function MediaList({
                                         <h3 className={`font-medium truncate ${compact ? "text-sm" : ""}`}>
                                             {media.file}
                                         </h3>
+                                        {media.storageProvider && (
+                                            <Badge 
+                                                variant={media.storageProvider === "cloudinary" ? "default" : "outline"} 
+                                                className="text-xs flex items-center gap-1 flex-shrink-0"
+                                                title={media.storageProvider === "cloudinary" ? "Cloudinary" : media.storageProvider === "local" ? "Local Storage" : "Custom"}
+                                            >
+                                                {media.storageProvider === "cloudinary" && <Cloud className="h-3 w-3" />}
+                                                {media.storageProvider === "local" && <Database className="h-3 w-3" />}
+                                                {media.storageProvider === "custom" && <FileIcon className="h-3 w-3" />}
+                                            </Badge>
+                                        )}
                                     </div>
 
                                     {/* {!compact && (
@@ -380,7 +406,7 @@ function MediaList({
 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button variant="ghost" size="sm">
+                                        <Button type="button" variant="ghost" size="sm">
                                             <MoreVertical className="h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -437,9 +463,9 @@ function MediaList({
 // MEDIA FILTERS
 // ============================================================================
 
-interface MediaFiltersProps {
-    typeValue: string;
-    setTypeValue: (value: string) => void;
+export interface MediaFiltersProps {
+    typeValue: FileTypeFilter;
+    setTypeValue: (value: FileTypeFilter) => void;
     searchTermValue: string;
     setSearchTermValue: (value: string) => void;
     viewModeValue: ViewMode;
@@ -510,6 +536,7 @@ function MediaFilters({
                 {showViewToggle && (
                     <div className="flex gap-1">
                         <Button
+                            type="button"
                             variant={viewModeValue === "grid" ? "default" : "outline"}
                             size="sm"
                             onClick={() => setViewModeValue("grid")}
@@ -518,6 +545,7 @@ function MediaFilters({
                             <Grid3X3 className="h-4 w-4" />
                         </Button>
                         <Button
+                            type="button"
                             variant={viewModeValue === "list" ? "default" : "outline"}
                             size="sm"
                             onClick={() => setViewModeValue("list")}
@@ -579,6 +607,7 @@ function PaginationBar({
             </div>
             <div className="flex items-center gap-2">
                 <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => onChange(Math.max(0, page - 1))}
@@ -591,6 +620,7 @@ function PaginationBar({
                 <div className="flex items-center gap-1">
                     {pages.map((p) => (
                         <Button
+                            type="button"
                             key={p}
                             variant={page === p ? "default" : "outline"}
                             size="sm"
@@ -603,6 +633,7 @@ function PaginationBar({
                     ))}
                 </div>
                 <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => onChange(Math.min(totalPages - 1, page + 1))}
@@ -629,7 +660,7 @@ function PaginationBar({
 
 interface UploadAreaProps {
     onUploaded: (attachment: any) => void;
-    uploadFile?: (file: File) => Promise<any>;
+    uploadFile?: (file: File, storageProvider?: string) => Promise<any>;
     className?: string;
     compact?: boolean;
     acceptedTypes?: string;
@@ -645,10 +676,16 @@ function UploadArea({
     const [drag, setDrag] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [busy, setBusy] = useState(false);
+    const [storageProvider, setStorageProvider] = useState<string>("local");
 
     const handleSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
-        if (f) setFile(f);
+        if (f) {
+            setFile(f);
+            const isImage = f.type.startsWith("image/");
+            const isSmallVideo = f.type.startsWith("video/") && f.size < 50 * 1024 * 1024;
+            setStorageProvider(isImage || isSmallVideo ? "cloudinary" : "local");
+        }
     }, []);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -656,7 +693,12 @@ function UploadArea({
         e.stopPropagation();
         setDrag(false);
         const f = e.dataTransfer.files?.[0];
-        if (f) setFile(f);
+        if (f) {
+            setFile(f);
+            const isImage = f.type.startsWith("image/");
+            const isSmallVideo = f.type.startsWith("video/") && f.size < 50 * 1024 * 1024;
+            setStorageProvider(isImage || isSmallVideo ? "cloudinary" : "local");
+        }
     }, []);
 
     const handleDrag = useCallback((e: React.DragEvent) => {
@@ -672,7 +714,7 @@ function UploadArea({
 
         setBusy(true);
         try {
-            const attachment = await uploadFile(file);
+            const attachment = await uploadFile(file, storageProvider);
             toast.success("Media uploaded successfully");
             onUploaded(attachment);
             setFile(null);
@@ -681,7 +723,7 @@ function UploadArea({
         } finally {
             setBusy(false);
         }
-    }, [file, uploadFile, onUploaded]);
+    }, [file, uploadFile, storageProvider, onUploaded]);
 
     const padding = compact ? "p-4" : "p-8";
     const iconSize = compact ? "w-8 h-8" : "w-16 h-16";
@@ -737,23 +779,41 @@ function UploadArea({
             </div>
 
             {file && (
-                <div className={`mt-4 p-4 bg-blue-50/50 rounded-lg border border-blue-100 ${compact ? "p-3" : ""}`}>
-                    <h4 className={`font-medium mb-2 text-blue-900 ${compact ? "text-sm" : ""}`}>
-                        Selected File
-                    </h4>
-                    <div className="flex items-center justify-between">
-                        <span className={`truncate flex-1 mr-2 ${compact ? "text-xs" : "text-sm"}`}>
-                            {file.name}
-                        </span>
-                        <span className={`text-muted-foreground ${compact ? "text-xs" : "text-sm"}`}>
-                            {formatSize(file.size)}
-                        </span>
+                <div className={`mt-4 space-y-3 ${compact ? "" : ""}`}>
+                    <div className={`p-4 bg-blue-50/50 rounded-lg border border-blue-100 ${compact ? "p-3" : ""}`}>
+                        <h4 className={`font-medium mb-2 text-blue-900 ${compact ? "text-sm" : ""}`}>
+                            Selected File
+                        </h4>
+                        <div className="flex items-center justify-between">
+                            <span className={`truncate flex-1 mr-2 ${compact ? "text-xs" : "text-sm"}`}>
+                                {file.name}
+                            </span>
+                            <span className={`text-muted-foreground ${compact ? "text-xs" : "text-sm"}`}>
+                                {formatSize(file.size)}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="upload-area-storage-provider" className="text-sm font-medium mb-2 block">
+                            Storage Provider
+                        </Label>
+                        <Select value={storageProvider} onValueChange={setStorageProvider} disabled={busy}>
+                            <SelectTrigger id="upload-area-storage-provider">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="local">Local Storage</SelectItem>
+                                <SelectItem value="cloudinary">Cloudinary</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             )}
 
             <div className={`flex gap-3 ${compact ? "mt-4" : "mt-6"}`}>
                 <Button
+                    type="button"
                     onClick={upload}
                     disabled={!file || busy}
                     className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
@@ -772,6 +832,7 @@ function UploadArea({
                     )}
                 </Button>
                 <Button
+                    type="button"
                     variant="outline"
                     onClick={() => setFile(null)}
                     disabled={busy}

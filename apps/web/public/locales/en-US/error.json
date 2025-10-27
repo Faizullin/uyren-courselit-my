@@ -27,6 +27,21 @@
     "error_loading_description": "Failed to load the requested content.",
     "error_validation_title": "Validation Error",
     "error_validation_description": "Please check your input and try again.",
+    "validation": {
+        "required": "{{field}} is required",
+        "min_length": "{{field}} must be at least {{min}} characters",
+        "max_length": "{{field}} must be less than {{max}} characters",
+        "min_value": "{{field}} must be at least {{min}}",
+        "max_value": "{{field}} must be at most {{max}}",
+        "invalid_email": "Invalid email address",
+        "invalid_url": "Invalid URL",
+        "invalid_phone": "Invalid phone number",
+        "invalid_date": "Invalid date",
+        "must_match": "{{field}} must match {{other}}",
+        "must_be_unique": "{{field}} must be unique",
+        "invalid_format": "Invalid {{field}} format",
+        "select_option": "Please select a {{field}}"
+    },
     "auth": {
         "invalid_email": "Invalid email address",
         "user_not_found": "Account not found",

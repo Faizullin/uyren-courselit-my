@@ -8,7 +8,7 @@ import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CohortStatusEnum } from "@workspace/common-logic/models/lms/cohort.types";
-import { ComboBox2, useToast } from "@workspace/components-library";
+import { ComboBox2, useToast, useDialogControl } from "@workspace/components-library";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@workspace/ui/components/textarea";
 import { slugify } from "@workspace/utils";
 import { format } from "date-fns";
-import { Calendar, Save, Plus } from "lucide-react";
+import { Calendar, Save, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useMemo, useState, useEffect } from "react";
@@ -27,7 +27,6 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { CohortScheduleEditDialog } from "./_components/cohort-schedule-edit-dialog";
-import { useDialogControl } from "@workspace/components-library";
 
 const CohortSchema = z.object({
     title: z.string().min(1).max(255),
@@ -128,7 +127,7 @@ export default function Page() {
     }, [trpcUtils]);
 
     const searchInstructors = useCallback(async (search: string, offset: number, size: number): Promise<InstructorItem[]> => {
-        const result = await trpcUtils.userModule.user.list.fetch({
+        const result = await trpcUtils.userModule.user.listInstructors.fetch({
             pagination: { skip: offset, take: size },
             search: search ? { q: search } : undefined,
         });
@@ -185,12 +184,20 @@ export default function Page() {
                 }}
                 backLink={true}
                 rightAction={
-                    <Link href={`/dashboard/lms/cohorts/${cohortId}/schedule`}>
-                        <Button variant="outline">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            View Schedule
-                        </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link href={`/dashboard/lms/cohorts/${cohortId}/students`}>
+                            <Button variant="outline">
+                                <Users className="h-4 w-4 mr-2" />
+                                Students
+                            </Button>
+                        </Link>
+                        <Link href={`/dashboard/lms/cohorts/${cohortId}/schedule`}>
+                            <Button variant="outline">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                Schedule
+                            </Button>
+                        </Link>
+                    </div>
                 }
             />
             <div className="grid gap-4 md:grid-cols-4">
@@ -207,7 +214,11 @@ export default function Page() {
                         <CardTitle className="text-sm">Capacity</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm font-medium">{cohort.maxCapacity ? `0/${cohort.maxCapacity}` : "Unlimited"}</p>
+                        <p className="text-sm font-medium">
+                            {cohort.maxCapacity 
+                                ? `${cohort.statsCurrentStudentsCount || 0}/${cohort.maxCapacity}` 
+                                : `${cohort.statsCurrentStudentsCount || 0} students`}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card>

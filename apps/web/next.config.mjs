@@ -28,6 +28,10 @@ const nextConfig = {
     },
     // Enable standalone output for Docker
     output: process.env.NEXT_FOR_DOCKER ? 'standalone' : undefined,
+
+    experimental: {
+        serverExternalPackages: ['pdf2json'],
+    },
 };
 
 export default nextConfig;

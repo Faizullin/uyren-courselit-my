@@ -1,6 +1,6 @@
 import { RedisConfig } from "@/core/redis";
 import { Queue } from "bullmq";
-import { MailJob } from "./models/mail-job";
+import { MailJob } from "./mail-job.types";
 
 class MailQueueManager {
   private mailQueue: Queue<MailJob>;

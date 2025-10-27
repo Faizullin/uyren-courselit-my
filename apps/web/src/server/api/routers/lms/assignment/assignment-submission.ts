@@ -20,6 +20,7 @@ import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model
 import { checkPermission } from "@workspace/utils";
 import { RootFilterQuery } from "mongoose";
 import { z } from "zod";
+import { checkEnrollmentAccess } from "../course/helpers";
 
 
 export const assignmentSubmissionRouter = router({
@@ -174,6 +175,7 @@ export const assignmentSubmissionRouter = router({
           maxScore: z.number().min(0),
           feedback: z.string().optional(),
         })).optional(),
+        status: z.nativeEnum(AssignmentSubmissionStatusEnum).optional(),
       }, {
         id: documentIdValidator(),
       }),
@@ -190,7 +192,9 @@ export const assignmentSubmissionRouter = router({
       submission.status = AssignmentSubmissionStatusEnum.GRADED;
       submission.gradedAt = new Date();
       submission.gradedById = ctx.user._id;
-
+      if (input.data.status) {
+        submission.status = input.data.status;
+      }
       const saved = await submission.save();
       return jsonify(saved.toObject());
     }),
@@ -264,6 +268,7 @@ export const assignmentSubmissionRouter = router({
     .use(createPermissionMiddleware([UIConstants.permissions.manageCourse]))
     .input(z.object({
       assignmentId: documentIdValidator(),
+      not_graded: z.boolean().optional(),
     }))
     .query(async ({ ctx, input }) => {
       const assignment = await AssignmentModel.findOne({
@@ -279,12 +284,185 @@ export const assignmentSubmissionRouter = router({
       if (!assignment.ownerId.equals(ctx.user._id) && !checkCourseInstructorPermission(course, ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
         throw new AuthorizationException();
       }
-      const submissions = await AssignmentSubmissionModel.find({
+      const query: RootFilterQuery<typeof AssignmentSubmissionModel> = {
         assignmentId: input.assignmentId,
         orgId: ctx.domainData.domainObj.orgId,
-      }).populate<{
-        student: Pick<IUserHydratedDocument, "username" | "firstName" | "lastName" | "fullName" | "email">;
-      }>("student", "username firstName lastName fullName email").lean();
-      return jsonify(submissions);
+      };
+      if (input.not_graded) query.status = { $ne: AssignmentSubmissionStatusEnum.GRADED };
+
+      const submissions = await AssignmentSubmissionModel.find(query).populate<{
+        student: Pick<IUserHydratedDocument, "_id" | "username" | "firstName" | "lastName" | "fullName" | "email">;
+      }>({
+        path: "student",
+        select: "username firstName lastName fullName email"
+      }).lean();
+
+      return jsonify({
+        items: submissions,
+      });
+    }),
+
+
+  getMyByAssignmentId: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(z.object({
+      assignmentId: documentIdValidator(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const submission = await AssignmentSubmissionModel.findOne({
+        assignmentId: input.assignmentId,
+        orgId: ctx.domainData.domainObj.orgId,
+        userId: ctx.user._id,
+      }).lean();
+      return jsonify(submission);
+    }),
+
+  saveDraft: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(z.object({
+      assignmentId: documentIdValidator(),
+      content: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const assignment = await AssignmentModel.findOne({
+        _id: input.assignmentId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!assignment) throw new NotFoundException("Assignment", input.assignmentId);
+
+      await checkEnrollmentAccess({
+        ctx,
+        courseId: assignment.courseId,
+      });
+
+      const existingDraft = await AssignmentSubmissionModel.findOne({
+        assignmentId: assignment._id,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: AssignmentSubmissionStatusEnum.DRAFT,
+      });
+
+      if (existingDraft) {
+        existingDraft.content = input.content || "";
+        const saved = await existingDraft.save();
+        return jsonify({ success: true, id: saved._id, isDraft: true });
+      }
+
+      const submission = await AssignmentSubmissionModel.create({
+        orgId: ctx.domainData.domainObj.orgId, 
+        assignmentId: assignment._id,
+        userId: ctx.user._id,
+        status: AssignmentSubmissionStatusEnum.DRAFT,
+        content: input.content,
+        attachments: [],
+        attemptNumber: 0,
+      });
+
+      return jsonify({ success: true, id: submission._id, isDraft: true });
+    }),
+
+  submitAssignment: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(z.object({
+      assignmentId: documentIdValidator(),
+      content: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const assignment = await AssignmentModel.findOne({
+        _id: input.assignmentId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!assignment) throw new NotFoundException("Assignment", input.assignmentId);
+
+      await checkEnrollmentAccess({
+        ctx,
+        courseId: assignment.courseId,
+      });
+
+      const existingDraft = await AssignmentSubmissionModel.findOne({
+        assignmentId: assignment._id,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: AssignmentSubmissionStatusEnum.DRAFT,
+      });
+
+      if (!existingDraft) {
+        throw new NotFoundException("Draft submission not found. Please save a draft first.");
+      }
+
+      if (!input.content && (!existingDraft.attachments || existingDraft.attachments.length === 0)) {
+        throw new AuthorizationException("Submission must have content or attachments");
+      }
+
+      const maxAttemptNumber = await AssignmentSubmissionModel.findOne({
+        assignmentId: assignment._id,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+      })
+        .sort({ attemptNumber: -1 })
+        .select('attemptNumber')
+        .lean();
+
+      const nextAttemptNumber = (maxAttemptNumber?.attemptNumber || 0) + 1;
+
+      if (assignment.maxAttempts && nextAttemptNumber > assignment.maxAttempts) {
+        throw new AuthorizationException(`Maximum submission attempts (${assignment.maxAttempts}) reached`);
+      }
+
+      existingDraft.status = AssignmentSubmissionStatusEnum.SUBMITTED;
+      existingDraft.submittedAt = new Date();
+      existingDraft.content = input.content;
+      existingDraft.attemptNumber = nextAttemptNumber;
+      const saved = await existingDraft.save();
+
+      return { success: true, id: saved._id.toString() };
+    }),
+
+  resubmit: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(z.object({
+      assignmentId: documentIdValidator(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const assignment = await AssignmentModel.findOne({
+        _id: input.assignmentId,
+        orgId: ctx.domainData.domainObj.orgId,
+      });
+      if (!assignment) throw new NotFoundException("Assignment", input.assignmentId);
+
+      if (!assignment.maxAttempts || assignment.maxAttempts <= 1) {
+        throw new AuthorizationException("Resubmission is not allowed for this assignment");
+      }
+
+      const submission = await AssignmentSubmissionModel.findOne({
+        assignmentId: assignment._id,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+        status: { $in: [AssignmentSubmissionStatusEnum.SUBMITTED, AssignmentSubmissionStatusEnum.GRADED] },
+      }).sort({ createdAt: -1 });
+
+      if (!submission) {
+        throw new NotFoundException("Submission not found");
+      }
+
+      const maxAttemptNumber = await AssignmentSubmissionModel.findOne({
+        assignmentId: assignment._id,
+        userId: ctx.user._id,
+        orgId: ctx.domainData.domainObj.orgId,
+      })
+        .sort({ attemptNumber: -1 })
+        .select('attemptNumber')
+        .lean();
+
+      const currentMaxAttempt = maxAttemptNumber?.attemptNumber || 0;
+
+      if (assignment.maxAttempts && currentMaxAttempt >= assignment.maxAttempts) {
+        throw new AuthorizationException(`Maximum submission attempts (${assignment.maxAttempts}) reached`);
+      }
+
+      submission.status = AssignmentSubmissionStatusEnum.DRAFT;
+      const saved = await submission.save();
+
+      return { success: true, id: saved._id.toString() };
     }),
 });

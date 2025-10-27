@@ -11,12 +11,12 @@ export const defaultState: {
 } = {
   siteinfo: {
     title: "Uyren AI",
-    subtitle: "AI-Powered Learning",
     logo: undefined,
+    currencyISOCode: "KZT",
   },
   config: {
     useNotificationsStream: false,
     turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || "",
-    queueServer: process.env.QUEUE_SERVER || "",
+    queueServer: process.env.NEXT_PUBLIC_QUEUE_SERVER || "",
   },
 };

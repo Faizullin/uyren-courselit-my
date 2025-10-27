@@ -1,92 +1,16 @@
 "use server";
 
 import { getActionContext } from "@/server/api/core/actions";
-import { AuthorizationException, NotFoundException, ValidationException } from "@/server/api/core/exceptions";
+import { AuthorizationException, NotFoundException } from "@/server/api/core/exceptions";
 import { ListInputSchema } from "@/server/api/core/schema";
 import { paginate } from "@/server/api/core/utils";
-import { CloudinaryService } from "@/server/services/cloudinary";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
 import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { AttachmentModel } from "@workspace/common-logic/models/media.model";
-import { IAttachmentMedia, MediaAccessTypeEnum } from "@workspace/common-logic/models/media.types";
-import { IDomainHydratedDocument } from "@workspace/common-logic/models/organization.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose, { RootFilterQuery } from "mongoose";
 import { z } from "zod";
-
-
-export async function uploadLessonMedia(lessonId: string, formData: FormData) {
-    try {
-        const ctx = await getActionContext();
-        const file = formData.get("file") as File;
-        if (!file) throw new ValidationException("No file provided");
-
-        const lesson = await LessonModel.findOne({ _id: lessonId, orgId: ctx.domainData.domainObj.orgId });
-        if (!lesson) throw new NotFoundException("Lesson", lessonId);
-
-        const attachment = await CloudinaryService.uploadFile(
-            {
-                file,
-                userId: ctx.user._id as mongoose.Types.ObjectId,
-                type: "lesson",
-                caption: `Media for ${lesson.title}`,
-                access: MediaAccessTypeEnum.PUBLIC,
-                entityType: "lesson",
-                entityId: lessonId,
-            },
-            ctx.domainData.domainObj as IDomainHydratedDocument,
-        );
-
-        const media = attachment.toObject();
-        lesson.media = media;
-        await lesson.save();
-
-        return {
-            success: true,
-            media: {
-                _id: media._id.toString(),
-                mediaId: media.mediaId,
-                orgId: media.orgId.toString(),
-                storageProvider: media.storageProvider,
-                url: media.url,
-                originalFileName: media.originalFileName,
-                mimeType: media.mimeType,
-                size: media.size,
-                access: media.access,
-                thumbnail: media.thumbnail,
-                caption: media.caption,
-                file: media.file,
-                metadata: media.metadata,
-                ownerId: media.ownerId.toString(),
-            }
-        };
-    } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        console.error("Lesson media upload error:", err);
-        return { success: false, error: err.message || "Upload failed" };
-    }
-}
-
-export async function removeLessonMedia(lessonId: string) {
-    try {
-        const ctx = await getActionContext();
-        const lesson = await LessonModel.findOne({ _id: lessonId, orgId: ctx.domainData.domainObj.orgId });
-        if (!lesson) throw new NotFoundException("Lesson", lessonId);
-        if (!lesson.media) throw new ValidationException("Lesson media not found");
-
-        await CloudinaryService.deleteFile(lesson.media);
-
-        lesson.media = undefined;
-        await lesson.save();
-
-        return { success: true };
-    } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        console.error("Lesson media removal error:", err);
-        return { success: false, error: err.message || "Removal failed" };
-    }
-}
 
 const ExtendedListInputSchema = ListInputSchema.extend({
     filter: z.object({
