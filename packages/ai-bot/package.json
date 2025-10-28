@@ -19,11 +19,10 @@
     "@langchain/openai": "^0.3.17",
     "@supabase/supabase-js": "^2.57.4",
     "@workspace/common-logic": "workspace:*",
+    "@workspace/ui": "workspace:*",
     "ai": "^5.0.10",
     "dotenv": "^17.2.1",
-    "faiss-node": "^0.5.1",
     "langchain": "^0.3.34",
-    "puppeteer": "^24.22.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

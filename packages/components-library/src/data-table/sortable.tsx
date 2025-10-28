@@ -38,7 +38,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { useComposedRefs } from "@/hooks/use-compose-refs";
+import { useComposedRefs } from "../hooks/use-compose-refs";
 import { cn } from "@workspace/ui/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 

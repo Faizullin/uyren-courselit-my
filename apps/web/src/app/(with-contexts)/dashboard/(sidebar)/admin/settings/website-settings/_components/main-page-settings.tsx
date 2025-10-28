@@ -1,9 +1,9 @@
 "use client";
 
-import { DataTable } from "@/components/data-table/data-table";
-import { DataTableSortList } from "@/components/data-table/data-table-sort-list";
-import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
-import { useDataTable } from "@/components/data-table/use-data-table";
+import { DataTable } from "@workspace/components-library/";
+import { DataTableSortList } from "@workspace/components-library";
+import { DataTableToolbar } from "@workspace/components-library";
+import { useDataTable } from "@workspace/components-library";
 import { trpc } from "@/utils/trpc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createColumnHelper } from "@tanstack/react-table";

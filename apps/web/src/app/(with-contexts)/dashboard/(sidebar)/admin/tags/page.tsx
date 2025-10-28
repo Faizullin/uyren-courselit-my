@@ -3,9 +3,9 @@
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { CreateButton } from "@/components/dashboard/layout/create-button";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { DataTable } from "@/components/data-table/data-table";
-import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
-import { useDataTable } from "@/components/data-table/use-data-table";
+import { DataTable } from "@workspace/components-library";
+import { DataTableToolbar } from "@workspace/components-library";
+import { useDataTable } from "@workspace/components-library";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";

@@ -4,8 +4,8 @@ import { CourseCard, CourseSkeletonCard } from "@/components/course/course-card"
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { CreateButton } from "@/components/dashboard/layout/create-button";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { DataTablePagination } from "@/components/data-table/data-table-pagination";
-import { useDataTable } from "@/components/data-table/use-data-table";
+import { DataTablePagination } from "@workspace/components-library";
+import { useDataTable } from "@workspace/components-library";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";
@@ -21,11 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { Grid3x3, List } from "lucide-react";
+import { Grid3x3, List, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CourseCreateDialog } from "./_components/course-create-dialog";
+import { useRouter } from "next/navigation";
 
 type CourseItemType = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["list"]["items"][number];
 
@@ -34,6 +35,7 @@ type QueryParams = Parameters<typeof trpc.lmsModule.courseModule.course.list.use
 
 export default function Page() {
   const { t } = useTranslation(["course", "dashboard", "common"]);
+  const router = useRouter();
   const createCourseDialog = useDialogControl();
   const breadcrumbs = [{ label: t("course:list.breadcrumb"), href: "#" }];
 
@@ -91,7 +93,15 @@ export default function Page() {
           title: t("dashboard:lms.modules.courses.title"),
           subtitle: t("dashboard:lms.modules.courses.description"),
         }}
-        rightAction={<CreateButton onClick={() => createCourseDialog.show()} />}
+        rightAction={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push("/dashboard/lms/courses/ai-generator")}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              AI Generator
+            </Button>
+            <CreateButton onClick={() => createCourseDialog.show()} />
+          </div>
+        }
       />
       <CourseCreateDialog control={createCourseDialog} />
 

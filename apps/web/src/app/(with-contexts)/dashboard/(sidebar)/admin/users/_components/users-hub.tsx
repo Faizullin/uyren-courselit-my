@@ -3,9 +3,9 @@
 import { useProfile } from "@/components/contexts/profile-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { DataTable } from "@/components/data-table/data-table";
-import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
-import { useDataTable } from "@/components/data-table/use-data-table";
+import { DataTable } from "@workspace/components-library/";
+import { DataTableToolbar } from "@workspace/components-library";
+import { useDataTable } from "@workspace/components-library";
 import { formattedLocaleDate } from "@/lib/ui/utils";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";

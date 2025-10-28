@@ -23,7 +23,6 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "faiss-node": "^0.5.1",
     "mongodb": "^6.18.0",
     "mongoose": "^8.17.0",
     "nodemailer": "^7.0.5",

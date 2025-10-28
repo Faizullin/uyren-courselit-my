@@ -2,8 +2,8 @@
 
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { DataTablePagination } from "@/components/data-table/data-table-pagination";
-import { useDataTable } from "@/components/data-table/use-data-table";
+import { DataTablePagination } from "@workspace/components-library";
+import { useDataTable } from "@workspace/components-library";
 import type { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { CourseLevelEnum } from "@workspace/common-logic/models/lms/course.types";

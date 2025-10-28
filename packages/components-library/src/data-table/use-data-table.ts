@@ -19,7 +19,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import {
-  type Parser,
+  type SingleParser,
   type UseQueryStateOptions,
   parseAsArrayOf,
   parseAsInteger,
@@ -30,7 +30,7 @@ import {
 import * as React from "react";
 import { getSortingStateParser } from "./parsers";
 import { ExtendedColumnSort } from "./types";
-import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
+import { useDebouncedCallback } from "../hooks/use-debounced-callback";
 
 const PAGE_KEY = "page";
 const PER_PAGE_KEY = "perPage";
@@ -175,7 +175,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
     if (enableAdvancedFilter) return {};
 
     return filterableColumns.reduce<
-      Record<string, Parser<string> | Parser<string[]>>
+      Record<string, SingleParser<string> | SingleParser<string[]>>
     >((acc, column) => {
       if (column.meta?.options) {
         acc[column.id ?? ""] = parseAsArrayOf(
