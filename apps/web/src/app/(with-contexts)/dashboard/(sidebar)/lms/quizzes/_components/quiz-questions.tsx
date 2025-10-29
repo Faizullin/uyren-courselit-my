@@ -695,13 +695,13 @@ function QuestionEditor({
               name="type"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>{t("dashboard:lms.quiz.questions.question_type")} *</FieldLabel>
+                  <FieldLabel htmlFor="question-type">{t("dashboard:lms.quiz.questions.question_type")} *</FieldLabel>
                   <Select
                     value={field.value}
                     onValueChange={(value) => handleTypeChange(value as QuestionTypeEnum)}
                     disabled={isEdit}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="question-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -729,9 +729,10 @@ function QuestionEditor({
               name="points"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>{t("common:points")} *</FieldLabel>
+                  <FieldLabel htmlFor="question-points">{t("common:points")} *</FieldLabel>
                   <Input
                     {...field}
+                    id="question-points"
                     type="number"
                     placeholder="5"
                     min="1"
@@ -752,9 +753,10 @@ function QuestionEditor({
             name="text"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>{t("dashboard:lms.quiz.questions.question_text")} *</FieldLabel>
+                <FieldLabel htmlFor="question-text">{t("dashboard:lms.quiz.questions.question_text")} *</FieldLabel>
                 <Textarea
                   {...field}
+                  id="question-text"
                   placeholder={t("dashboard:lms.quiz.questions.question_text_placeholder")}
                   rows={3}
                   aria-invalid={fieldState.invalid}
@@ -769,9 +771,10 @@ function QuestionEditor({
             name="explanation"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>{t("dashboard:lms.quiz.questions.explanation")}</FieldLabel>
+                <FieldLabel htmlFor="question-explanation">{t("dashboard:lms.quiz.questions.explanation")}</FieldLabel>
                 <Textarea
                   {...field}
+                  id="question-explanation"
                   placeholder={t("dashboard:lms.quiz.questions.explanation_placeholder")}
                   rows={2}
                   aria-invalid={fieldState.invalid}
@@ -839,47 +842,53 @@ function MultipleChoiceFields({
         {options.map((option, index) => (
           <div
             key={option.uid}
-            className="flex items-center gap-3 p-3 border rounded-lg"
+            className="flex items-start gap-3 p-3 border rounded-lg"
           >
-            <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-medium">
+            <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center text-xs font-medium flex-shrink-0 mt-2">
               {String.fromCharCode(65 + index)}
             </div>
-            <Controller
-              control={form.control}
-              name={`options.${index}.text`}
-              render={({ field, fieldState }) => (
-                <Field className="flex-1" data-invalid={fieldState.invalid}>
-                  <Input
-                    {...field}
-                    placeholder={t("dashboard:lms.quiz.questions.option_placeholder", { number: index + 1 })}
-                    aria-invalid={fieldState.invalid}
-                  />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Controller
-              control={form.control}
-              name={`options.${index}.isCorrect`}
-              render={({ field }) => (
-                <Field className="flex items-center gap-2">
-                  <FieldLabel className="text-sm font-normal">{t("dashboard:lms.quiz.questions.mark_correct")}</FieldLabel>
-                  <input
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </Field>
-              )}
-            />
+            <div className="flex-1 space-y-2">
+              <Controller
+                control={form.control}
+                name={`options.${index}.text`}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <Input
+                      {...field}
+                      id={`option-${index}-text`}
+                      placeholder={t("dashboard:lms.quiz.questions.option_placeholder", { number: index + 1 })}
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name={`options.${index}.isCorrect`}
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={`option-${index}-correct`}
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <FieldLabel htmlFor={`option-${index}-correct`} className="text-sm font-normal cursor-pointer">
+                      {t("dashboard:lms.quiz.questions.mark_correct")}
+                    </FieldLabel>
+                  </div>
+                )}
+              />
+            </div>
             <Button
               type="button"
               variant="outline"
               size="icon"
               disabled={options.length <= 2}
               onClick={() => removeOption(index)}
-              className="h-8 w-8"
+              className="h-8 w-8 flex-shrink-0 mt-2"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -936,6 +945,7 @@ function ShortAnswerFields({
                 <Field className="flex-1" data-invalid={fieldState.invalid}>
                   <Input
                     {...field}
+                    id={`correct-answer-${index}`}
                     placeholder={t("dashboard:lms.quiz.questions.answer_placeholder", { number: index + 1 })}
                     value={field.value || ""}
                     onChange={(e) => field.onChange(e.target.value)}

@@ -285,13 +285,15 @@ function getSidebarItems(
     isActive: path.startsWith("/dashboard/student/courses"),
   });
 
-  navProjectItems.push({
-    name: t("sidebar.my_assignments"),
-    url: "/dashboard/student/assignments",
-    icon: ClipboardList,
-    isActive: path.startsWith("/dashboard/student/assignments"),
-  });
+  // TODO: FIX this page
+  // navProjectItems.push({
+  //   name: t("sidebar.my_assignments"),
+  //   url: "/dashboard/student/assignments",
+  //   icon: ClipboardList,
+  //   isActive: path.startsWith("/dashboard/student/assignments"),
+  // });
 
+  // TODO: FIX this page
   navProjectItems.push({
     name: t("sidebar.my_schedule"),
     url: "/dashboard/student/schedule",

@@ -1,3 +1,4 @@
+import { getT } from "@/app/i18n/server";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { getCachedCourseData } from "@/lib/course/get-course-data";
 import {
@@ -15,14 +16,18 @@ export default async function ContentLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
+  const {t} = await getT(["common"])
   const { id } = await params;
   const courseData = await getCachedCourseData(id);
+
+  const breadcrumbs = [
+    { label: t("course:list.breadcrumb"), href: "/dashboard/lms/courses" },
+    { label: truncate(courseData.title, 20), href: `/dashboard/lms/courses/${id}/` },
+    { label: t("common:content"), href: `/dashboard/lms/courses/${id}/content` },
+  ];
   return (
     <DashboardContent
-      breadcrumbs={[
-        { label: "Courses", href: "/dashboard/lms/courses" },
-        { label: truncate(courseData.title, 20), href: `/dashboard/lms/courses/${id}/content` },
-      ]}
+      breadcrumbs={breadcrumbs}
     >
       <ResizablePanelGroup direction="horizontal" className="h-full">
         <ResizablePanel defaultSize={70} minSize={30} className="mr-4">

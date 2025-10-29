@@ -77,7 +77,7 @@ export default function Page() {
             <HeaderTopbar
                 header={{
                     title: t("dashboard:my_courses"),
-                    subtitle: t("dashboard:student.subtitle"),
+                    subtitle: t("dashboard:student.dashboard_subtitle"),
                 }}
             />
 

@@ -146,6 +146,11 @@ export const AssignmentSubmissionSchema = new mongoose.Schema<IAssignmentSubmiss
         ref: "Assignment",
         required: true
     },
+    cohortId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Cohort",
+        required: true,
+    },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",

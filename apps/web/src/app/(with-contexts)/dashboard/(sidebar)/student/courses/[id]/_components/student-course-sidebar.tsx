@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LessonsTab } from "./lessons-tab";
 import { AiTutorTab } from "./ai-tutor-tab";
+import { useSiteInfo } from "@/components/contexts/site-info-context";
 
 export function StudentCourseSidebar() {
   const pathname = usePathname();
@@ -20,6 +21,8 @@ export function StudentCourseSidebar() {
   const { initialCourse, loadCoursePublicDetailedQuery } = useCoursePublicDetail();
   const [activeTab, setActiveTab] = useState("lessons");
   const [aiTutorKey, setAiTutorKey] = useState(0);
+
+  const { siteInfo } = useSiteInfo();
 
   const handleTabChange = (value: string) => {
     if (value === "ai-tutor" && activeTab !== "ai-tutor") {
@@ -108,6 +111,10 @@ export function StudentCourseSidebar() {
               </>
             )}
 
+            {
+              siteInfo.aiHelper.enabled  ? (
+            
+
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="w-full">
                 <TabsTrigger value="lessons" className="flex-1">
@@ -128,6 +135,9 @@ export function StudentCourseSidebar() {
                 <AiTutorTab key={aiTutorKey} />
               </TabsContent>
             </Tabs>
+              ) : (
+                <LessonsTab />
+              ) }
           </div>
       </div>
     </aside>

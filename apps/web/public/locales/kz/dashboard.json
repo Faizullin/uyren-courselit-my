@@ -20,13 +20,56 @@
     "profile": "Профиль"
   },
   "student": {
-    "subtitle": "Тіркелген курстар мен прогрессті қадағалаңыз",
+    "dashboard_title": "Студент Панелі",
+    "dashboard_subtitle": "Тіркелген курстар мен прогрессті қадағалаңыз",
     "search_placeholder": "Курстарды іздеу...",
     "no_courses_found": "Курстар табылмады",
     "no_courses_enrolled": "Әлі ешқандай курсқа тіркелмегенсіз",
     "adjust_search": "Іздеу критерийлерін өзгертіп көріңіз",
     "start_journey": "Курстарға тіркелу арқылы оқу жолыңызды бастаңыз",
     "browse_courses": "Курстарды қарау",
+    "stats": {
+      "enrolled_courses": "Тіркелген курстар",
+      "active_learning": "Белсенді оқу",
+      "completion_rate": "Аяқтау пайызы",
+      "overall_progress": "Жалпы прогресс",
+      "completed_lessons": "Аяқталған сабақтар",
+      "lessons_progress": "Сабақтар прогрессі",
+      "pending_assignments": "Күтілетін тапсырмалар",
+      "need_completion": "Аяқтауды қажет етеді"
+    },
+    "recent_courses": {
+      "title": "Соңғы курстар",
+      "no_courses": "Әлі ешқандай курсқа тіркелмегенсіз",
+      "untitled": "Атаусыз курс"
+    },
+    "pending_assignments": {
+      "title": "Күтілетін тапсырмалар",
+      "no_assignments": "Күтілетін тапсырмалар жоқ",
+      "due": "Мерзімі"
+    },
+    "upcoming_events": {
+      "title": "Алдағы оқиғалар",
+      "no_events": "Алдағы оқиғалар жоқ",
+      "view_schedule": "Толық кестені қарау"
+    },
+    "grades": {
+      "title": "Менің бағаларым",
+      "subtitle": "Академиялық көрсеткіштеріңізді қадағалаңыз",
+      "cohorts_list": "Топтар",
+      "view_cohort_grades": "Осы топ үшін бағаларды қарау",
+      "no_cohorts": "Топтар табылмады",
+      "no_cohorts_description": "Бағаларыңызды көру үшін топқа қосылыңыз",
+      "cohort_subtitle": "Осы топ үшін бағаларыңызды қараңыз",
+      "average_grade": "Орташа баға",
+      "total_graded": "Барлығы бағаланды",
+      "grade_trend": "Баға тренд",
+      "all_grades": "Барлық бағалар",
+      "recent_grades": "Соңғы бағалар",
+      "no_grades_yet": "Бағалар әлі жоқ",
+      "graded_items_appear_here": "Сіздің бағаланған тапсырмалар мен тесттер осында пайда болады",
+      "no_grades_description": "Бұл топ үшін бағаланған тапсырмалар мен тесттер осында пайда болады"
+    },
     "start_learning": "Оқуды бастау",
     "started": "Басталды",
     "ends": "Аяқталады",
@@ -40,17 +83,6 @@
       "welcome_message": "Сәлем! Мен сіздің AI тьюторыңызмын. Бұл сабақ туралы кез келген сұрақ қойыңыз, мен түсініктерді жақсырақ түсінуге көмектесемін.",
       "sample_response": "Бұл тамаша сұрақ! Мұны жақсырақ түсінуге көмектесейін. Осы сабақ контекстінде бұл түсінік маңызды, өйткені ол жүйенің жұмыс істеу негізін құрайды. Кез келген нақты бөлікті толығырақ түсіндіруімді қалайсыз ба?",
       "input_placeholder": "Бұл курс туралы сұрақ қойыңыз..."
-    },
-    "grades": {
-      "title": "Менің Бағаларым",
-      "subtitle": "Академиялық үлгеріміңізді қадағалаңыз",
-      "average_grade": "Орташа Баға",
-      "total_graded": "Барлығы Бағаланды",
-      "excellent": "Өте жақсы (90%+)",
-      "good": "Жақсы (70-89%)",
-      "recent_grades": "Соңғы Бағалар",
-      "no_grades_yet": "Әлі бағалар жоқ",
-      "graded_items_appear_here": "Бағаланған тапсырмалар мен викториналар осында көрсетіледі"
     }
   },
   "instructor": {
@@ -64,7 +96,9 @@
       "out_of_5": "5.0-ден",
       "no_ratings_yet": "Әзірге рейтинг жоқ",
       "drafts": "Жобалар",
-      "need_publishing": "Жариялау қажет"
+      "need_publishing": "Жариялау қажет",
+      "pending_grading": "Бағалау күтуде",
+      "pending_submissions": "Жіберулер күтуде"
     },
     "my_courses": {
       "title": "Менің Курстарым",
@@ -75,8 +109,7 @@
       "published": "Жарияланған",
       "draft": "Жоба",
       "chapters": "тараулар",
-      "students": "студенттер",
-      "view_all_courses": "Барлық Курстарды Көру"
+      "students": "студенттер"
     },
     "quick_actions": {
       "title": "Жылдам Әрекеттер",
@@ -139,7 +172,6 @@
       "manage_course": "Курсты Басқару",
       "cohort_groups": "Топтар",
       "preview_course": "Курсты Алдын-ала Көру",
-      "view_all": "Барлығын Көру",
       "no_cohorts_yet": "Әзірге топтар жоқ.",
       "create_one": "Жасау",
       "no_instructor": "Оқытушы жоқ"
@@ -187,7 +219,6 @@
       "currently_active": "Қазір белсенді"
     },
     "actions": {
-      "view_all": "Барлығын көру",
       "new": "Жаңа"
     },
     "assignment": {
@@ -289,9 +320,6 @@
         "pending": "Күтуде",
         "total_points": "Барлық ұпайлар",
         "configuration": "Бағалау конфигурациясы",
-        "rubric": "Рубрика",
-        "no_rubric": "Рубрика анықталмаған",
-        "criteria_defined": "Анықталған критерийлер: {{count}}",
         "late_submission_policy": "Кеш жіберу саясаты",
         "late_penalty_percent": "Кешіктірген айыппұл: {{percent}}%",
         "late_not_allowed": "Кеш жіберулерге рұқсат берілмейді",
@@ -530,11 +558,11 @@
     "new_lesson": "Жаңа сабақ",
     "edit_lesson": "Сабақты өңдеу",
     "create_lesson": "Сабақ жасау",
-    "update_lesson": "Сабақты жаңарту",
     "view_lesson": "Сабақты көру",
-    "edit_subtitle": "Сабақ мәліметтерін өңдеу",
+    "edit_subtitle": "Сабақ мәліметтері мен мазмұнын жаңарту",
     "create_subtitle": "Осы бөлімге жаңа сабақ жасау",
     "title_placeholder": "Сабақ тақырыбын енгізіңіз",
+    "type_placeholder": "Сабақ түрін таңдаңыз",
     "saving": "Сақталуда...",
     "created_successfully": "Сабақ сәтті жасалды",
     "updated_successfully": "Сабақ сәтті жаңартылды",
@@ -543,7 +571,7 @@
     "requires_enrollment": "Тіркелу қажет",
     "requires_enrollment_description": "Студенттер осы сабаққа қол жеткізу үшін тіркелуі керек",
     "downloadable": "Жүктеп алуға болады",
-    "downloadable_description": "Студенттерге осы сабақты жүктеп алуға рұқсат беру",
+    "downloadable_description": "Студенттерге сабақ мазмұнын жүктеп алуға рұқсат беру",
     "not_found": "Сабақ табылмады",
     "not_found_desc": "Іздеген сабағыңыз жоқ немесе оған қол жеткізу құқығыңыз жоқ.",
     "back_to_course": "Курсқа қайту",
@@ -608,7 +636,10 @@
       "api_keys": "API кілттері",
       "website_settings": "Веб-сайт баптаулары",
       "schools": "Мектептер"
-    }
+    },
+    "ai_helper": "AI Көмекші",
+    "ai_helper_enabled": "AI Көмекшіні қосу",
+    "ai_helper_enabled_desc": "Студенттерге оқу материалдарымен көмектесу үшін AI көмекшісін қосу"
   },
   "profile": {
     "loading": "Профиль жүктелуде...",
@@ -641,11 +672,78 @@
   "course_information": "Курс туралы ақпарат",
   "instructor_label": "Оқытушы",
   "cohort": "Топ",
+  "cohort_edit": {
+    "not_found": "Топ табылмады",
+    "back_to_cohorts": "Топтарға қайту",
+    "subtitle": "Топ мәліметтері мен баптауларын басқару",
+    "course_assignment": "Курс тағайындау",
+    "select_course": "Курсты таңдау",
+    "instructor_assignment": "Оқытушыны тағайындау",
+    "select_instructor": "Оқытушыны таңдау",
+    "cohort_settings": "Топ баптаулары",
+    "invite_code": "Шақыру коды",
+    "invite_code_placeholder": "мыс., SPRING2024",
+    "duration_weeks": "Ұзақтығы (апталар)",
+    "max_capacity": "Макс. сыйымдылық",
+    "manage_schedule": "Кестені басқару",
+    "capacity_card": "Сыйымдылық",
+    "updated_successfully": "Топ сәтті жаңартылды",
+    "cohort_title_placeholder": "Топ атауы",
+    "cohort_description_placeholder": "Топ сипаттамасы"
+  },
+  "cohort_students": {
+    "title": "Топ студенттері",
+    "subtitle": "Осы топқа тіркелген студенттерді басқару",
+    "student_removed": "Студент сәтті жойылды",
+    "remove_student": "Студентті жою",
+    "remove_student_confirm": "\"{{name}}\" студентін осы топтан жойғыңыз келетініне сенімдісіз бе?",
+    "invite_users": "Пайдаланушыларды шақыру",
+    "invite_students": "Студенттерді шақыру",
+    "invite_students_title": "Топқа студенттерді шақыру",
+    "invite_students_subtitle": "Осы топқа шақыру үшін пайдаланушыларды таңдаңыз",
+    "select_users": "Пайдаланушыларды таңдау",
+    "select_users_placeholder": "Аты немесе email бойынша пайдаланушыларды іздеу",
+    "invite_success": "Студенттер сәтті шақырылды",
+    "coming_soon": "Жақында",
+    "coming_soon_desc": "Студенттерді шақыру функциясы жақында қолжетімді болады.",
+    "filter_by_status": "Күй бойынша сүзгілеу",
+    "all_statuses": "Барлық күйлер"
+  },
+  "schedule_dialog": {
+    "edit_schedule_event": "Оқиғаны өңдеу",
+    "create_schedule_event": "Оқиға жасау",
+    "delete_schedule_event": "Оқиғаны жою",
+    "event_title_placeholder": "мыс., React бойынша сабақ",
+    "event_description_placeholder": "Оқиға сипаттамасын енгізіңіз",
+    "start_time": "Басталу уақыты",
+    "end_time": "Аяқталу уақыты",
+    "all_day_event": "Күні бойы",
+    "recurrence": "Қайталау",
+    "repeat_every": "Қайталау әрбір",
+    "end_recurrence": "Қайталау аяқталуы",
+    "online_event": "Онлайн оқиға",
+    "meeting_url": "Кездесу сілтемесі",
+    "meeting_url_placeholder": "https://zoom.us/j/123456789",
+    "location_name": "Орын атауы",
+    "location_placeholder": "мыс., 101 бөлме, А ғимарат",
+    "enable_reminders": "Еске салуларды қосу",
+    "types": {
+      "live_session": "Тікелей сабақ",
+      "assignment": "Тапсырма",
+      "quiz": "Тест",
+      "deadline": "Мерзім"
+    },
+    "recurrence_types": {
+      "none": "Қайталанбайды",
+      "daily": "Күнделікті",
+      "weekly": "Апта сайын",
+      "monthly": "Ай сайын"
+    }
+  },
   "course_progress": "Курс прогрессі",
   "lessons_completed": "сабақтар аяқталды",
   "quick_actions": "Жылдам әрекеттер",
   "continue_learning": "Оқуды жалғастыру",
-  "view_all_lessons": "Барлық сабақтарды көру",
   "of": "бастап",
   "media_manager": {
     "selector": {

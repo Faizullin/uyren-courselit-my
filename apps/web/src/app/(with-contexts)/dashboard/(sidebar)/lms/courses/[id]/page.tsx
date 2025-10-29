@@ -2,7 +2,9 @@
 
 import { useCourseDetail } from "@/components/course/detail/course-detail-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
+import { router } from "@/server/api/core/trpc";
 import { trpc } from "@/utils/trpc";
+import { ApprovalStatusEnum } from "@workspace/common-logic/lib/approval_status";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -27,21 +29,23 @@ import {
   ChevronDown,
   Eye,
   Settings,
-  Users,
-  UserPlus
+  UserPlus,
+  Users
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function Page() {
+  const router = useRouter();
   const { t } = useTranslation(["course", "dashboard", "common"]);
   const [timeRange, setTimeRange] = useState("7d");
   const { initialCourse, currentLessonId } = useCourseDetail();
 
   const breadcrumbs = useMemo(() => {
     const breadcrumbs =[
-      { label: t("course:detail.breadcrumb_courses"), href: "/dashboard/lms/courses" },
+      { label: t("course:list.breadcrumb"), href: "/dashboard/lms/courses" },
       {
         label: initialCourse ? truncate(initialCourse.title, 20) || "..." : "...",
         href: "#",
@@ -75,24 +79,6 @@ export default function Page() {
   }, {
     enabled: !!initialCourse._id,
   });
-
-  if (loadCohortsQuery.isLoading) {
-    return (
-      <DashboardContent breadcrumbs={breadcrumbs}>
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <Skeleton className="h-9 w-64" />
-            <Skeleton className="h-5 w-48" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-          </div>
-        </div>
-      </DashboardContent>
-    );
-  }
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
@@ -180,8 +166,8 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* <MetricCard
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <MetricCard
           title="Sales"
           icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
           type={ActivityTypeEnum.PURCHASED}
@@ -197,15 +183,15 @@ export default function Page() {
             duration={timeRange}
             entityId={course._id}
           />
-        </Link> */}
-        {/* <MetricCard
+        </Link> 
+        <MetricCard
           title="People who completed the course"
           icon={<GraduationCap className="h-4 w-4 text-muted-foreground" />}
           type={ActivityTypeEnum.COURSE_COMPLETED}
           duration={timeRange}
           entityId={course._id}
-        /> */}
-      </div>
+        />
+      </div> */}
 
       {/* <SalesCard data={salesData} loading={salesLoading} /> */}
 
@@ -215,7 +201,11 @@ export default function Page() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <Card className="mt-6 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => window.location.href = `/dashboard/lms/courses/${initialCourse._id}/requests`}>
+        <Card 
+        className="mt-6 cursor-pointer hover:bg-accent/50 transition-colors" 
+        onClick={() => {
+           router.push(`/dashboard/lms/courses/${initialCourse._id}/requests?filter[status]=${ApprovalStatusEnum.PENDING}`);
+        }}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-base">
               <div className="flex items-center gap-2">
@@ -238,7 +228,7 @@ export default function Page() {
           <CardTitle>{t("course:detail.cohort_groups")}</CardTitle>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/dashboard/lms/courses/${initialCourse._id}/cohorts`}>
-              {t("course:detail.view_all")}
+              {t("common:view_all")}
             </Link>
           </Button>
         </CardHeader>

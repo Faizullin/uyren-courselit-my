@@ -165,6 +165,7 @@ export const courseRouter = router({
       const query: FilterQuery<ICourseHydratedDocument> = {
         orgId: ctx.domainData.domainObj.orgId
       };
+      console.log("[courseRouter.list] input.filter.published", input.filter);
       if (
         !checkPermission(ctx.user.permissions, [
           UIConstants.permissions.manageAnyCourse,
@@ -172,10 +173,9 @@ export const courseRouter = router({
       ) {
         query.ownerId = ctx.user._id;
       }
-      if (input.filter?.published) query.published = input.filter.published;
       if (input.filter?.level) query.level = input.filter.level;
       if (input.filter?.status) query.status = input.filter.status;
-      if (input.filter?.published) query.published = input.filter.published;
+      if (input.filter?.published !== undefined) query.published = input.filter.published;
       if (input.search?.q) query.$text = { $search: input.search.q };
       const paginationMeta = paginate(input.pagination);
       const orderBy = input.orderBy || {
@@ -526,6 +526,7 @@ export const courseRouter = router({
     .query(async ({ ctx, input }) => {
       const query: RootFilterQuery<typeof CourseModel> = {
         orgId: ctx.domainData.domainObj.orgId,
+        published: true,
       };
       if (input.filter?.level) query.level = input.filter.level;
       if (input.filter?.status) query.status = input.filter.status;

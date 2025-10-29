@@ -35,10 +35,6 @@ export default function AssignmentContent() {
   const breadcrumbs = useMemo(
     () => [
       {
-        label: t("dashboard:lms.title"),
-        href: `/dashboard/lms`,
-      },
-      {
         label: t("dashboard:lms.modules.assignments.title"),
         href: "/dashboard/lms/assignments",
       },

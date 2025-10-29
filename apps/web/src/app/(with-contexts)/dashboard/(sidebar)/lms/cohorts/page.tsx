@@ -40,7 +40,7 @@ export default function Page() {
     const [courseFilter, setCourseFilter] = useState<string>("all");
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-    const breadcrumbs = useMemo(() => [{ label: t("common:dashboard.cohorts.title"), href: "#" }], [t]);
+    const breadcrumbs = useMemo(() => [{ label: t("dashboard:lms.modules.cohorts.title"), href: "#" }], [t]);
 
     const statsQuery = trpc.lmsModule.cohortModule.cohort.getStats.useQuery();
 

@@ -33,10 +33,6 @@ export default function QuizContent() {
   const breadcrumbs = useMemo(
     () => [
       {
-        label: t("dashboard:lms.title"),
-        href: `/dashboard/lms`,
-      },
-      {
         label: t("dashboard:lms.modules.quizzes.title"),
         href: "/dashboard/lms/quizzes",
       },

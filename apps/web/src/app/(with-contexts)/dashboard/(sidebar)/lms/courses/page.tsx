@@ -4,14 +4,12 @@ import { CourseCard, CourseSkeletonCard } from "@/components/course/course-card"
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import { CreateButton } from "@/components/dashboard/layout/create-button";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { DataTablePagination } from "@workspace/components-library";
-import { useDataTable } from "@workspace/components-library";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
 import { CourseLevelEnum, CourseStatusEnum } from "@workspace/common-logic/models/lms/course.types";
-import { useDialogControl } from "@workspace/components-library";
+import { DataTablePagination, useDataTable, useDialogControl } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import { Label } from "@workspace/ui/components/label";
 import {
@@ -23,10 +21,12 @@ import {
 } from "@workspace/ui/components/select";
 import { Grid3x3, List, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CourseCreateDialog } from "./_components/course-create-dialog";
-import { useRouter } from "next/navigation";
+import { useQueryStates, parseAsString, parseAsBoolean } from "nuqs";
+import { useSiteInfo } from "@/components/contexts/site-info-context";
 
 type CourseItemType = GeneralRouterOutputs["lmsModule"]["courseModule"]["course"]["list"]["items"][number];
 
@@ -35,12 +35,19 @@ type QueryParams = Parameters<typeof trpc.lmsModule.courseModule.course.list.use
 
 export default function Page() {
   const { t } = useTranslation(["course", "dashboard", "common"]);
+  const { siteInfo } = useSiteInfo();
   const router = useRouter();
   const createCourseDialog = useDialogControl();
-  const breadcrumbs = [{ label: t("course:list.breadcrumb"), href: "#" }];
 
-  const [levelFilter, setLevelFilter] = useState<CourseLevelEnum | "all">("all");
-  const [courseStatusFilter, setCourseStatusFilter] = useState<CourseStatusEnum | "all">("all");
+  const [filters, setFilters] = useQueryStates({
+    "filters[level]": parseAsString.withDefault("all"),
+    "filters[status]": parseAsString.withDefault("all"),
+    "filters[published]": parseAsBoolean,
+  }, {
+    history: "replace",
+    shallow: true,
+  });
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [parsedData, setParsedData] = useState<CourseItemType[]>([]);
   const [parsedPagination, setParsedPagination] = useState({ pageCount: 1 });
@@ -65,10 +72,11 @@ export default function Page() {
       take: tableState.pagination.pageSize,
     },
     filter: {
-      level: levelFilter === "all" ? undefined : levelFilter,
-      status: courseStatusFilter === "all" ? undefined : courseStatusFilter,
+      level: filters["filters[level]"] === "all" ? undefined : (filters["filters[level]"] as CourseLevelEnum),
+      status: filters["filters[status]"] === "all" ? undefined : (filters["filters[status]"] as CourseStatusEnum),
+      published: filters["filters[published]"] ?? undefined,
     },
-  }), [tableState.pagination, levelFilter, courseStatusFilter]);
+  }), [tableState.pagination, filters]);
 
   const loadListQuery = trpc.lmsModule.courseModule.course.list.useQuery(queryParams);
 
@@ -80,12 +88,10 @@ export default function Page() {
     });
   }, [loadListQuery.data]);
 
-  const courses = parsedData;
-
 
   return (
     <DashboardContent
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={[{ label: t("course:list.breadcrumb"), href: "#" }]}
       permissions={[ UIConstants.permissions.manageCourse]}
     >
       <HeaderTopbar
@@ -95,10 +101,14 @@ export default function Page() {
         }}
         rightAction={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push("/dashboard/lms/courses/ai-generator")}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              AI Generator
-            </Button>
+            {
+              siteInfo.aiHelper.enabled && (
+                <Button variant="outline" onClick={() => router.push("/dashboard/lms/courses/ai-generator")}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Generator
+                </Button>
+              )
+            }
             <CreateButton onClick={() => createCourseDialog.show()} />
           </div>
         }
@@ -109,7 +119,10 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row gap-4 flex-1">
           <div className="space-y-2">
             <Label className="text-sm font-medium">{t("course:list.filter_level")}</Label>
-            <Select value={levelFilter} onValueChange={(value) => setLevelFilter(value as CourseLevelEnum | "all")}>
+            <Select 
+              value={filters["filters[level]"]} 
+              onValueChange={(value) => setFilters({ "filters[level]": value })}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -131,7 +144,10 @@ export default function Page() {
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">{t("course:list.filter_status")}</Label>
-            <Select value={courseStatusFilter} onValueChange={(value) => setCourseStatusFilter(value as CourseStatusEnum | "all")}>
+            <Select 
+              value={filters["filters[status]"]} 
+              onValueChange={(value) => setFilters({ "filters[status]": value })}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -148,6 +164,24 @@ export default function Page() {
                     </SelectItem>
                   ),
                 )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">{t("course:list.filter_published")}</Label>
+            <Select 
+              value={filters["filters[published]"] === null ? "all" : filters["filters[published]"].toString()} 
+              onValueChange={(value) => setFilters({ 
+                "filters[published]": value === "all" ? null : value === "true" 
+              })}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("common:not_selected")}</SelectItem>
+                <SelectItem value="true">{t("course:status.published")}</SelectItem>
+                <SelectItem value="false">{t("course:status.unpublished")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -191,7 +225,7 @@ export default function Page() {
           <>
             {loadListQuery.data?.items?.map((course, index) => (
               <Link key={index} href={`/dashboard/lms/courses/${course._id}`}>
-                <CourseCard course={course} viewMode={viewMode as "grid" | "list"} />
+                <CourseCard course={course} viewMode={viewMode} />
               </Link>
             ))}
           </>

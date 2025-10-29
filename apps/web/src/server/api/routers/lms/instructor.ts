@@ -6,13 +6,13 @@ import {
 import { router } from "@/server/api/core/trpc";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { AssignmentModel, AssignmentSubmissionModel } from "@workspace/common-logic/models/lms/assignment.model";
+import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
+import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
 import { ScheduleEventModel } from "@workspace/common-logic/models/lms/schedule.model";
 import { RecurrenceTypeEnum, ScheduleStatusEnum } from "@workspace/common-logic/models/lms/schedule.types";
-import { AssignmentSubmissionModel } from "@workspace/common-logic/models/lms/assignment.model";
-import { AssignmentSubmissionStatusEnum } from "@workspace/common-logic/models/lms/assignment.types";
 import { checkPermission } from "@workspace/utils";
-import { FilterQuery } from "mongoose";
+import { buildInstructorCourseQuery } from "./course/helpers";
 
 function expandRecurringEvents(events: any[], startRange: Date, endRange: Date) {
   const expandedEvents: any[] = [];
@@ -29,16 +29,16 @@ function expandRecurringEvents(events: any[], startRange: Date, endRange: Date) 
     const eventEnd = new Date(event.endDate);
     const duration = eventEnd.getTime() - eventStart.getTime();
     const recurrenceEnd = event.recurrence.endDate ? new Date(event.recurrence.endDate) : endRange;
-    
+
     let currentDate = new Date(eventStart);
-    
+
     while (currentDate <= endRange && currentDate <= recurrenceEnd) {
       if (currentDate >= startRange) {
         const occurrenceStart = new Date(currentDate);
         const occurrenceEnd = new Date(occurrenceStart.getTime() + duration);
-        
+
         let shouldInclude = false;
-        
+
         if (event.recurrence.type === RecurrenceTypeEnum.DAILY) {
           shouldInclude = true;
         } else if (event.recurrence.type === RecurrenceTypeEnum.WEEKLY) {
@@ -51,7 +51,7 @@ function expandRecurringEvents(events: any[], startRange: Date, endRange: Date) 
         } else if (event.recurrence.type === RecurrenceTypeEnum.MONTHLY) {
           shouldInclude = occurrenceStart.getDate() === eventStart.getDate();
         }
-        
+
         if (shouldInclude) {
           expandedEvents.push({
             ...event,
@@ -63,7 +63,7 @@ function expandRecurringEvents(events: any[], startRange: Date, endRange: Date) 
           });
         }
       }
-      
+
       if (event.recurrence.type === RecurrenceTypeEnum.DAILY) {
         currentDate.setDate(currentDate.getDate() + event.recurrence.interval);
       } else if (event.recurrence.type === RecurrenceTypeEnum.WEEKLY) {
@@ -83,29 +83,30 @@ export const instructorRouter = router({
     .use(createDomainRequiredMiddleware())
     .use(createPermissionMiddleware([
       UIConstants.permissions.manageCourse,
-      UIConstants.permissions.manageAnyCourse,
     ]))
     .query(async ({ ctx }) => {
       const userId = ctx.user._id;
       const orgId = ctx.domainData.domainObj.orgId;
 
-      // Check if user can see all courses or just their own
       const canSeeAllCourses = checkPermission(ctx.user.permissions, [
         UIConstants.permissions.manageAnyCourse,
       ]);
 
-      // Build query for courses
-      const courseQuery: FilterQuery<ICourseHydratedDocument> = {
-        orgId,
-        ...(canSeeAllCourses ? {} : { ownerId: userId }),
-      };
+      const courseQuery = buildInstructorCourseQuery(orgId, userId, canSeeAllCourses);
 
       const now = new Date();
       const endOfWeek = new Date(now);
       endOfWeek.setDate(now.getDate() + 7);
 
-      const [courseStats, recentCourses, scheduleEvents, pendingSubmissions] = await Promise.all([
-        CourseModel.aggregate([
+      const [courseStats, recentCourses, scheduleEvents, instructorCourseIds] = await Promise.all([
+        CourseModel.aggregate<{
+          totalCourses: number;
+          publishedCourses: number;
+          draftCourses: number;
+          totalStudents: number;
+          totalRatings: number;
+          coursesWithRatings: number;
+        }>([
           { $match: courseQuery },
           {
             $group: {
@@ -114,15 +115,13 @@ export const instructorRouter = router({
               publishedCourses: { $sum: { $cond: ["$published", 1, 0] } },
               draftCourses: { $sum: { $cond: ["$published", 0, 1] } },
               totalStudents: { $sum: "$statsEnrollmentCount" },
-              totalRatings: { $sum: { $cond: [{ $gt: ["$statsAverageRating", 0] }, "$statsAverageRating", 0] } },
-              coursesWithRatings: { $sum: { $cond: [{ $gt: ["$statsAverageRating", 0] }, 1, 0] } },
             },
           },
         ]),
 
         CourseModel.find(courseQuery)
           .select("_id title shortDescription published publishedAt chapters statsEnrollmentCount statsAverageRating")
-          .sort({ createdAt: -1 })
+          .sort({ updatedAt: -1 })
           .limit(5)
           .lean(),
 
@@ -132,7 +131,7 @@ export const instructorRouter = router({
           status: ScheduleStatusEnum.ACTIVE,
           $or: [
             { startDate: { $gte: now, $lte: endOfWeek } },
-            { 
+            {
               "recurrence.type": { $ne: "none" },
               startDate: { $lte: endOfWeek },
               $or: [
@@ -146,36 +145,51 @@ export const instructorRouter = router({
           .sort({ startDate: 1 })
           .lean(),
 
-        AssignmentSubmissionModel.countDocuments({
-          orgId,
-          status: AssignmentSubmissionStatusEnum.SUBMITTED,
-        }),
+        CourseModel.find(courseQuery).select("_id").lean(),
       ]);
 
-      // Process stats
-      const stats = courseStats[0] || {
-        totalCourses: 0,
-        publishedCourses: 0,
-        draftCourses: 0,
-        totalStudents: 0,
-        totalRatings: 0,
-        coursesWithRatings: 0,
-      };
+      const courseIds = instructorCourseIds.map(c => c._id);
+      
+      const pendingSubmissionsResult = await AssignmentSubmissionModel.aggregate([
+        {
+          $match: {
+            orgId,
+            status: AssignmentSubmissionStatusEnum.SUBMITTED,
+          }
+        },
+        {
+          $lookup: {
+            from: "assignments",
+            localField: "assignmentId",
+            foreignField: "_id",
+            as: "assignment"
+          }
+        },
+        { $unwind: "$assignment" },
+        {
+          $match: {
+            "assignment.courseId": { $in: courseIds }
+          }
+        },
+        {
+          $count: "total"
+        }
+      ]);
+      
+      const pendingSubmissions = pendingSubmissionsResult[0]?.total || 0;
 
-      const avgRating = stats.coursesWithRatings > 0
-        ? Math.round((stats.totalRatings / stats.coursesWithRatings) * 10) / 10
-        : 0;
+      // Process stats
+      const stats = {
+        totalCourses: courseStats[0]?.totalCourses || 0,
+        publishedCourses: courseStats[0]?.publishedCourses || 0,
+        draftCourses: courseStats[0]?.draftCourses || 0,
+        totalStudents: courseStats[0]?.totalStudents || 0,
+        pendingSubmissions,
+      };
       const upcomingEvents = expandRecurringEvents(scheduleEvents, now, endOfWeek).slice(0, 10);
 
       return jsonify({
-        stats: {
-          totalCourses: stats.totalCourses,
-          publishedCourses: stats.publishedCourses,
-          draftCourses: stats.draftCourses,
-          totalStudents: stats.totalStudents,
-          avgRating,
-          pendingSubmissions,
-        },
+        stats,
         recentCourses,
         upcomingEvents,
       });
@@ -196,10 +210,7 @@ export const instructorRouter = router({
         UIConstants.permissions.manageAnyCourse,
       ]);
 
-      const courseQuery: FilterQuery<ICourseHydratedDocument> = {
-        orgId,
-        ...(canSeeAllCourses ? {} : { ownerId: userId }),
-      };
+      const courseQuery = buildInstructorCourseQuery(orgId, userId, canSeeAllCourses);
 
       // Get course performance metrics
       const analyticsData = await CourseModel.aggregate([

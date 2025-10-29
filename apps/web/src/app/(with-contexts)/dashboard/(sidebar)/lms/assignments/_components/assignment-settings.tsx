@@ -431,10 +431,10 @@ export default function AssignmentSettings() {
                       showCreateButton={true}
                       showEditButton={true}
                       onCreateClick={() => {
-                        window.open(`/dashboard/products/new`, "_blank");
+                        window.open(`/dashboard/lms/courses/new`, "_blank");
                       }}
                       onEditClick={(item) => {
-                        window.open(`/dashboard/products/${item.key}`, "_blank");
+                        window.open(`/dashboard/lms/courses/${item.key}`, "_blank");
                       }}
                     />
                     {fieldState.invalid && (

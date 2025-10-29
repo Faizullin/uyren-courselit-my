@@ -28,6 +28,9 @@ export interface ISiteInfo {
     codeInjectionHead?: string;
     codeInjectionBody?: string;
     mailingAddress?: string;
+    aiHelper: {
+        enabled: boolean;
+    }
 }
 
 export interface IDomain {

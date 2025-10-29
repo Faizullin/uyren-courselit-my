@@ -1,3 +1,4 @@
+import { getT } from "@/app/i18n/server";
 import { authOptions } from "@/lib/auth/options";
 import { Metadata } from "next";
 import { getServerSession } from "next-auth";
@@ -5,8 +6,9 @@ import { redirect } from "next/navigation";
 import React from "react";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT(["common"]);
   return {
-    title: "Dashboard",
+    title: t("common:dashboard"),
   };
 }
 

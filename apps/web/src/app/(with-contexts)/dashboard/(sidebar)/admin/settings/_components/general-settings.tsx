@@ -6,6 +6,7 @@ import { MediaSelector, useToast } from "@workspace/components-library";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { Checkbox } from "@workspace/ui/components/checkbox";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,7 @@ import { IAttachmentMedia } from "@workspace/common-logic/models/media.types";
 const createGeneralSettingsSchema = (t: (key: string, params?: any) => string) => z.object({
   title: z.string().min(1, t("error:validation.required", { field: t("admin:settings.title") })),
   subtitle: z.string().optional(),
+  aiHelperEnabled: z.boolean().optional(),
 });
 
 type GeneralSettingsFormData = z.infer<ReturnType<typeof createGeneralSettingsSchema>>;
@@ -32,6 +34,7 @@ export default function GeneralSettings() {
     defaultValues: {
       title: "",
       subtitle: "",
+      aiHelperEnabled: false,
     },
   });
 
@@ -40,6 +43,7 @@ export default function GeneralSettings() {
       form.reset({
         title: settings.title || "",
         subtitle: settings.subtitle || "",
+        aiHelperEnabled: settings.aiHelper?.enabled || false,
       });
       setLogo((settings.logo || null) as any);
     }
@@ -51,6 +55,9 @@ export default function GeneralSettings() {
         data: {
           title: data.title,
           subtitle: data.subtitle,
+          aiHelper: {
+            enabled: data.aiHelperEnabled || false,
+          },
         },
       });
       await loadSettingsQuery.refetch();
@@ -148,6 +155,35 @@ export default function GeneralSettings() {
           }}
         />
       </div>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <h3 className="text-lg font-semibold">{t("dashboard:settings.ai_helper")}</h3>
+        <Controller
+          control={form.control}
+          name="aiHelperEnabled"
+          render={({ field }) => (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="aiHelperEnabled"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                disabled={isDisabled}
+              />
+              <FieldLabel htmlFor="aiHelperEnabled" className="font-normal cursor-pointer">
+                {t("dashboard:settings.ai_helper_enabled")}
+              </FieldLabel>
+            </div>
+          )}
+        />
+        <p className="text-sm text-muted-foreground">
+          {t("dashboard:settings.ai_helper_enabled_desc")}
+        </p>
+        <div>
+          <Button type="submit" disabled={isDisabled} className="w-full sm:w-auto">
+            {isSaving || isSubmitting ? t("common:saving") : t("admin:settings.save_settings")}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

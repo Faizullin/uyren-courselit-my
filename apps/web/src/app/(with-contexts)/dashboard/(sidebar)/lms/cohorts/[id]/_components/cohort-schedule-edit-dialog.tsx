@@ -29,6 +29,7 @@ import { Switch } from "@workspace/ui/components/switch";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 const ScheduleSchema = z.object({
@@ -61,6 +62,7 @@ interface CohortScheduleEditDialogProps {
 }
 
 export function CohortScheduleEditDialog({ control, onSuccess }: CohortScheduleEditDialogProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
   const { toast } = useToast();
   const trpcUtils = trpc.useUtils();
   const [mode, setMode] = useState<FormMode>("create");
@@ -157,23 +159,23 @@ export function CohortScheduleEditDialog({ control, onSuccess }: CohortScheduleE
 
   const createMutation = trpc.lmsModule.schedule.create.useMutation({
     onSuccess: () => {
-      toast({ title: "Success", description: "Schedule event created successfully" });
+      toast({ title: t("common:success"), description: t("common:toast.created_successfully", { item: t("common:schedule_event") }) });
       onSuccess?.();
       handleClose();
     },
     onError: (err) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("common:error"), description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = trpc.lmsModule.schedule.update.useMutation({
     onSuccess: () => {
-      toast({ title: "Success", description: "Schedule event updated successfully" });
+      toast({ title: t("common:success"), description: t("common:toast.updated_successfully", { item: t("common:schedule_event") }) });
       onSuccess?.();
       handleClose();
     },
     onError: (err) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("common:error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -235,9 +237,9 @@ export function CohortScheduleEditDialog({ control, onSuccess }: CohortScheduleE
   const isLoading = createMutation.isPending || updateMutation.isPending || scheduleSettingsQuery.isLoading;
 
   const dialogConfig = useMemo(() => ({
-    title: mode === "edit" ? "Edit Schedule Event" : "Create Schedule Event",
-    submitText: mode === "edit" ? "Update Event" : "Create Event",
-  }), [mode]);
+    title: mode === "edit" ? t("dashboard:schedule_dialog.edit_schedule_event") : t("dashboard:schedule_dialog.create_schedule_event"),
+    submitText: mode === "edit" ? t("common:update") : t("common:create"),
+  }), [mode, t]);
 
   const handleCancel = () => {
     handleClose();
@@ -245,34 +247,34 @@ export function CohortScheduleEditDialog({ control, onSuccess }: CohortScheduleE
 
 const deleteMutation = trpc.lmsModule.schedule.delete.useMutation({
     onSuccess: () => {
-        toast({ title: "Success", description: "Schedule event deleted successfully" });
+        toast({ title: t("common:success"), description: t("common:toast.deleted_successfully", { item: t("common:schedule_event") }) });
         onSuccess?.();
         handleClose();
     },
     onError: (err) => {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: t("common:error"), description: err.message, variant: "destructive" });
     },
 });
 const handleDelete = useCallback(() => {
     NiceModal.show(DeleteConfirmNiceDialog, {
-        title: "Delete Schedule Event",
+        title: t("dashboard:schedule_dialog.delete_schedule_event"),
     }).then((result) => {
         if (result.reason === "confirm") {
             deleteMutation.mutate({ id: scheduleSettingsQuery.data?.scheduleEvent?._id! });
         }
     });
-}, [deleteMutation, scheduleSettingsQuery.data?.scheduleEvent?._id]);
+}, [deleteMutation, scheduleSettingsQuery.data?.scheduleEvent?._id, t]);
 
 const footer = (
     <>
         <Button type="button" variant="outline" onClick={handleDelete} disabled={mode !== "edit"}>
-            Delete
+            {t("common:delete")}
         </Button>
         <Button type="button" variant="outline" onClick={handleCancel}>
-            Cancel
+            {t("common:cancel")}
         </Button>
         <Button type="button" onClick={form.handleSubmit(handleSubmit)} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save"}
+            {isLoading ? t("common:saving") : t("common:save")}
         </Button>
     </>
 );
@@ -294,10 +296,11 @@ const footer = (
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Title *</FieldLabel>
+              <FieldLabel htmlFor="schedule-title">{t("common:title")} *</FieldLabel>
               <Input
                 {...field}
-                placeholder="e.g., React Fundamentals Class"
+                id="schedule-title"
+                placeholder={t("dashboard:schedule_dialog.event_title_placeholder")}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -311,16 +314,16 @@ const footer = (
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Type *</FieldLabel>
+              <FieldLabel htmlFor="schedule-type">{t("common:type")} *</FieldLabel>
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger>
+                <SelectTrigger id="schedule-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ScheduleTypeEnum.LIVE_SESSION}>Live Session</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.ASSIGNMENT}>Assignment</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.QUIZ}>Quiz</SelectItem>
-                  <SelectItem value={ScheduleTypeEnum.DEADLINE}>Deadline</SelectItem>
+                  <SelectItem value={ScheduleTypeEnum.LIVE_SESSION}>{t("dashboard:schedule_dialog.types.live_session")}</SelectItem>
+                  <SelectItem value={ScheduleTypeEnum.ASSIGNMENT}>{t("dashboard:schedule_dialog.types.assignment")}</SelectItem>
+                  <SelectItem value={ScheduleTypeEnum.QUIZ}>{t("dashboard:schedule_dialog.types.quiz")}</SelectItem>
+                  <SelectItem value={ScheduleTypeEnum.DEADLINE}>{t("dashboard:schedule_dialog.types.deadline")}</SelectItem>
                 </SelectContent>
               </Select>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -334,10 +337,11 @@ const footer = (
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Description (Optional)</FieldLabel>
+              <FieldLabel htmlFor="schedule-description">{t("common:description")}</FieldLabel>
               <Textarea
                 {...field}
-                placeholder="Enter event description"
+                id="schedule-description"
+                placeholder={t("dashboard:schedule_dialog.event_description_placeholder")}
                 aria-invalid={fieldState.invalid}
                 rows={3}
               />
@@ -353,9 +357,10 @@ const footer = (
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Start Date *</FieldLabel>
+                <FieldLabel htmlFor="schedule-start-date">{t("common:start_date")} *</FieldLabel>
                 <Input
                   {...field}
+                  id="schedule-start-date"
                   type="date"
                   aria-invalid={fieldState.invalid}
                 />
@@ -368,9 +373,10 @@ const footer = (
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Start Time *</FieldLabel>
+                <FieldLabel htmlFor="schedule-start-time">{t("dashboard:schedule_dialog.start_time")} *</FieldLabel>
                 <Input
                   {...field}
+                  id="schedule-start-time"
                   type="time"
                   aria-invalid={fieldState.invalid}
                 />
@@ -386,9 +392,10 @@ const footer = (
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>End Date *</FieldLabel>
+                <FieldLabel htmlFor="schedule-end-date">{t("common:end_date")} *</FieldLabel>
                 <Input
                   {...field}
+                  id="schedule-end-date"
                   type="date"
                   aria-invalid={fieldState.invalid}
                 />
@@ -401,9 +408,10 @@ const footer = (
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>End Time *</FieldLabel>
+                <FieldLabel htmlFor="schedule-end-time">{t("dashboard:schedule_dialog.end_time")} *</FieldLabel>
                 <Input
                   {...field}
+                  id="schedule-end-time"
                   type="time"
                   aria-invalid={fieldState.invalid}
                 />
@@ -420,8 +428,9 @@ const footer = (
           render={({ field }) => (
             <Field>
               <div className="flex items-center justify-between">
-                <FieldLabel>All Day Event</FieldLabel>
+                <FieldLabel htmlFor="schedule-all-day">{t("dashboard:schedule_dialog.all_day_event")}</FieldLabel>
                 <Switch
+                  id="schedule-all-day"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
@@ -436,16 +445,16 @@ const footer = (
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel>Recurrence</FieldLabel>
+              <FieldLabel htmlFor="schedule-recurrence">{t("dashboard:schedule_dialog.recurrence")}</FieldLabel>
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger>
+                <SelectTrigger id="schedule-recurrence">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={RecurrenceTypeEnum.NONE}>Does not repeat</SelectItem>
-                  <SelectItem value={RecurrenceTypeEnum.DAILY}>Daily</SelectItem>
-                  <SelectItem value={RecurrenceTypeEnum.WEEKLY}>Weekly</SelectItem>
-                  <SelectItem value={RecurrenceTypeEnum.MONTHLY}>Monthly</SelectItem>
+                  <SelectItem value={RecurrenceTypeEnum.NONE}>{t("dashboard:schedule_dialog.recurrence_types.none")}</SelectItem>
+                  <SelectItem value={RecurrenceTypeEnum.DAILY}>{t("dashboard:schedule_dialog.recurrence_types.daily")}</SelectItem>
+                  <SelectItem value={RecurrenceTypeEnum.WEEKLY}>{t("dashboard:schedule_dialog.recurrence_types.weekly")}</SelectItem>
+                  <SelectItem value={RecurrenceTypeEnum.MONTHLY}>{t("dashboard:schedule_dialog.recurrence_types.monthly")}</SelectItem>
                 </SelectContent>
               </Select>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -460,9 +469,10 @@ const footer = (
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Repeat Every</FieldLabel>
+                  <FieldLabel htmlFor="schedule-recurrence-interval">{t("dashboard:schedule_dialog.repeat_every")}</FieldLabel>
                   <Input
                     {...field}
+                    id="schedule-recurrence-interval"
                     type="number"
                     min="1"
                     placeholder="1"
@@ -480,9 +490,10 @@ const footer = (
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>End Recurrence (Optional)</FieldLabel>
+                  <FieldLabel htmlFor="schedule-recurrence-end">{t("dashboard:schedule_dialog.end_recurrence")}</FieldLabel>
                   <Input
                     {...field}
+                    id="schedule-recurrence-end"
                     type="date"
                     aria-invalid={fieldState.invalid}
                   />
@@ -500,8 +511,9 @@ const footer = (
           render={({ field }) => (
             <Field>
               <div className="flex items-center justify-between">
-                <FieldLabel>Online Event</FieldLabel>
+                <FieldLabel htmlFor="schedule-online">{t("dashboard:schedule_dialog.online_event")}</FieldLabel>
                 <Switch
+                  id="schedule-online"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
@@ -516,11 +528,12 @@ const footer = (
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Meeting URL (Optional)</FieldLabel>
+                <FieldLabel htmlFor="schedule-meeting-url">{t("dashboard:schedule_dialog.meeting_url")}</FieldLabel>
                 <Input
                   {...field}
+                  id="schedule-meeting-url"
                   type="url"
-                  placeholder="https://zoom.us/j/123456789"
+                  placeholder={t("dashboard:schedule_dialog.meeting_url_placeholder")}
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -535,10 +548,11 @@ const footer = (
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Location Name</FieldLabel>
+                <FieldLabel htmlFor="schedule-location">{t("dashboard:schedule_dialog.location_name")}</FieldLabel>
                 <Input
                   {...field}
-                  placeholder="e.g., Room 101, Building A"
+                  id="schedule-location"
+                  placeholder={t("dashboard:schedule_dialog.location_placeholder")}
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -554,8 +568,9 @@ const footer = (
           render={({ field }) => (
             <Field>
               <div className="flex items-center justify-between">
-                <FieldLabel>Enable Reminders</FieldLabel>
+                <FieldLabel htmlFor="schedule-reminders">{t("dashboard:schedule_dialog.enable_reminders")}</FieldLabel>
                 <Switch
+                  id="schedule-reminders"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />

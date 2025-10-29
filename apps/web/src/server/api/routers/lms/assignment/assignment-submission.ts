@@ -199,27 +199,6 @@ export const assignmentSubmissionRouter = router({
       return jsonify(saved.toObject());
     }),
 
-  create: protectedProcedure
-    .use(createDomainRequiredMiddleware())
-    .input(
-      getFormDataSchema({
-        assignmentId: documentIdValidator(),
-        content: z.string().default(""),
-        attachments: z.array(z.string()).default([]),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const submission = await AssignmentSubmissionModel.create({
-        ...input.data,
-        orgId: ctx.domainData.domainObj.orgId,
-        userId: ctx.user._id,
-        submittedAt: new Date(),
-        attemptNumber: 1,
-        status: AssignmentSubmissionStatusEnum.SUBMITTED,
-      });
-      return jsonify(submission.toObject());
-    }),
-
   update: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .input(
@@ -330,7 +309,7 @@ export const assignmentSubmissionRouter = router({
       });
       if (!assignment) throw new NotFoundException("Assignment", input.assignmentId);
 
-      await checkEnrollmentAccess({
+      const enrollment = await checkEnrollmentAccess({
         ctx,
         courseId: assignment.courseId,
       });
@@ -356,6 +335,7 @@ export const assignmentSubmissionRouter = router({
         content: input.content,
         attachments: [],
         attemptNumber: 0,
+        cohortId: enrollment!.cohortId,
       });
 
       return jsonify({ success: true, id: submission._id, isDraft: true });

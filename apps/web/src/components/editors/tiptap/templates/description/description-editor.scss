@@ -7,6 +7,12 @@
     
     .content-editor-content {
         height: unset;
+        max-width: 900px;
+        margin: 0 auto;
+
+        @media (max-width: 480px) {
+            max-width: 460px;
+        }
     }
 
     .tiptap.ProseMirror {

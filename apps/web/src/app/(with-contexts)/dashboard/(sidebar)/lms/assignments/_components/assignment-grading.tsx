@@ -16,6 +16,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAssignmentContext } from "./assignment-context";
 import { toast } from "sonner";
+import { useSiteInfo } from "@/components/contexts/site-info-context";
 
 export default function AssignmentGrading() {
   const { loadDetailQuery } = useAssignmentContext();
@@ -29,6 +30,7 @@ export default function AssignmentGrading() {
   const [agentRunId, setAgentRunId] = useState<string | null>(null);
   const [gradingMetrics, setGradingMetrics] = useState<any>(null);
   const [totalFilesProcessed, setTotalFilesProcessed] = useState(0);
+  const { siteInfo } = useSiteInfo();
 
   const loadSubmissionsQuery =
     trpc.lmsModule.assignmentModule.assignmentSubmission.listForAssignment.useQuery(
@@ -161,23 +163,27 @@ export default function AssignmentGrading() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{t("dashboard:lms.assignment.grading.overview")}</CardTitle>
-          <Button
-            onClick={handleAutoGrade}
-            disabled={isGrading || pendingCount === 0}
-            variant="default"
-          >
-            {isGrading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Grading...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Auto-Grade {pendingCount} Submissions
-              </>
-            )}
-          </Button>
+          {
+            siteInfo.aiHelper.enabled && (
+              <Button
+                onClick={handleAutoGrade}
+                disabled={isGrading || pendingCount === 0}
+                variant="default"
+              >
+                {isGrading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Grading...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Auto-Grade {pendingCount} Submissions
+                  </>
+                )}
+              </Button>
+              )
+          }
         </CardHeader>
         <CardContent>
 
@@ -246,27 +252,6 @@ export default function AssignmentGrading() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <div className="font-medium">{t("dashboard:lms.assignment.grading.rubric")}</div>
-                <div className="text-sm text-muted-foreground">
-                  {assignment?.rubrics && assignment.rubrics.length > 0
-                    ? t("dashboard:lms.assignment.grading.criteria_defined", { count: assignment.rubrics.length })
-                    : t("dashboard:lms.assignment.grading.no_rubric")}
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowRubricBuilder(!showRubricBuilder)}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                {assignment?.rubrics && assignment.rubrics.length > 0
-                  ? t("common:edit")
-                  : t("common:create")}{" "}
-                {t("dashboard:lms.assignment.grading.rubric")}
-              </Button>
-            </div>
-
             {assignment?.rubrics && assignment.rubrics.length > 0 && (
               <div className="space-y-2">
                 {assignment.rubrics.map((criterion, index) => (

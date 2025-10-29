@@ -136,6 +136,13 @@ const ComboBox2 = <T extends object>({
     return [];
   }, [multiple, value]);
 
+  const hasValue = useMemo(() => {
+    if (multiple) {
+      return Array.isArray(value) && value.length > 0;
+    }
+    return value !== undefined && value !== null;
+  }, [multiple, value]);
+
   return (
     <div className="space-y-2">
       <Popover modal={true}>
@@ -145,7 +152,7 @@ const ComboBox2 = <T extends object>({
               variant="outline"
               className={cn(
                 "w-full justify-between pr-20",
-                (!value || (Array.isArray(value) && value.length === 0)) && "text-muted-foreground",
+                !hasValue && "text-muted-foreground",
               )}
               type="button"
               disabled={disabled}
@@ -194,11 +201,15 @@ const ComboBox2 = <T extends object>({
                   `${title}`
                 )}
               </div>
-              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+              {
+                !hasValue && (
+                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                )
+              }
             </Button>
 
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {value && onEditClick && !multiple && (
+              {hasValue && value && onEditClick && !multiple && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -216,7 +227,7 @@ const ComboBox2 = <T extends object>({
                 </Button>
               )}
 
-              {value && (
+              {hasValue && (
                 <Button
                   variant="ghost"
                   size="sm"

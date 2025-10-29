@@ -50,6 +50,7 @@
     "select": "Выбрать",
     "select_all": "Выбрать все",
     "deselect_all": "Отменить выбор",
+    "not_selected": "Не выбрано",
     "select_time_range": "Выберите период времени",
     "no_data": "Нет данных",
     "error_occurred": "Произошла ошибка",
@@ -79,6 +80,7 @@
     "create": "Создать",
     "update": "Обновить",
     "submit": "Отправить",
+    "preview": "Предпросмотр",
     "actions": "Действия",
     "description": "Описание",
     "status": "Статус",
@@ -98,6 +100,7 @@
     "needs_improvement": "Требует улучшения",
     "unknown_student": "Неизвестный студент",
     "attempt": "Попытка",
+    "type": "Тип",
     "toast": {
         "created_successfully": "{{item}} успешно создан",
         "updated_successfully": "{{item}} успешно обновлен",
@@ -123,6 +126,14 @@
     "of": "из",
     "course_structure": "Структура курса",
     "time": "Время",
+    "schedule": "Расписание",
+    "schedule_event": "Событие расписания",
+    "start_date": "Дата начала",
+    "end_date": "Дата окончания",
+    "email": "Email",
+    "enrolled": "Записан",
+    "invite": "Пригласить",
+    "back": "Назад",
     "no_due_date": "Без срока сдачи",
     "not_available": "Недоступно",
     "uploading": "Загрузка...",
@@ -132,5 +143,8 @@
     "file_types_allowed": "Изображения, PDF, видео, аудио, текстовые файлы (макс. 15МБ)",
     "file_too_large": "Файл '{{name}}' превышает лимит 15МБ",
     "save_draft": "Сохранить черновик",
-    "save_failed": "Не удалось сохранить"
+    "save_failed": "Не удалось сохранить",
+    "view_all": "Все",
+    "published": "Опубликовано",
+    "draft": "Черновик"
 }

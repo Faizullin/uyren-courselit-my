@@ -219,7 +219,7 @@ export const studentRouter = router({
       return jsonify(progressWithStats);
     }),
 
-  // Get student grades summary
+  // Get student grades summary (all grades)
   getGradesSummary: protectedProcedure
     .use(createDomainRequiredMiddleware())
     .query(async ({ ctx }) => {
@@ -272,6 +272,7 @@ export const studentRouter = router({
         entityId: sub.assignment?._id?.toString() || "",
         title: sub.assignment?.title || "",
         course: (sub.assignment?.courseId as unknown as ICourseHydratedDocument)?.title || "",
+        courseId: (sub.assignment?.courseId as any)?._id?.toString() || "",
         score: sub.score || 0,
         totalPoints: sub.assignment?.totalPoints || 100,
         percentageScore: sub.percentageScore || 0,
@@ -286,6 +287,7 @@ export const studentRouter = router({
         attemptId: attempt._id.toString(),
         title: attempt.quiz?.title || "",
         course: (attempt.quiz?.courseId as unknown as ICourseHydratedDocument)?.title || "",
+        courseId: (attempt.quiz?.courseId as any)?._id?.toString() || "",
         score: attempt.score || 0,
         totalPoints: attempt.quiz?.totalPoints || 100,
         percentageScore: attempt.percentageScore || 0,
@@ -303,6 +305,118 @@ export const studentRouter = router({
         averageGrade,
         totalGraded: allGrades.length,
         grades: allGrades.slice(0, 20),
+      });
+    }),
+
+  // Get student grades for specific cohort (required cohortId)
+  getGradesByCohort: protectedProcedure
+    .use(createDomainRequiredMiddleware())
+    .input(
+      z.object({
+        cohortId: documentIdValidator(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.user._id;
+      const orgId = ctx.domainData.domainObj.orgId;
+
+      // Server-side filtering: Get courseIds for the specified cohort
+      const enrollments = await EnrollmentModel.find({
+        userId,
+        orgId,
+        cohortId: input.cohortId,
+        status: EnrollmentStatusEnum.ACTIVE,
+      }).select("courseId").lean();
+      
+      const courseIds = enrollments.map(e => e.courseId);
+
+      if (courseIds.length === 0) {
+        return jsonify({
+          averageGrade: 0,
+          totalGraded: 0,
+          grades: [],
+        });
+      }
+
+      const [submissions, quizAttempts] = await Promise.all([
+        AssignmentSubmissionModel.find({
+          userId,
+          orgId,
+          status: AssignmentSubmissionStatusEnum.GRADED,
+        })
+          .populate<{ assignment: Pick<IAssignmentHydratedDocument, "_id" | "title" | "totalPoints" | "courseId"> }>(
+            "assignment",
+            "title totalPoints courseId"
+          )
+          .populate({
+            path: "assignment",
+            populate: {
+              path: "courseId",
+              select: "title"
+            }
+          })
+          .sort({ gradedAt: -1 })
+          .lean(),
+
+        QuizAttemptModel.find({
+          userId,
+          orgId,
+          status: QuizAttemptStatusEnum.COMPLETED,
+        })
+          .populate<{ quiz: Pick<IQuizHydratedDocument, "_id" | "title" | "totalPoints" | "courseId"> }>(
+            "quiz",
+            "title totalPoints courseId"
+          )
+          .populate({
+            path: "quiz",
+            populate: {
+              path: "courseId",
+              select: "title"
+            }
+          })
+          .sort({ completedAt: -1 })
+          .lean()
+      ]);
+
+      const assignmentGrades = submissions.map(sub => ({
+        _id: sub._id.toString(),
+        type: "assignment" as const,
+        entityId: sub.assignment?._id?.toString() || "",
+        title: sub.assignment?.title || "",
+        course: (sub.assignment?.courseId as unknown as ICourseHydratedDocument)?.title || "",
+        courseId: (sub.assignment?.courseId as any)?._id?.toString() || "",
+        score: sub.score || 0,
+        totalPoints: sub.assignment?.totalPoints || 100,
+        percentageScore: sub.percentageScore || 0,
+        gradedAt: sub.gradedAt || new Date(),
+        feedback: sub.feedback,
+      }));
+
+      const quizGrades = quizAttempts.map(attempt => ({
+        _id: attempt._id.toString(),
+        type: "quiz" as const,
+        entityId: attempt.quiz?._id?.toString() || "",
+        attemptId: attempt._id.toString(),
+        title: attempt.quiz?.title || "",
+        course: (attempt.quiz?.courseId as unknown as ICourseHydratedDocument)?.title || "",
+        courseId: (attempt.quiz?.courseId as any)?._id?.toString() || "",
+        score: attempt.score || 0,
+        totalPoints: attempt.quiz?.totalPoints || 100,
+        percentageScore: attempt.percentageScore || 0,
+        gradedAt: attempt.completedAt || new Date(),
+      }));
+
+      const allGrades = [...assignmentGrades, ...quizGrades]
+        .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
+
+      const averageGrade = allGrades.length > 0
+        ? Math.round(allGrades.reduce((sum, g) => sum + g.percentageScore, 0) / allGrades.length)
+        : 0;
+
+      return jsonify({
+        averageGrade,
+        totalGraded: allGrades.length,
+        grades: allGrades,
       });
     }),
 });

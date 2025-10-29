@@ -3,15 +3,12 @@
 import { useCourseDetail } from "@/components/course/detail/course-detail-context";
 import DashboardContent from "@/components/dashboard/dashboard-content";
 import HeaderTopbar from "@/components/dashboard/layout/header-topbar";
-import { DataTable } from "@workspace/components-library/";
-import { DataTableToolbar } from "@workspace/components-library";
-import { useDataTable } from "@workspace/components-library";
 import { GeneralRouterOutputs } from "@/server/api/types";
 import { trpc } from "@/utils/trpc";
 import { ColumnDef } from "@tanstack/react-table";
 import { ApprovalStatusEnum } from "@workspace/common-logic/lib/approval_status";
-import { DeleteConfirmNiceDialog, NiceModal } from "@workspace/components-library";
-import { CohortSelectDialog } from "../_components/cohort-select-dialog";
+import { DataTableToolbar, DeleteConfirmNiceDialog, NiceModal, useDataTable } from "@workspace/components-library";
+import { DataTable } from "@workspace/components-library/";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -20,10 +17,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { format } from "date-fns";
-import { Check, X, Trash2 } from "lucide-react";
+import { Check, Trash2, X } from "lucide-react";
+import { parseAsStringEnum, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { CohortSelectDialog } from "../_components/cohort-select-dialog";
 
 type ItemType = GeneralRouterOutputs["lmsModule"]["enrollmentRequest"]["list"]["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.enrollmentRequest.list.useQuery>[0];
@@ -32,11 +31,13 @@ export default function CourseEnrollmentRequests() {
   const { initialCourse, isLoading } = useCourseDetail();
   const courseId = initialCourse._id;
   const { t } = useTranslation("course");
+  const [filters, setFilters] = useQueryStates({
+    "filter[status]": parseAsStringEnum([ApprovalStatusEnum.PENDING, ApprovalStatusEnum.APPROVED, ApprovalStatusEnum.REJECTED]), 
+  });
   
   const [parsedData, setParsedData] = useState<ItemType[]>([]);
   const [parsedPagination, setParsedPagination] = useState({ pageCount: 0 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ApprovalStatusEnum | "all">("all");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const utils = trpc.useUtils();
@@ -216,11 +217,11 @@ export default function CourseEnrollmentRequests() {
     if (debouncedSearchQuery) {
       parsed.search = { q: debouncedSearchQuery };
     }
-    if (statusFilter !== "all") {
-      parsed.filter!.status = statusFilter;
+    if (filters["filter[status]"]) {
+      parsed.filter!.status = filters["filter[status]"];
     }
     return parsed;
-  }, [tableState.sorting, tableState.pagination, debouncedSearchQuery, statusFilter, courseId]);
+  }, [tableState.sorting, tableState.pagination, debouncedSearchQuery, filters["filter[status]"], courseId]);
 
   const loadListQuery = trpc.lmsModule.enrollmentRequest.list.useQuery(queryParams, {
     enabled: !!courseId,
@@ -322,7 +323,9 @@ export default function CourseEnrollmentRequests() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="max-w-sm"
               />
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ApprovalStatusEnum | "all")}>
+              <Select 
+              value={filters["filter[status]"] || "all"}
+               onValueChange={(value) => value !== "all" ? setFilters({ "filter[status]": value as ApprovalStatusEnum }) : setFilters({ "filter[status]": undefined })}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder={t("requests.filter_status")} />
                 </SelectTrigger>

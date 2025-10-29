@@ -63,7 +63,6 @@ export default function Page() {
   );
 
   const breadcrumbs = [
-    { label: t("dashboard:lms.title"), href: "#" },
     { label: t("dashboard:lms.modules.assignments.title"), href: "#" },
   ];
 

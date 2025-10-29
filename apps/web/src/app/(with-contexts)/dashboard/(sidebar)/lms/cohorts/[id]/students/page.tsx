@@ -24,6 +24,7 @@ import { Trash2, MoreHorizontal, UserPlus } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InviteStudentsDialog } from "./_components/invite-students-dialog";
 
 type ItemType = GeneralRouterOutputs["lmsModule"]["enrollment"]["list"]["items"][number];
 type QueryParams = Parameters<typeof trpc.lmsModule.enrollment.list.useQuery>[0];
@@ -33,7 +34,6 @@ export default function Page() {
     const { toast } = useToast();
     const params = useParams<{ id: string }>();
     const cohortId = params.id;
-    const trpcUtils = trpc.useUtils();
     const [parsedData, setParsedData] = useState<ItemType[]>([]);
     const [parsedPagination, setParsedPagination] = useState({ pageCount: 0 });
     const [searchQuery, setSearchQuery] = useState("");
@@ -43,43 +43,45 @@ export default function Page() {
     const cohort = cohortQuery.data;
 
     const breadcrumbs = useMemo(() => [
-        { label: t("common:dashboard.cohorts.title"), href: "/dashboard/lms/cohorts" },
-        { label: cohort?.title || "Cohort", href: `/dashboard/lms/cohorts/${cohortId}` },
-        { label: "Students", href: "#" }
+        { label: t("dashboard:lms.modules.cohorts.title"), href: "/dashboard/lms/cohorts" },
+        { label: cohort?.title || "Edit", href: `/dashboard/lms/cohorts/${cohortId}` },  
+        { label: t("common:students"), href: "#" }
     ], [t, cohort?.title, cohortId]);       
 
     const unenrollMutation = trpc.lmsModule.enrollment.unenroll.useMutation({
         onSuccess: () => {
-            toast({ title: t("common:dashboard.success"), description: "Student removed successfully" });
+            toast({ title: t("common:success"), description: t("dashboard:cohort_students.student_removed") });
             loadListQuery.refetch();
         },
         onError: (err: any) => {
-            toast({ title: t("common:dashboard.error"), description: err.message, variant: "destructive" });
+            toast({ title: t("common:error"), description: err.message, variant: "destructive" });
         },
     });
 
     const handleRemoveStudent = useCallback(async (enrollment: ItemType) => {
+        const userName = enrollment.user?.fullName || enrollment.user?.email || "";
         const result = await NiceModal.show(DeleteConfirmNiceDialog, {
-            title: "Remove Student",
-            message: `Are you sure you want to remove "${enrollment.user?.fullName || enrollment.user?.email}" from this cohort?`,
+            title: t("dashboard:cohort_students.remove_student"),
+            message: t("dashboard:cohort_students.remove_student_confirm", { name: userName }),
         });
         if (result.reason === "confirm") {
             unenrollMutation.mutate({ id: enrollment._id });
         }
-    }, [unenrollMutation]);
+    }, [unenrollMutation, t]);
 
     const handleInviteStudents = useCallback(() => {
-        toast({ 
-            title: "Coming Soon", 
-            description: "Invite students functionality will be available soon." 
+        if (!cohort) return;
+        toast({
+            title: t("dashboard:cohort_students.coming_soon"),
+            description: t("dashboard:cohort_students.coming_soon_desc")
         });
-    }, [toast]);
+    }, [cohort, toast, t]);
 
     const columns: ColumnDef<ItemType>[] = useMemo(() => {
         return [
             {
                 accessorKey: "user",
-                header: "Student",
+                header: t("common:students", { count: 1 }),
                 cell: ({ row }) => {
                     const user = row.original.user;
                     return <div className="font-medium">{user?.fullName || user?.email || "-"}</div>;
@@ -87,7 +89,7 @@ export default function Page() {
             },
             {
                 accessorKey: "user.email",
-                header: "Email",
+                header: t("common:email"),
                 cell: ({ row }) => {
                     const user = row.original.user;
                     return <div>{user?.email || "-"}</div>;
@@ -95,7 +97,7 @@ export default function Page() {
             },
             {
                 accessorKey: "status",
-                header: "Status",
+                header: t("common:status"),
                 cell: ({ row }) => {
                     const status = row.getValue("status") as string;
                     return <Badge>{status}</Badge>;
@@ -103,7 +105,7 @@ export default function Page() {
             },
             {
                 accessorKey: "enrolledAt",
-                header: "Enrolled",
+                header: t("common:enrolled"),
                 cell: ({ row }) => {
                     const date = row.getValue("enrolledAt") as Date;
                     return date ? format(new Date(date), "MMM dd, yyyy") : "-";
@@ -119,13 +121,13 @@ export default function Page() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
                                     <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Open menu</span>
+                                    <span className="sr-only">{t("table.open_menu")}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => handleRemoveStudent(enrollment)} className="text-red-600">
                                     <Trash2 className="h-4 w-4 mr-2" />
-                                    Remove Student
+                                    {t("dashboard:cohort_students.remove_student")}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -185,12 +187,12 @@ export default function Page() {
         >
             <HeaderTopbar
                 header={{
-                    title: cohort?.title || "Cohort Students",
-                    subtitle: "Manage students enrolled in this cohort",
+                    title: cohort?.title || t("dashboard:cohort_students.title"),
+                    subtitle: t("dashboard:cohort_students.subtitle"),
                 }}
                 backLink={true}
                 rightAction={
-                    <CreateButton onClick={handleInviteStudents} text="Invite Users" />
+                    <CreateButton onClick={handleInviteStudents} text={t("dashboard:cohort_students.invite_users")} />
                 }
             />
 
@@ -206,10 +208,10 @@ export default function Page() {
                             />
                             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CohortStatusEnum | "all")}>
                                 <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Filter by status" />
+                                    <SelectValue placeholder={t("dashboard:cohort_students.filter_by_status")} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="all">{t("dashboard:cohort_students.all_statuses")}</SelectItem>
                                     {Object.values(CohortStatusEnum).map((status) => (
                                         <SelectItem key={status} value={status}>
                                             {status}

@@ -6,6 +6,8 @@
     "all_levels": "All Levels",
     "filter_status": "Status",
     "all_statuses": "All Statuses",
+    "filter_published": "Published",
+    "show_published_only": "Show published only",
     "no_courses": "No courses found",
     "no_courses_desc": "Try adjusting your filters or create a new course"
   },
@@ -19,7 +21,8 @@
     "under_review": "Under Review",
     "approved": "Approved",
     "published": "Published",
-    "draft": "Draft"
+    "draft": "Draft",
+    "unpublished": "Unpublished"
   },
   "form": {
     "create_title": "Create New Course",

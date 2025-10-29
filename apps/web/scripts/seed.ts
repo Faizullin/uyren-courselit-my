@@ -66,8 +66,11 @@ async function createRootDomain(orgId: mongoose.Types.ObjectId) {
         currencyISOCode: "USD",
         paymentMethods: {
           stripe: {
-            type: "stripe" as const,
+            type: "stripe",
           },
+        },
+        aiHelper: {
+          enabled: false,
         },
       },
     });

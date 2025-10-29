@@ -228,10 +228,11 @@ export default function QuizSettings() {
                 name="title"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>{t("common:title")}</FieldLabel>
+                    <FieldLabel htmlFor="quiz-title">{t("common:title")}</FieldLabel>
                     <Input
                       {...field}
-                      placeholder={t("common:description")}
+                      id="quiz-title"
+                      placeholder={t("dashboard:lms.quiz.settings.quiz_title_placeholder")}
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -245,9 +246,10 @@ export default function QuizSettings() {
                 name="description"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>{t("common:description")}</FieldLabel>
+                    <FieldLabel htmlFor="quiz-description">{t("common:description")}</FieldLabel>
                     <Textarea
                       {...field}
+                      id="quiz-description"
                       placeholder={t("dashboard:lms.quiz.settings.quiz_description_placeholder")}
                       rows={3}
                       aria-invalid={fieldState.invalid}
@@ -263,27 +265,29 @@ export default function QuizSettings() {
                 name="course"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>{t("dashboard:lms.quiz.settings.course")}</FieldLabel>
-                    <ComboBox2<CourseSelectItemType>
+                    <FieldLabel htmlFor="quiz-course">{t("dashboard:lms.quiz.settings.course")}</FieldLabel>
+                    <div id="quiz-course">
+                      <ComboBox2<CourseSelectItemType>
                       title={t("dashboard:lms.quiz.settings.select_course")}
                       valueKey="key"
                       value={field.value || undefined}
                       searchFn={fetchCourses}
-                      renderLabel={(item) => item.title}
-                      onChange={field.onChange}
-                      multiple={false}
-                      showCreateButton={true}
-                      showEditButton={true}
-                      onCreateClick={() => {
-                        window.open(`/dashboard/products/new`, "_blank");
-                      }}
-                      onEditClick={(item) => {
-                        window.open(
-                          `/dashboard/products/${item.key}`,
-                          "_blank",
-                        );
-                      }}
-                    />
+                        renderLabel={(item) => item.title}
+                        onChange={field.onChange}
+                        multiple={false}
+                        showCreateButton={true}
+                        showEditButton={true}
+                        onCreateClick={() => {
+                          window.open(`/dashboard/lms/courses/new`, "_blank");
+                        }}
+                        onEditClick={(item) => {
+                          window.open(
+                            `/dashboard/lms/courses/${item.key}`,
+                            "_blank",
+                          );
+                        }}
+                      />
+                    </div>
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
                     )}
@@ -306,10 +310,11 @@ export default function QuizSettings() {
                   name="timeLimit"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>{t("dashboard:lms.quiz.settings.time_limit")}</FieldLabel>
+                      <FieldLabel htmlFor="quiz-time-limit">{t("dashboard:lms.quiz.settings.time_limit")}</FieldLabel>
                       <Input
-                        type="number"
                         {...field}
+                        id="quiz-time-limit"
+                        type="number"
                         onChange={(e) =>
                           field.onChange(parseInt(e.target.value) || 0)
                         }
@@ -326,10 +331,11 @@ export default function QuizSettings() {
                   name="passingScore"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>{t("dashboard:lms.quiz.settings.passing_score")}</FieldLabel>
+                      <FieldLabel htmlFor="quiz-passing-score">{t("dashboard:lms.quiz.settings.passing_score")}</FieldLabel>
                       <Input
-                        type="number"
                         {...field}
+                        id="quiz-passing-score"
+                        type="number"
                         onChange={(e) =>
                           field.onChange(parseInt(e.target.value) || 0)
                         }
@@ -381,10 +387,11 @@ export default function QuizSettings() {
                   name="totalPoints"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel>{t("dashboard:lms.quiz.settings.total_points")}</FieldLabel>
+                      <FieldLabel htmlFor="quiz-total-points">{t("dashboard:lms.quiz.settings.total_points")}</FieldLabel>
                       <Input
-                        type="number"
                         {...field}
+                        id="quiz-total-points"
+                        type="number"
                         onChange={(e) =>
                           field.onChange(parseInt(e.target.value) || 0)
                         }

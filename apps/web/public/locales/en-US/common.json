@@ -51,6 +51,7 @@
     "select": "Select",
     "select_all": "Select All",
     "deselect_all": "Deselect All",
+    "not_selected": "Not selected",
     "select_time_range": "Select time range",
     "no_data": "No data available",
     "error_occurred": "An error occurred",
@@ -79,6 +80,7 @@
     "create": "Create",
     "update": "Update",
     "submit": "Submit",
+    "preview": "Preview",
     "actions": "Actions",
     "description": "Description",
     "status": "Status",
@@ -98,6 +100,7 @@
     "needs_improvement": "Needs Improvement",
     "unknown_student": "Unknown Student",
     "attempt": "Attempt",
+    "type": "Type",
     "toast": {
         "created_successfully": "{{item}} created successfully",
         "updated_successfully": "{{item}} updated successfully",
@@ -123,6 +126,14 @@
     "of": "of",
     "course_structure": "Course Structure",
     "time": "Time",
+    "schedule": "Schedule",
+    "schedule_event": "Schedule event",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "email": "Email",
+    "enrolled": "Enrolled",
+    "invite": "Invite",
+    "back": "Back",
     "no_due_date": "No due date",
     "not_available": "Not available",
     "uploading": "Uploading...",
@@ -132,5 +143,8 @@
     "file_types_allowed": "Images, PDFs, videos, audio, text files (max 15MB)",
     "file_too_large": "File '{{name}}' exceeds 15MB limit",
     "save_draft": "Save Draft",
-    "save_failed": "Failed to save"
+    "save_failed": "Failed to save",
+    "view_all": "View All",
+    "published": "Published",
+    "draft": "Draft"
 }

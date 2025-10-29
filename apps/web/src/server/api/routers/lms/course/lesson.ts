@@ -1,5 +1,4 @@
 import {
-  AuthenticationException,
   AuthorizationException,
   NotFoundException
 } from "@/server/api/core/exceptions";
@@ -20,18 +19,16 @@ import {
 } from "@/server/api/core/validators";
 import { jsonify } from "@workspace/common-logic/lib/response";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
+import { AssignmentModel } from "@workspace/common-logic/models/lms/assignment.model";
 import {
   CourseModel,
   ICourseHydratedDocument,
-  } from "@workspace/common-logic/models/lms/course.model";
-import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
-import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
+} from "@workspace/common-logic/models/lms/course.model";
 import {
   ILessonHydratedDocument,
   LessonModel,
 } from "@workspace/common-logic/models/lms/lesson.model";
 import { LessonTypeEnum } from "@workspace/common-logic/models/lms/lesson.types";
-import { AssignmentModel } from "@workspace/common-logic/models/lms/assignment.model";
 import { QuizModel } from "@workspace/common-logic/models/lms/quiz.model";
 import { IUserHydratedDocument } from "@workspace/common-logic/models/user.model";
 import { checkPermission } from "@workspace/utils";
@@ -307,11 +304,12 @@ export const lessonRouter = router({
         throw new NotFoundException("Lesson", input.lessonId);
       }
 
-      await checkEnrollmentAccess({
-        ctx: ctx as unknown as MainContextType,
-        courseId: lesson.courseId,
-        requiresEnrollment: lesson.requiresEnrollment,
-      });
+      if (lesson.requiresEnrollment) {
+        await checkEnrollmentAccess({
+          ctx: ctx as unknown as MainContextType,
+          courseId: lesson.courseId,
+        });
+      }
 
       // Find prev/next lessons in the course structure
       let prevLesson: Pick<ILessonHydratedDocument, "_id" | "title"> | null = null;
@@ -372,7 +370,7 @@ export const lessonRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { filter, pagination } = input;
-      
+
       const query: RootFilterQuery<typeof AssignmentModel | typeof QuizModel> = {
         orgId: ctx.domainData.domainObj.orgId,
         courseId: filter.courseId,
@@ -387,17 +385,17 @@ export const lessonRouter = router({
       const [assignments, quizzes] = await Promise.all([
         fetchAssignments
           ? AssignmentModel.find(query)
-              .select("_id title type")
-              .limit(paginationMeta.take)
-              .skip(paginationMeta.skip)
-              .lean()
+            .select("_id title type")
+            .limit(paginationMeta.take)
+            .skip(paginationMeta.skip)
+            .lean()
           : Promise.resolve([]),
         fetchQuizzes
           ? QuizModel.find(query)
-              .select("_id title")
-              .limit(paginationMeta.take)
-              .skip(paginationMeta.skip)
-              .lean()
+            .select("_id title")
+            .limit(paginationMeta.take)
+            .skip(paginationMeta.skip)
+            .lean()
           : Promise.resolve([]),
       ]);
 

@@ -20,7 +20,8 @@
     "profile": "Profile"
   },
   "student": {
-    "subtitle": "Track your enrolled courses and progress",
+    "dashboard_title": "Student Dashboard",
+    "dashboard_subtitle": "Track your enrolled courses and progress",
     "search_placeholder": "Search courses...",
     "no_courses_found": "No courses found",
     "no_courses_enrolled": "No courses enrolled yet",
@@ -32,25 +33,47 @@
     "ends": "Ends",
     "completed": "completed",
     "no_lessons": "No lessons available yet",
-    "tabs": {
-      "lessons": "Lessons",
-      "ai_tutor": "AI Tutor"
+    "stats": {
+      "enrolled_courses": "Enrolled Courses",
+      "active_learning": "Active learning",
+      "completion_rate": "Completion Rate",
+      "overall_progress": "Overall progress",
+      "completed_lessons": "Completed Lessons",
+      "lessons_progress": "Lessons progress",
+      "pending_assignments": "Pending Assignments",
+      "need_completion": "Need completion"
     },
-    "ai_tutor": {
-      "welcome_message": "Hello! I'm your AI tutor. Ask me anything about this lesson and I'll help you understand the concepts better.",
-      "sample_response": "That's a great question! Let me help you understand this better. In the context of this lesson, this concept is important because it forms the foundation of how the system works. Would you like me to explain any specific part in more detail?",
-      "input_placeholder": "Ask a question about this course..."
+    "recent_courses": {
+      "title": "Recent Courses",
+      "no_courses": "No courses enrolled yet",
+      "untitled": "Untitled Course"
+    },
+    "pending_assignments": {
+      "title": "Pending Assignments",
+      "no_assignments": "No pending assignments",
+      "due": "Due"
+    },
+    "upcoming_events": {
+      "title": "Upcoming Events",
+      "no_events": "No upcoming events",
+      "view_schedule": "View Full Schedule"
     },
     "grades": {
       "title": "My Grades",
       "subtitle": "Track your academic performance",
+      "cohorts_list": "Cohorts",
+      "view_cohort_grades": "View grades for this cohort",
+      "no_cohorts": "No Cohorts Found",
+      "no_cohorts_description": "Join a cohort to see your grades here",
+      "cohort_subtitle": "View your grades for this cohort",
       "average_grade": "Average Grade",
       "total_graded": "Total Graded",
-      "excellent": "Excellent (90%+)",
-      "good": "Good (70-89%)",
+      "grade_trend": "Grade Trend",
+      "all_grades": "All Grades",
       "recent_grades": "Recent Grades",
       "no_grades_yet": "No grades yet",
-      "graded_items_appear_here": "Your graded assignments and quizzes will appear here"
+      "graded_items_appear_here": "Your graded assignments and quizzes will appear here",
+      "no_grades_description": "Graded assignments and quizzes for this cohort will appear here"
     }
   },
   "instructor": {
@@ -64,7 +87,9 @@
       "out_of_5": "Out of 5.0",
       "no_ratings_yet": "No ratings yet",
       "drafts": "Drafts",
-      "need_publishing": "Need publishing"
+      "need_publishing": "Need publishing",
+      "pending_grading": "Pending Grading",
+      "pending_submissions": "Pending Submissions"
     },
     "my_courses": {
       "title": "My Courses",
@@ -75,8 +100,7 @@
       "published": "Published",
       "draft": "Draft",
       "chapters": "chapters",
-      "students": "students",
-      "view_all_courses": "View All Courses"
+      "students": "students"
     },
     "quick_actions": {
       "title": "Quick Actions",
@@ -139,7 +163,6 @@
       "manage_course": "Manage Course",
       "cohort_groups": "Groups",
       "preview_course": "Preview Course",
-      "view_all": "View All",
       "no_cohorts_yet": "No groups yet.",
       "create_one": "Create one",
       "no_instructor": "No instructor"
@@ -187,7 +210,6 @@
       "currently_active": "Currently active"
     },
     "actions": {
-      "view_all": "View All",
       "new": "New"
     },
     "assignment": {
@@ -289,9 +311,6 @@
         "pending": "Pending",
         "total_points": "Total Points",
         "configuration": "Grading Configuration",
-        "rubric": "Rubric",
-        "no_rubric": "No rubric defined",
-        "criteria_defined": "{{count}} criteria defined",
         "late_submission_policy": "Late Submission Policy",
         "late_penalty_percent": "Late penalty: {{percent}}%",
         "late_not_allowed": "Late submissions not allowed",
@@ -530,11 +549,11 @@
     "new_lesson": "New Lesson",
     "edit_lesson": "Edit Lesson",
     "create_lesson": "Create Lesson",
-    "update_lesson": "Update Lesson",
     "view_lesson": "View Lesson",
-    "edit_subtitle": "Edit lesson details",
+    "edit_subtitle": "Update lesson details and content",
     "create_subtitle": "Create a new lesson for this section",
     "title_placeholder": "Enter lesson title",
+    "type_placeholder": "Select lesson type",
     "saving": "Saving...",
     "created_successfully": "Lesson created successfully",
     "updated_successfully": "Lesson updated successfully",
@@ -543,7 +562,7 @@
     "requires_enrollment": "Requires Enrollment",
     "requires_enrollment_description": "Students must be enrolled to access this lesson",
     "downloadable": "Downloadable",
-    "downloadable_description": "Allow students to download this lesson",
+    "downloadable_description": "Allow students to download lesson content",
     "not_found": "Lesson not found",
     "not_found_desc": "The lesson you're looking for doesn't exist or you don't have access to it.",
     "back_to_course": "Back to Course",
@@ -608,7 +627,10 @@
       "api_keys": "API Keys",
       "website_settings": "Website Settings",
       "schools": "Schools"
-    }
+    },
+    "ai_helper": "AI Helper",
+    "ai_helper_enabled": "Enable AI Helper",
+    "ai_helper_enabled_desc": "Enable AI assistant to help students with course content"
   },
   "profile": {
     "loading": "Loading profile...",
@@ -641,11 +663,78 @@
   "course_information": "Course Information",
   "instructor_label": "Instructor",
   "cohort": "Group",
+  "cohort_edit": {
+    "not_found": "Cohort not found",
+    "back_to_cohorts": "Back to Cohorts",
+    "subtitle": "Manage cohort details and settings",
+    "course_assignment": "Course Assignment",
+    "select_course": "Select Course",
+    "instructor_assignment": "Instructor Assignment",
+    "select_instructor": "Select Instructor",
+    "cohort_settings": "Cohort Settings",
+    "invite_code": "Invite Code",
+    "invite_code_placeholder": "e.g., SPRING2024",
+    "duration_weeks": "Duration (weeks)",
+    "max_capacity": "Max Capacity",
+    "manage_schedule": "Manage Schedule",
+    "capacity_card": "Capacity",
+    "updated_successfully": "Cohort updated successfully",
+    "cohort_title_placeholder": "Cohort title",
+    "cohort_description_placeholder": "Cohort description"
+  },
+  "cohort_students": {
+    "title": "Cohort Students",
+    "subtitle": "Manage students enrolled in this cohort",
+    "student_removed": "Student removed successfully",
+    "remove_student": "Remove Student",
+    "remove_student_confirm": "Are you sure you want to remove \"{{name}}\" from this cohort?",
+    "invite_users": "Invite Users",
+    "invite_students": "Invite Students",
+    "invite_students_title": "Invite Students to Cohort",
+    "invite_students_subtitle": "Select users to invite to this cohort",
+    "select_users": "Select Users",
+    "select_users_placeholder": "Search users by name or email",
+    "invite_success": "Students invited successfully",
+    "coming_soon": "Coming Soon",
+    "coming_soon_desc": "Invite students functionality will be available soon.",
+    "filter_by_status": "Filter by status",
+    "all_statuses": "All Statuses"
+  },
+  "schedule_dialog": {
+    "edit_schedule_event": "Edit Schedule Event",
+    "create_schedule_event": "Create Schedule Event",
+    "delete_schedule_event": "Delete Schedule Event",
+    "event_title_placeholder": "e.g., React Fundamentals Class",
+    "event_description_placeholder": "Enter event description",
+    "start_time": "Start Time",
+    "end_time": "End Time",
+    "all_day_event": "All Day Event",
+    "recurrence": "Recurrence",
+    "repeat_every": "Repeat Every",
+    "end_recurrence": "End Recurrence",
+    "online_event": "Online Event",
+    "meeting_url": "Meeting URL",
+    "meeting_url_placeholder": "https://zoom.us/j/123456789",
+    "location_name": "Location Name",
+    "location_placeholder": "e.g., Room 101, Building A",
+    "enable_reminders": "Enable Reminders",
+    "types": {
+      "live_session": "Live Session",
+      "assignment": "Assignment",
+      "quiz": "Quiz",
+      "deadline": "Deadline"
+    },
+    "recurrence_types": {
+      "none": "Does not repeat",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    }
+  },
   "course_progress": "Course Progress",
   "lessons_completed": "lessons completed",
   "quick_actions": "Quick Actions",
   "continue_learning": "Continue Learning",
-  "view_all_lessons": "View All Lessons",
   "of": "of",
   "media_manager": {
     "selector": {

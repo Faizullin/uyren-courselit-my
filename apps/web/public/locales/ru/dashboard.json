@@ -20,13 +20,56 @@
     "profile": "Профиль"
   },
   "student": {
-    "subtitle": "Отслеживайте зачисленные курсы и прогресс",
+    "dashboard_title": "Панель Студента",
+    "dashboard_subtitle": "Отслеживайте зачисленные курсы и прогресс",
     "search_placeholder": "Поиск курсов...",
     "no_courses_found": "Курсы не найдены",
     "no_courses_enrolled": "Еще не записались ни на один курс",
     "adjust_search": "Попробуйте изменить критерии поиска",
     "start_journey": "Начните свой путь обучения, записавшись на курсы",
     "browse_courses": "Просмотреть курсы",
+    "stats": {
+      "enrolled_courses": "Зачисленные курсы",
+      "active_learning": "Активное обучение",
+      "completion_rate": "Процент завершения",
+      "overall_progress": "Общий прогресс",
+      "completed_lessons": "Завершенные уроки",
+      "lessons_progress": "Прогресс уроков",
+      "pending_assignments": "Ожидающие задания",
+      "need_completion": "Требуют завершения"
+    },
+    "recent_courses": {
+      "title": "Последние курсы",
+      "no_courses": "Еще не записались ни на один курс",
+      "untitled": "Курс без названия"
+    },
+    "pending_assignments": {
+      "title": "Ожидающие задания",
+      "no_assignments": "Нет ожидающих заданий",
+      "due": "Срок"
+    },
+    "upcoming_events": {
+      "title": "Предстоящие события",
+      "no_events": "Нет предстоящих событий",
+      "view_schedule": "Посмотреть полное расписание"
+    },
+    "grades": {
+      "title": "Мои оценки",
+      "subtitle": "Отслеживайте свои академические показатели",
+      "cohorts_list": "Группы",
+      "view_cohort_grades": "Просмотреть оценки для этой группы",
+      "no_cohorts": "Группы не найдены",
+      "no_cohorts_description": "Присоединитесь к группе, чтобы увидеть свои оценки здесь",
+      "cohort_subtitle": "Просмотр ваших оценок для этой группы",
+      "average_grade": "Средняя оценка",
+      "total_graded": "Всего оценено",
+      "grade_trend": "Тренд оценок",
+      "all_grades": "Все оценки",
+      "recent_grades": "Последние оценки",
+      "no_grades_yet": "Оценок пока нет",
+      "graded_items_appear_here": "Ваши оцененные задания и тесты появятся здесь",
+      "no_grades_description": "Оцененные задания и тесты для этой группы появятся здесь"
+    },
     "start_learning": "Начать обучение",
     "started": "Начало",
     "ends": "Окончание",
@@ -40,17 +83,6 @@
       "welcome_message": "Здравствуйте! Я ваш AI репетитор. Задавайте мне любые вопросы об этом уроке, и я помогу вам лучше понять концепции.",
       "sample_response": "Отличный вопрос! Позвольте мне помочь вам лучше понять это. В контексте этого урока эта концепция важна, потому что она формирует основу работы системы. Хотите, чтобы я объяснил какую-то конкретную часть более подробно?",
       "input_placeholder": "Задайте вопрос об этом курсе..."
-    },
-    "grades": {
-      "title": "Мои Оценки",
-      "subtitle": "Отслеживайте свою академическую успеваемость",
-      "average_grade": "Средний Балл",
-      "total_graded": "Всего Оценено",
-      "excellent": "Отлично (90%+)",
-      "good": "Хорошо (70-89%)",
-      "recent_grades": "Последние Оценки",
-      "no_grades_yet": "Пока нет оценок",
-      "graded_items_appear_here": "Ваши оцененные задания и викторины появятся здесь"
     }
   },
   "instructor": {
@@ -64,7 +96,9 @@
       "out_of_5": "Из 5.0",
       "no_ratings_yet": "Пока нет оценок",
       "drafts": "Черновики",
-      "need_publishing": "Требуют публикации"
+      "need_publishing": "Требуют публикации",
+      "pending_grading": "Ожидают оценки",
+      "pending_submissions": "Ожидают отправки"
     },
     "my_courses": {
       "title": "Мои Курсы",
@@ -75,8 +109,7 @@
       "published": "Опубликовано",
       "draft": "Черновик",
       "chapters": "разделов",
-      "students": "студентов",
-      "view_all_courses": "Посмотреть Все Курсы"
+      "students": "студентов"
     },
     "quick_actions": {
       "title": "Быстрые Действия",
@@ -139,7 +172,6 @@
       "manage_course": "Управление Курсом",
       "cohort_groups": "Группы",
       "preview_course": "Предпросмотр Курса",
-      "view_all": "Посмотреть Все",
       "no_cohorts_yet": "Пока нет групп.",
       "create_one": "Создать",
       "no_instructor": "Нет преподавателя"
@@ -187,7 +219,6 @@
       "currently_active": "В настоящее время активны"
     },
     "actions": {
-      "view_all": "Показать все",
       "new": "Новый"
     },
     "assignment": {
@@ -530,11 +561,11 @@
     "new_lesson": "Новый урок",
     "edit_lesson": "Редактировать урок",
     "create_lesson": "Создать урок",
-    "update_lesson": "Обновить урок",
     "view_lesson": "Просмотреть урок",
-    "edit_subtitle": "Редактировать детали урока",
+    "edit_subtitle": "Обновить детали и содержание урока",
     "create_subtitle": "Создать новый урок для этого раздела",
     "title_placeholder": "Введите название урока",
+    "type_placeholder": "Выберите тип урока",
     "saving": "Сохранение...",
     "created_successfully": "Урок успешно создан",
     "updated_successfully": "Урок успешно обновлен",
@@ -543,7 +574,7 @@
     "requires_enrollment": "Требуется регистрация",
     "requires_enrollment_description": "Студенты должны быть зарегистрированы для доступа к этому уроку",
     "downloadable": "Доступно для скачивания",
-    "downloadable_description": "Разрешить студентам скачивать этот урок",
+    "downloadable_description": "Разрешить студентам скачивать содержание урока",
     "not_found": "Урок не найден",
     "not_found_desc": "Урок, который вы ищете, не существует или у вас нет доступа к нему.",
     "back_to_course": "Вернуться к курсу",
@@ -608,7 +639,10 @@
       "api_keys": "API ключи",
       "website_settings": "Настройки сайта",
       "schools": "Школы"
-    }
+    },
+    "ai_helper": "AI Помощник",
+    "ai_helper_enabled": "Включить AI Помощник",
+    "ai_helper_enabled_desc": "Включить AI ассистента для помощи студентам с учебным материалом"
   },
   "profile": {
     "loading": "Загрузка профиля...",
@@ -641,11 +675,78 @@
   "course_information": "Информация о курсе",
   "instructor_label": "Преподаватель",
   "cohort": "Группа",
+  "cohort_edit": {
+    "not_found": "Группа не найдена",
+    "back_to_cohorts": "Назад к группам",
+    "subtitle": "Управление деталями и настройками группы",
+    "course_assignment": "Назначение курса",
+    "select_course": "Выбрать курс",
+    "instructor_assignment": "Назначение преподавателя",
+    "select_instructor": "Выбрать преподавателя",
+    "cohort_settings": "Настройки группы",
+    "invite_code": "Код приглашения",
+    "invite_code_placeholder": "напр., SPRING2024",
+    "duration_weeks": "Продолжительность (недели)",
+    "max_capacity": "Макс. вместимость",
+    "manage_schedule": "Управление расписанием",
+    "capacity_card": "Вместимость",
+    "updated_successfully": "Группа успешно обновлена",
+    "cohort_title_placeholder": "Название группы",
+    "cohort_description_placeholder": "Описание группы"
+  },
+  "cohort_students": {
+    "title": "Студенты группы",
+    "subtitle": "Управление студентами, записанными в эту группу",
+    "student_removed": "Студент успешно удален",
+    "remove_student": "Удалить студента",
+    "remove_student_confirm": "Вы уверены, что хотите удалить \"{{name}}\" из этой группы?",
+    "invite_users": "Пригласить пользователей",
+    "invite_students": "Пригласить студентов",
+    "invite_students_title": "Пригласить студентов в группу",
+    "invite_students_subtitle": "Выберите пользователей для приглашения в эту группу",
+    "select_users": "Выбрать пользователей",
+    "select_users_placeholder": "Поиск пользователей по имени или email",
+    "invite_success": "Студенты успешно приглашены",
+    "coming_soon": "Скоро",
+    "coming_soon_desc": "Функция приглашения студентов будет доступна в ближайшее время.",
+    "filter_by_status": "Фильтр по статусу",
+    "all_statuses": "Все статусы"
+  },
+  "schedule_dialog": {
+    "edit_schedule_event": "Редактировать событие",
+    "create_schedule_event": "Создать событие",
+    "delete_schedule_event": "Удалить событие",
+    "event_title_placeholder": "напр., Урок по React",
+    "event_description_placeholder": "Введите описание события",
+    "start_time": "Время начала",
+    "end_time": "Время окончания",
+    "all_day_event": "Весь день",
+    "recurrence": "Повторение",
+    "repeat_every": "Повторять каждый",
+    "end_recurrence": "Конец повторения",
+    "online_event": "Онлайн событие",
+    "meeting_url": "URL встречи",
+    "meeting_url_placeholder": "https://zoom.us/j/123456789",
+    "location_name": "Название места",
+    "location_placeholder": "напр., Комната 101, Здание А",
+    "enable_reminders": "Включить напоминания",
+    "types": {
+      "live_session": "Онлайн занятие",
+      "assignment": "Задание",
+      "quiz": "Тест",
+      "deadline": "Срок"
+    },
+    "recurrence_types": {
+      "none": "Не повторяется",
+      "daily": "Ежедневно",
+      "weekly": "Еженедельно",
+      "monthly": "Ежемесячно"
+    }
+  },
   "course_progress": "Прогресс курса",
   "lessons_completed": "уроков завершено",
   "quick_actions": "Быстрые действия",
   "continue_learning": "Продолжить обучение",
-  "view_all_lessons": "Посмотреть все уроки",
   "of": "из",
   "media_manager": {
     "selector": {

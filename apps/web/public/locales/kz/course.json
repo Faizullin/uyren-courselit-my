@@ -6,6 +6,8 @@
     "all_levels": "Барлық деңгейлер",
     "filter_status": "Мәртебе",
     "all_statuses": "Барлық мәртебелер",
+    "filter_published": "Жарияланған",
+    "show_published_only": "Тек жарияланғандарды көрсету",
     "no_courses": "Курстар табылмады",
     "no_courses_desc": "Сүзгілерді өзгертіп көріңіз немесе жаңа курс жасаңыз"
   },
@@ -19,7 +21,8 @@
     "under_review": "Тексеруде",
     "approved": "Бекітілген",
     "published": "Жарияланған",
-    "draft": "Жоба"
+    "draft": "Жоба",
+    "unpublished": "Жарияланбаған"
   },
   "form": {
     "create_title": "Жаңа курс жасау",
@@ -51,7 +54,6 @@
     "manage_course": "Курсты басқару",
     "cohort_groups": "Топтар",
     "preview_course": "Курсты алдын ала көру",
-    "view_all": "Барлығын көру",
     "no_cohorts_yet": "Әзірге топтар жоқ.",
     "create_one": "Жасау",
     "no_instructor": "Оқытушы жоқ"

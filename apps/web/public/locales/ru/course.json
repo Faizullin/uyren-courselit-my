@@ -6,6 +6,8 @@
     "all_levels": "Все уровни",
     "filter_status": "Статус",
     "all_statuses": "Все статусы",
+    "filter_published": "Опубликовано",
+    "show_published_only": "Показать только опубликованные",
     "no_courses": "Курсы не найдены",
     "no_courses_desc": "Попробуйте изменить фильтры или создать новый курс"
   },
@@ -19,7 +21,8 @@
     "under_review": "На проверке",
     "approved": "Одобрено",
     "published": "Опубликовано",
-    "draft": "Черновик"
+    "draft": "Черновик",
+    "unpublished": "Неопубликовано"
   },
   "form": {
     "create_title": "Создать новый курс",
@@ -51,7 +54,6 @@
     "manage_course": "Управление курсом",
     "cohort_groups": "Группы",
     "preview_course": "Предпросмотр курса",
-    "view_all": "Посмотреть все",
     "no_cohorts_yet": "Пока нет групп.",
     "create_one": "Создать",
     "no_instructor": "Нет инструктора"

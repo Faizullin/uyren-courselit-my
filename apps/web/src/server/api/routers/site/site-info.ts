@@ -117,7 +117,7 @@ export const siteInfoRouter = router({
       }
 
       // Return only siteInfo to match frontend expectations
-      return jsonify(domain.siteInfo || {});
+      return jsonify(domain.siteInfo);
     }),
 
   updateSiteInfo: protectedProcedure
@@ -129,10 +129,12 @@ export const siteInfoRouter = router({
       getFormDataSchema({
         title: z.string().min(1).max(120).optional(),
         subtitle: z.string().min(1).max(200).optional(),
-        logo: mediaWrappedFieldValidator().nullable().optional(),
         codeInjectionHead: z.string().max(50000).optional(),
         codeInjectionBody: z.string().max(50000).optional(),
         mailingAddress: z.string().min(1).max(500).optional(),
+        aiHelper: z.object({
+          enabled: z.boolean().optional(),
+        }).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -142,17 +144,42 @@ export const siteInfoRouter = router({
         throw new NotFoundException("Domain", "current");
       }
 
-      if (!domain.siteInfo) {
-        domain.siteInfo = {} as ISiteInfo;
+      const submitData = domain.toJSON();
+
+      if (!submitData.siteInfo) {
+        throw new ValidationException("Site info not found");
       }
 
-      Object.keys(input.data).forEach((key) => {
-        (domain.siteInfo as any)[key] = (input.data as any)[key];
-      });
+      if(input.data.aiHelper) {
+        submitData.siteInfo.aiHelper = { 
+          enabled: input.data.aiHelper.enabled || false,
+        };
+      }
 
-      await DomainManager.removeFromCache(domain.toJSON() as any);
-      const saved = await domain.save();
+      if(input.data.title) {
+        submitData.siteInfo.title = input.data.title;
+      }
 
+      if(input.data.subtitle) {
+        submitData.siteInfo.subtitle = input.data.subtitle;
+      }
+
+      if(input.data.codeInjectionHead) {
+        submitData.siteInfo.codeInjectionHead = input.data.codeInjectionHead;
+      }
+
+      if(input.data.codeInjectionBody) {
+        submitData.siteInfo.codeInjectionBody = input.data.codeInjectionBody;
+      }
+
+      if(input.data.mailingAddress) {
+        submitData.siteInfo.mailingAddress = input.data.mailingAddress;
+      }
+      await DomainManager.removeFromCache(submitData as any);
+      const saved = await DomainModel.findByIdAndUpdate(ctx.domainData.domainObj._id, { siteInfo: submitData.siteInfo }, { new: true });
+      if (!saved) {
+        throw new NotFoundException("Domain", "current");
+      }
       return jsonify(saved.toObject().siteInfo);
     }),
 

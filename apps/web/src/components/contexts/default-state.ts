@@ -13,6 +13,9 @@ export const defaultState: {
     title: "Uyren AI",
     logo: undefined,
     currencyISOCode: "KZT",
+    aiHelper: {
+      enabled: false,
+    },
   },
   config: {
     useNotificationsStream: false,

@@ -52,5 +52,6 @@ const formatInitialSiteInfo = (siteInfo?: ISiteInfo): ISiteInfo => {
     logo: siteInfo?.logo || defaultState.siteinfo.logo,
     mailingAddress: siteInfo?.mailingAddress || defaultState.siteinfo.mailingAddress,
     currencyISOCode: siteInfo?.currencyISOCode || defaultState.siteinfo.currencyISOCode,
+    aiHelper: siteInfo?.aiHelper || defaultState.siteinfo.aiHelper,
   };
 };

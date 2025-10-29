@@ -27,6 +27,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { CohortScheduleEditDialog } from "./_components/cohort-schedule-edit-dialog";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 
 const CohortSchema = z.object({
     title: z.string().min(1).max(255),
@@ -92,12 +93,12 @@ export default function Page() {
 
     const updateMutation = trpc.lmsModule.cohortModule.cohort.update.useMutation({
         onSuccess: () => {
-            toast({ title: t("common:dashboard.success"), description: "Cohort updated successfully" });
+            toast({ title: t("common:success"), description: t("dashboard:cohort_edit.updated_successfully") });
             trpcUtils.lmsModule.cohortModule.cohort.list.invalidate();
             cohortQuery.refetch();
         },
         onError: (err: any) => {
-            toast({ title: t("common:dashboard.error"), description: err.message, variant: "destructive" });
+            toast({ title: t("common:error"), description: err.message, variant: "destructive" });
         },
     });
 
@@ -140,8 +141,8 @@ export default function Page() {
     }, [trpcUtils]);
 
     const breadcrumbs = useMemo(() => [
-        { label: t("common:dashboard.cohorts.title"), href: "/dashboard/lms/cohorts" },
-        { label: cohort?.title || "Edit", href: "#" },
+        { label: t("dashboard:lms.modules.cohorts.title"), href: "/dashboard/lms/cohorts" },
+        { label: cohort?.title || "Edit", href: "#" }, 
     ], [t, cohort?.title]);
 
     const getStatusBadge = useCallback((status: CohortStatusEnum) => {
@@ -162,17 +163,20 @@ export default function Page() {
         }
     }, [scheduleDialogControl, cohort]);
 
-    if (!cohort) {
+    if (cohortQuery.isLoading || !cohort) {
         return (
             <DashboardContent breadcrumbs={breadcrumbs} permissions={[UIConstants.permissions.manageCourse]}>
-                <div className="flex flex-col items-center justify-center h-64">
-                    <p className="text-lg">Cohort not found</p>
-                    <Link href="/dashboard/lms/cohorts">
-                        <Button variant="link">Back to Cohorts</Button>
-                    </Link>
+                <HeaderTopbar
+                    header={{
+                        title: t("dashboard:lms.modules.cohorts.title"),
+                    }}
+                />
+                <div className="space-y-4">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-32 w-full" />
                 </div>
             </DashboardContent>
-        );
+        )
     }
 
     return (
@@ -180,7 +184,7 @@ export default function Page() {
             <HeaderTopbar
                 header={{
                     title: cohort.title,
-                    subtitle: "Manage cohort details and settings",
+                    subtitle: t("dashboard:cohort_edit.subtitle"),
                 }}
                 backLink={true}
                 rightAction={
@@ -188,13 +192,13 @@ export default function Page() {
                         <Link href={`/dashboard/lms/cohorts/${cohortId}/students`}>
                             <Button variant="outline">
                                 <Users className="h-4 w-4 mr-2" />
-                                Students
+                                {t("common:students")}
                             </Button>
                         </Link>
                         <Link href={`/dashboard/lms/cohorts/${cohortId}/schedule`}>
                             <Button variant="outline">
                                 <Calendar className="h-4 w-4 mr-2" />
-                                Schedule
+                                {t("common:schedule")}
                             </Button>
                         </Link>
                     </div>
@@ -203,7 +207,7 @@ export default function Page() {
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm">Status</CardTitle>
+                        <CardTitle className="text-sm">{t("common:status")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {getStatusBadge(cohort.status)}
@@ -211,19 +215,19 @@ export default function Page() {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm">Capacity</CardTitle>
+                        <CardTitle className="text-sm">{t("dashboard:cohort_edit.capacity_card")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm font-medium">
                             {cohort.maxCapacity 
                                 ? `${cohort.statsCurrentStudentsCount || 0}/${cohort.maxCapacity}` 
-                                : `${cohort.statsCurrentStudentsCount || 0} students`}
+                                : `${cohort.statsCurrentStudentsCount || 0} ${t("common:students")}`}
                         </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm">Start Date</CardTitle>
+                        <CardTitle className="text-sm">{t("common:start_date")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm font-medium">
@@ -233,7 +237,7 @@ export default function Page() {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm">End Date</CardTitle>
+                        <CardTitle className="text-sm">{t("common:end_date")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm font-medium">
@@ -246,7 +250,7 @@ export default function Page() {
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Course Assignment</CardTitle>
+                        <CardTitle>{t("dashboard:cohort_edit.course_assignment")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Controller
@@ -254,23 +258,25 @@ export default function Page() {
                             name="courseId"
                             render={({ field, fieldState }) => (
                                 <Field data-invalid={fieldState.invalid}>
-                                    <FieldLabel>Select Course</FieldLabel>
-                                    <ComboBox2<CourseItem>
-                                        title="Select course"
-                                        valueKey="_id"
-                                        value={field.value ? { _id: field.value, title: cohort.course?.title || "" } : undefined}
-                                        searchFn={searchCourses}
-                                        renderLabel={(item) => item.title}
-                                        onChange={(item) => field.onChange(item?._id || "")}
-                                        multiple={false}
-                                        disabled={!isAdmin}
-                                        showEditButton={true}
-                                        onEditClick={(item) => {
-                                          window.open(
-                                            `/dashboard/lms/courses/${item._id}`,
-                                            "_blank");
-                                        }}
-                                    />
+                                    <FieldLabel htmlFor="cohort-course">{t("dashboard:cohort_edit.select_course")}</FieldLabel>
+                                    <div id="cohort-course">
+                                        <ComboBox2<CourseItem>
+                                            title={t("dashboard:cohort_edit.select_course")}
+                                            valueKey="_id"
+                                            value={field.value ? { _id: field.value, title: cohort.course?.title || "" } : undefined}
+                                            searchFn={searchCourses}
+                                            renderLabel={(item) => item.title}
+                                            onChange={(item) => field.onChange(item?._id || "")}
+                                            multiple={false}
+                                            disabled={!isAdmin}
+                                            showEditButton={true}
+                                            onEditClick={(item) => {
+                                              window.open(
+                                                `/dashboard/lms/courses/${item._id}`,
+                                                "_blank");
+                                            }}
+                                        />
+                                    </div>
                                     {fieldState.invalid && (
                                         <FieldError errors={[fieldState.error]} />
                                     )}
@@ -281,7 +287,7 @@ export default function Page() {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Instructor Assignment</CardTitle>
+                        <CardTitle>{t("dashboard:cohort_edit.instructor_assignment")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Controller
@@ -289,32 +295,34 @@ export default function Page() {
                             name="instructorId"
                             render={({ field, fieldState }) => (
                                 <Field data-invalid={fieldState.invalid}>
-                                    <FieldLabel>Select Instructor</FieldLabel>
-                                    <ComboBox2<InstructorItem>
-                                        title="Select instructor"
-                                        valueKey="_id"
-                                        value={field.value ? { 
-                                            _id: field.value, 
-                                            fullName: cohort.instructor?.fullName || cohort.instructor?.email || "",
-                                            email: cohort.instructor?.email || "",
-                                            avatarUrl: undefined
-                                        } : undefined}
-                                        searchFn={searchInstructors}
-                                        renderLabel={(item) => (
-                                            <div className="flex items-center gap-2">
-                                                <Avatar className="h-6 w-6">
-                                                    <AvatarImage src={item.avatarUrl} alt={item.fullName} />
-                                                    <AvatarFallback className="text-xs">
-                                                        {item.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span>{item.fullName}</span>
-                                            </div>
-                                        )}
-                                        onChange={(item) => field.onChange(item?._id || "")}
-                                        multiple={false}
-                                        disabled={!isAdmin}
-                                    />
+                                    <FieldLabel htmlFor="cohort-instructor">{t("dashboard:cohort_edit.select_instructor")}</FieldLabel>
+                                    <div id="cohort-instructor">
+                                        <ComboBox2<InstructorItem>
+                                            title={t("dashboard:cohort_edit.select_instructor")}
+                                            valueKey="_id"
+                                            value={field.value ? { 
+                                                _id: field.value, 
+                                                fullName: cohort.instructor?.fullName || cohort.instructor?.email || "",
+                                                email: cohort.instructor?.email || "",
+                                                avatarUrl: undefined
+                                            } : undefined}
+                                            searchFn={searchInstructors}
+                                            renderLabel={(item) => (
+                                                <div className="flex items-center gap-2">
+                                                    <Avatar className="h-6 w-6">
+                                                        <AvatarImage src={item.avatarUrl} alt={item.fullName} />
+                                                        <AvatarFallback className="text-xs">
+                                                            {item.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span>{item.fullName}</span>
+                                                </div>
+                                            )}
+                                            onChange={(item) => field.onChange(item?._id || "")}
+                                            multiple={false}
+                                            disabled={!isAdmin}
+                                        />
+                                    </div>
                                     {fieldState.invalid && (
                                         <FieldError errors={[fieldState.error]} />
                                     )}
@@ -326,7 +334,7 @@ export default function Page() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Cohort Settings</CardTitle>
+                    <CardTitle>{t("dashboard:cohort_edit.cohort_settings")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -336,10 +344,11 @@ export default function Page() {
                                 name="title"
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
-                                        <FieldLabel>Title</FieldLabel>
+                                        <FieldLabel htmlFor="cohort-title">{t("common:title")}</FieldLabel>
                                         <Input
                                             {...field}
-                                            placeholder="Cohort title"
+                                            id="cohort-title"
+                                            placeholder={t("dashboard:cohort_edit.cohort_title_placeholder")}
                                             aria-invalid={fieldState.invalid}
                                         />
                                         {fieldState.invalid && (
@@ -353,10 +362,11 @@ export default function Page() {
                                 name="description"
                                 render={({ field, fieldState }) => (
                                     <Field data-invalid={fieldState.invalid}>
-                                        <FieldLabel>Description</FieldLabel>
+                                        <FieldLabel htmlFor="cohort-description">{t("common:description")}</FieldLabel>
                                         <Textarea
                                             {...field}
-                                            placeholder="Cohort description"
+                                            id="cohort-description"
+                                            placeholder={t("dashboard:cohort_edit.cohort_description_placeholder")}
                                             rows={3}
                                             aria-invalid={fieldState.invalid}
                                         />
@@ -372,10 +382,11 @@ export default function Page() {
                                     name="inviteCode"
                                     render={({ field, fieldState }) => (
                                         <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>Invite Code</FieldLabel>
+                                            <FieldLabel htmlFor="cohort-invite-code">{t("dashboard:cohort_edit.invite_code")}</FieldLabel>
                                             <Input
                                                 {...field}
-                                                placeholder="e.g., SPRING2024"
+                                                id="cohort-invite-code"
+                                                placeholder={t("dashboard:cohort_edit.invite_code_placeholder")}
                                                 aria-invalid={fieldState.invalid}
                                             />
                                             {fieldState.invalid && (
@@ -390,7 +401,7 @@ export default function Page() {
                                     render={({ field, fieldState }) => (
                                         <Field data-invalid={fieldState.invalid}>
                                             <FieldLabel htmlFor="cohort-status">
-                                                Status
+                                                {t("common:status")}
                                             </FieldLabel>
                                             <Select
                                                 name={field.name}
@@ -424,9 +435,10 @@ export default function Page() {
                                     name="beginDate"
                                     render={({ field, fieldState }) => (
                                         <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>Start Date</FieldLabel>
+                                            <FieldLabel htmlFor="cohort-begin-date">{t("common:start_date")}</FieldLabel>
                                             <Input
                                                 {...field}
+                                                id="cohort-begin-date"
                                                 type="date"
                                                 aria-invalid={fieldState.invalid}
                                             />
@@ -441,9 +453,10 @@ export default function Page() {
                                     name="endDate"
                                     render={({ field, fieldState }) => (
                                         <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>End Date</FieldLabel>
+                                            <FieldLabel htmlFor="cohort-end-date">{t("common:end_date")}</FieldLabel>
                                             <Input
                                                 {...field}
+                                                id="cohort-end-date"
                                                 type="date"
                                                 aria-invalid={fieldState.invalid}
                                             />
@@ -460,9 +473,10 @@ export default function Page() {
                                     name="durationInWeeks"
                                     render={({ field, fieldState }) => (
                                         <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>Duration (weeks)</FieldLabel>
+                                            <FieldLabel htmlFor="cohort-duration">{t("dashboard:cohort_edit.duration_weeks")}</FieldLabel>
                                             <Input
                                                 {...field}
+                                                id="cohort-duration"
                                                 type="number"
                                                 onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                                 value={field.value || ""}
@@ -479,9 +493,10 @@ export default function Page() {
                                     name="maxCapacity"
                                     render={({ field, fieldState }) => (
                                         <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>Max Capacity</FieldLabel>
+                                            <FieldLabel htmlFor="cohort-max-capacity">{t("dashboard:cohort_edit.max_capacity")}</FieldLabel>
                                             <Input
                                                 {...field}
+                                                id="cohort-max-capacity"
                                                 type="number"
                                                 onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                                                 value={field.value || ""}
@@ -502,14 +517,14 @@ export default function Page() {
                                     className="w-full"
                                 >
                                     <Calendar className="h-4 w-4 mr-2" />
-                                    Manage Schedule
+                                    {t("dashboard:cohort_edit.manage_schedule")}
                                 </Button>
                             </div>
                             <div className="flex justify-end">
                                     
                                 <Button type="submit" disabled={updateMutation.isPending || form.formState.isSubmitting}>
                                     <Save className="h-4 w-4 mr-2" />
-                                    {updateMutation.isPending ? "Saving..." : "Save"}
+                                    {updateMutation.isPending ? t("common:saving") : t("common:save")}
                                 </Button>
                             </div>
                         </FieldGroup>

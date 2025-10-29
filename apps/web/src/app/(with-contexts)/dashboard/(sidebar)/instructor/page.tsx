@@ -11,6 +11,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
     BookOpen,
     Calendar as CalendarIcon,
+    ClipboardList,
     Clock,
     Eye,
     Star,
@@ -20,14 +21,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import { Bar, BarChart, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export default function InstructorPage() {
     const { t } = useTranslation(["dashboard", "common"]);
     const breadcrumbs = [
-        { label: t("dashboard:sidebar.instructor"), href: "/dashboard/instructor" },
+        { label: t("common:dashboard"), href: "/dashboard/instructor" }, 
     ];
 
-    // Single optimized query that gets all data from backend
     const dashboardQuery = trpc.lmsModule.instructor.getDashboardStats.useQuery();
 
     const stats = dashboardQuery.data?.stats;
@@ -46,12 +47,12 @@ export default function InstructorPage() {
                 />
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
                     {isLoading ? (
                         <>
                             {[...Array(4)].map((_, i) => (
                                 <Card key={i}>
-                                    <CardContent className="p-6">
+                                    <CardContent>
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1">
                                                 <Skeleton className="h-4 w-24 mb-2" />
@@ -66,75 +67,80 @@ export default function InstructorPage() {
                         </>
                     ) : (
                         <>
-                            <Card>
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.total_courses")}</p>
-                                            <p className="text-3xl font-bold mt-1">{stats?.totalCourses || 0}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {stats?.publishedCourses || 0} {t("dashboard:instructor.stats.published")}
-                                            </p>
+                            <Link href="/dashboard/lms/courses?filters[published]=true">
+                                <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                                    <CardContent>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.total_courses")}</p>
+                                                <p className="text-2xl font-bold mt-1">{stats?.totalCourses || 0}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    {stats?.publishedCourses || 0} {t("dashboard:instructor.stats.published")}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                                                <BookOpen className="h-4 w-4" />
+                                            </div>
                                         </div>
-                                        <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-                                            <BookOpen className="h-6 w-6" />
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                            <Link href="/dashboard/lms/courses?filters[published]=false">
+                                <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                                    <CardContent>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.total_students")}</p>
+                                                <p className="text-2xl font-bold mt-1">{stats?.totalStudents || 0}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    {t("dashboard:instructor.stats.across_all_courses")}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-full bg-green-100 text-green-600">
+                                                <Users className="h-4 w-4" />
+                                            </div>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.total_students")}</p>
-                                            <p className="text-3xl font-bold mt-1">{stats?.totalStudents || 0}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {t("dashboard:instructor.stats.across_all_courses")}
-                                            </p>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                            <Link href="/dashboard/lms/courses">
+                                <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                                    <CardContent>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.drafts")}</p>
+                                                <p className="text-2xl font-bold mt-1">{stats?.draftCourses || 0}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    {t("dashboard:instructor.stats.need_publishing")}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-full bg-orange-100 text-orange-600">
+                                                <TrendingUp className="h-4 w-4" />
+                                            </div>
                                         </div>
-                                        <div className="p-3 rounded-full bg-green-100 text-green-600">
-                                            <Users className="h-6 w-6" />
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                            <Link href="/dashboard/lms/assignments">
+                                <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                                    <CardContent>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-muted-foreground">
+                                                    {t("dashboard:instructor.stats.pending_grading")}
+                                                </p>
+                                                <p className="text-2xl font-bold mt-1">{stats?.pendingSubmissions || 0}</p>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                {t("dashboard:instructor.stats.pending_submissions")} 
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-full bg-red-100 text-red-600">
+                                                <ClipboardList className="h-4 w-4" />
+                                            </div>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.average_rating")}</p>
-                                            <p className="text-3xl font-bold mt-1">
-                                                {stats && stats.avgRating > 0 ? stats.avgRating.toFixed(1) : "-"}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {stats && stats.avgRating > 0 ? t("dashboard:instructor.stats.out_of_5") : t("dashboard:instructor.stats.no_ratings_yet")}
-                                            </p>
-                                        </div>
-                                        <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
-                                            <Star className="h-6 w-6" />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">{t("dashboard:instructor.stats.drafts")}</p>
-                                            <p className="text-3xl font-bold mt-1">{stats?.draftCourses || 0}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {t("dashboard:instructor.stats.need_publishing")}
-                                            </p>
-                                        </div>
-                                        <div className="p-3 rounded-full bg-orange-100 text-orange-600">
-                                            <TrendingUp className="h-6 w-6" />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            </Link>
                         </>
                     )}
                 </div>
@@ -228,7 +234,7 @@ export default function InstructorPage() {
                                             <Button variant="outline" className="w-full" asChild>
                                                 <Link href="/dashboard/lms/courses">
                                                     <Eye className="h-4 w-4 mr-2" />
-                                                    {t("dashboard:instructor.my_courses.view_all_courses")} ({stats?.totalCourses})
+                                                    {t("common:view_all")}
                                                 </Link>
                                             </Button>
                                         )}

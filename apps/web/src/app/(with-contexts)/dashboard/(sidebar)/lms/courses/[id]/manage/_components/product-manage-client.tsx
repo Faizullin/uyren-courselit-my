@@ -425,10 +425,10 @@ export default function ProductManageClient() {
             name="title"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel className="text-base font-semibold">
+                <FieldLabel htmlFor="course-title" className="text-base font-semibold">
                   {t("course:manage.title_label")}
                 </FieldLabel>
-                <Input {...field} aria-invalid={fieldState.invalid} />
+                <Input {...field} id="course-title" aria-invalid={fieldState.invalid} />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
@@ -439,11 +439,12 @@ export default function ProductManageClient() {
             name="shortDescription"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel className="text-base font-semibold">
+                <FieldLabel htmlFor="course-short-description" className="text-base font-semibold">
                   {t("course:manage.short_description_label")}
                 </FieldLabel>
                 <Textarea
                   {...field}
+                  id="course-short-description"
                   placeholder={t("course:manage.short_description_placeholder")}
                   maxLength={500}
                   aria-invalid={fieldState.invalid}
@@ -719,12 +720,13 @@ export default function ProductManageClient() {
       <div className="space-y-6" id="publish">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label className="text-base font-semibold">{t("course:manage.published_label")}</Label>
+            <Label htmlFor="course-published" className="text-base font-semibold">{t("course:manage.published_label")}</Label>
             <p className="text-sm text-muted-foreground">
               {t("course:manage.published_desc")}
             </p>
           </div>
           <Switch
+            id="course-published"
             checked={published}
             onCheckedChange={(checked) => {
               setPublished(checked);
@@ -736,11 +738,12 @@ export default function ProductManageClient() {
 
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <Label className="text-base font-semibold">
+          <Label htmlFor="course-allow-enrollment" className="text-base font-semibold">
             {t("course:manage.allow_enrollment_label")}
           </Label>
         </div>
         <Switch
+          id="course-allow-enrollment"
           checked={allowEnrollment}
           onCheckedChange={async (checked) => {
             setAllowEnrollment(checked);
@@ -752,7 +755,7 @@ export default function ProductManageClient() {
 
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <Label className="text-base font-semibold">
+          <Label htmlFor="course-allow-self-enrollment" className="text-base font-semibold">
             {t("course:manage.allow_self_enrollment_label")}
           </Label>
           <p className="text-sm text-muted-foreground">
@@ -760,6 +763,7 @@ export default function ProductManageClient() {
           </p>
         </div>
         <Switch
+          id="course-allow-self-enrollment"
           checked={allowSelfEnrollment}
           onCheckedChange={async (checked) => {
             setAllowSelfEnrollment(checked);

@@ -25,6 +25,7 @@ import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import * as z from "zod";
 
 const LessonContentEditor = dynamic(() =>
@@ -44,19 +45,20 @@ const lessonFormSchema = z.object({
 
 type LessonFormData = z.infer<typeof lessonFormSchema>;
 
-const getLessonTypes = () => [
-  { value: LessonTypeEnum.TEXT, label: "Text", icon: FileText },
-  { value: LessonTypeEnum.VIDEO, label: "Video", icon: Video },
-  { value: LessonTypeEnum.QUIZ, label: "Quiz", icon: HelpCircle },
-  { value: LessonTypeEnum.FILE, label: "File", icon: File },
-];
-
 export default function Page() {
   const router = useRouter();
   const params = useParams<{ id: string, section: string; lessonId: string; }>();
   const { id: courseId, section: chapterId, lessonId } = params;
   const trpcUtils = trpc.useUtils();
   const { toast } = useToast();
+  const { t } = useTranslation(["dashboard", "common"]);
+
+  const getLessonTypes = () => [
+    { value: LessonTypeEnum.TEXT, label: t("dashboard:lesson.types.text"), icon: FileText },
+    { value: LessonTypeEnum.VIDEO, label: t("dashboard:lesson.types.video"), icon: Video },
+    { value: LessonTypeEnum.QUIZ, label: t("dashboard:lesson.types.quiz"), icon: HelpCircle },
+    { value: LessonTypeEnum.FILE, label: t("dashboard:lesson.types.file"), icon: File },
+  ];
 
   const {loadCourseDetailQuery, loadLessonDetailQuery} = useCourseDetail()
 
@@ -86,8 +88,8 @@ export default function Page() {
   const updateLessonMutation = trpc.lmsModule.courseModule.lesson.update.useMutation({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Lesson updated successfully",
+        title: t("common:success"),
+        description: t("dashboard:lesson.updated_successfully"),
       });
       trpcUtils.lmsModule.courseModule.lesson.getById.invalidate();
       trpcUtils.lmsModule.courseModule.lesson.list.invalidate();
@@ -95,7 +97,7 @@ export default function Page() {
     },
     onError: (error) => {
       toast({
-        title: "Error",
+        title: t("common:error"),
         description: error.message,
         variant: "destructive",
       });
@@ -148,7 +150,7 @@ export default function Page() {
   if (!chapter) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">Chapter not found</p>
+        <p className="text-muted-foreground">{t("dashboard:lesson.section_not_found")}</p>
       </div>
     );
   }
@@ -158,15 +160,15 @@ export default function Page() {
       <HeaderTopbar
         backLink={`/dashboard/lms/courses/${courseId}/`}
         header={{
-          title: "Edit Lesson",
-          subtitle: "Update lesson details and content",
+          title: t("dashboard:lesson.edit_lesson"),
+          subtitle: t("dashboard:lesson.edit_subtitle"),
         }}
         rightAction={
           <Button type="button" variant="outline" size="sm" onClick={() => 
             window.open(`/dashboard/student/courses/${courseId}/lessons/${lessonId}`, "_blank")
           }>
             <Eye className="h-4 w-4 mr-2" />
-            Preview
+            {t("common:preview")}
           </Button>
         }
         className="mb-6"
@@ -188,8 +190,13 @@ export default function Page() {
               name="title"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Lesson Title</FieldLabel>
-                  <Input placeholder="Enter lesson title" {...field} aria-invalid={fieldState.invalid} />
+                  <FieldLabel htmlFor="lesson-title">{t("dashboard:lesson.title")}</FieldLabel>
+                  <Input 
+                    {...field}
+                    id="lesson-title"
+                    placeholder={t("dashboard:lesson.title_placeholder")} 
+                    aria-invalid={fieldState.invalid} 
+                  />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
@@ -201,18 +208,18 @@ export default function Page() {
               name="type"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Lesson Type</FieldLabel>
+                  <FieldLabel htmlFor="lesson-type">{t("dashboard:lesson.type")}</FieldLabel>
                   <div>
                     <Select
                       value={field.value}
                       onValueChange={(value) => {
-                        if (loadLessonDetailQuery?.data && !loadLessonDetailQuery.isLoading) {
+                        if (value) {
                           field.onChange(value as LessonTypeEnum);
                         }
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select lesson type" />
+                      <SelectTrigger id="lesson-type">
+                        <SelectValue placeholder={t("dashboard:lesson.type_placeholder")} />
                       </SelectTrigger>
                       <SelectContent className="w-fit">
                         {getLessonTypes().map((type) => {
@@ -243,14 +250,15 @@ export default function Page() {
                 render={({ field }) => (
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                      <FieldLabel className="text-sm font-medium">
-                        Requires Enrollment
+                      <FieldLabel htmlFor="lesson-requires-enrollment" className="text-sm font-medium">
+                        {t("dashboard:lesson.requires_enrollment")}
                       </FieldLabel>
                       <p className="text-xs text-muted-foreground">
-                        Students must be enrolled to access this lesson
+                        {t("dashboard:lesson.requires_enrollment_description")}
                       </p>
                     </div>
                     <Switch
+                      id="lesson-requires-enrollment"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       className="scale-90"
@@ -265,12 +273,15 @@ export default function Page() {
                 render={({ field }) => (
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                      <FieldLabel className="text-sm font-medium">Downloadable</FieldLabel>
+                      <FieldLabel htmlFor="lesson-downloadable" className="text-sm font-medium">
+                        {t("dashboard:lesson.downloadable")}
+                      </FieldLabel>
                       <p className="text-xs text-muted-foreground">
-                        Allow students to download lesson content
+                        {t("dashboard:lesson.downloadable_description")}
                       </p>
                     </div>
                     <Switch
+                      id="lesson-downloadable"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       className="scale-90"
@@ -286,15 +297,15 @@ export default function Page() {
                 variant="outline"
                 onClick={() => router.push(`/dashboard/lms/courses/${courseId}/content`)}
               >
-                Cancel
+                {t("common:cancel")}
               </Button>
               <Button 
                 type="submit" 
                 disabled={form.formState.isSubmitting || updateLessonMutation.isPending}
               >
                 {form.formState.isSubmitting || updateLessonMutation.isPending
-                  ? "Saving..."
-                  : "Update Lesson"}
+                  ? t("common:saving")
+                  : t("common:update")}
               </Button>
             </div>
           </FieldGroup>
@@ -306,7 +317,7 @@ export default function Page() {
               editorRef.current?.commands.focus("end");
             }}
           >
-            Content
+            {t("dashboard:lesson.content")}
           </FieldLabel>
           <LessonContentEditor
             lesson={lesson!}

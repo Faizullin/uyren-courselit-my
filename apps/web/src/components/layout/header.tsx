@@ -313,7 +313,7 @@ export default function Header() {
                 onClick={(e) => handleNavigation("/dashboard", e)}
               >
                 <Button className="w-full mt-4 bg-brand-primary hover:bg-brand-primary-hover text-white py-2 rounded-lg font-medium transition-all duration-300">
-                  {t("header.nav_dashboard")}
+                  {t("common:dashboard")}
                 </Button>
               </Link>
             )}

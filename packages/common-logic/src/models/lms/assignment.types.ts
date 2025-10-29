@@ -66,6 +66,7 @@ export interface IPeerReview {
 export interface IAssignmentSubmission {
     orgId: mongoose.Types.ObjectId;
     assignmentId: mongoose.Types.ObjectId;
+    cohortId: mongoose.Types.ObjectId;
     userId: mongoose.Types.ObjectId;
     status: AssignmentSubmissionStatusEnum;
     submittedAt?: Date;

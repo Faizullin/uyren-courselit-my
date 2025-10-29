@@ -36,7 +36,7 @@ export default function SalesCard({
           {loading ? (
             <Skeleton className="h-[240px] w-full" />
           ) : (
-            <div className="">
+            <div>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart width={300} height={200} data={data?.points}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

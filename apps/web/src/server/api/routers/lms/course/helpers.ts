@@ -6,12 +6,30 @@ import {
 import { MainContextType } from "@/server/api/core/procedures";
 import { getStorageProvider } from "@/server/services/storage-provider";
 import { UIConstants } from "@workspace/common-logic/lib/ui/constants";
-import { CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
+import { checkCourseInstructorPermission, CourseModel, ICourseHydratedDocument } from "@workspace/common-logic/models/lms/course.model";
 import { EnrollmentModel } from "@workspace/common-logic/models/lms/enrollment.model";
 import { EnrollmentStatusEnum } from "@workspace/common-logic/models/lms/enrollment.types";
 import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { checkPermission } from "@workspace/utils";
 import mongoose from "mongoose";
+
+export const buildInstructorCourseQuery = (
+  orgId: mongoose.Types.ObjectId,
+  userId: mongoose.Types.ObjectId,
+  canSeeAllCourses: boolean = false
+) => {
+  const baseQuery: mongoose.FilterQuery<ICourseHydratedDocument> = { orgId };
+  if (canSeeAllCourses) {
+    return baseQuery;
+  }
+  return {
+    ...baseQuery,
+    $or: [
+      { ownerId: userId },
+      { "instructors.userId": userId }
+    ]
+  };
+};
 
 export const deleteAllLessons = async (
   course: ICourseHydratedDocument,
@@ -59,7 +77,11 @@ export const getCourseOrThrow = async ({
       UIConstants.permissions.manageAnyCourse,
     ])
   ) {
-    if (!course.ownerId.equals(ctx.user._id) && !ctx.user.roles.includes(UIConstants.roles.admin)) {
+    const isOwner = course.ownerId.equals(ctx.user._id);
+    const isInstructor = checkCourseInstructorPermission(course, ctx.user._id);
+    const isAdmin = ctx.user.roles.includes(UIConstants.roles.admin);
+    
+    if (!isOwner && !isInstructor && !isAdmin) {
       throw new AuthorizationException()
     }
   }
@@ -92,16 +114,10 @@ export const syncCourseLessons = async ({
 export const checkEnrollmentAccess = async ({
   ctx,
   courseId,
-  requiresEnrollment = true,
 }: {
   ctx: MainContextType;
   courseId: mongoose.Types.ObjectId | string;
-  requiresEnrollment?: boolean;
 }) => {
-  if (!requiresEnrollment) {
-    return true;
-  }
-
   if (!ctx.session?.user) {
     throw new AuthenticationException();
   }
@@ -121,5 +137,5 @@ export const checkEnrollmentAccess = async ({
     }
   }
 
-  return true;
+  return enrollment;
 };
