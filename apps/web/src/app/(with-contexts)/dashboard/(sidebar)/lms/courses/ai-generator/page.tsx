@@ -86,7 +86,6 @@ export default function AICourseGeneratorPage() {
   
   const [useWebSearch, setUseWebSearch] = useState(true);
   const [includeObjectives, setIncludeObjectives] = useState(true);
-  const [includeQuizzes, setIncludeQuizzes] = useState(false);
   const [additionalPrompt, setAdditionalPrompt] = useState("");
 
   const currentStepDataRef = useRef<{
@@ -112,7 +111,7 @@ export default function AICourseGeneratorPage() {
         };
       },
     }),
-    onData: (dataPart: DataUIPart<any>) => {
+    onData: (dataPart) => {
       if (dataPart.type === "data-error") {
         toast.error(dataPart.data.data.error);
       } else if (dataPart.type === "data-progress") {
@@ -132,8 +131,6 @@ export default function AICourseGeneratorPage() {
       } else if (dataPart.type === "data-course-created") {
         setGeneratedCourseId(dataPart.data.data.courseId);
         handleGenerateContent(dataPart.data.data.courseId, dataPart.data.data.structure);
-      } else if (dataPart.type === "data-lesson-created") {
-        console.log(`[GENERATOR] Created lesson: ${dataPart.data.data.lessonTitle}`);
       } else if (dataPart.type === "data-complete") {
         setProgressStep(dataPart.data.data.step);
         setProgress(dataPart.data.data.progress);
@@ -196,14 +193,14 @@ export default function AICourseGeneratorPage() {
 
     currentStepDataRef.current = {
       step: "generate_content",
-      data: { courseId, structure, useWebSearch, includeQuizzes, additionalPrompt },
+      data: { courseId, structure, useWebSearch, additionalPrompt },
     };
 
     sendMessage({
       role: "user",
       parts: [{ type: "text", text: `Generate content for course ${courseId}` }],
     });
-  }, [useWebSearch, includeQuizzes, additionalPrompt, editingStructure, sendMessage]);
+  }, [useWebSearch, additionalPrompt, editingStructure, sendMessage]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -391,16 +388,6 @@ export default function AICourseGeneratorPage() {
                 id="objectives"
                 checked={includeObjectives}
                 onCheckedChange={setIncludeObjectives}
-                disabled={status === "streaming"}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="quizzes" className="text-sm font-normal">Practice Quizzes</Label>
-              <Switch
-                id="quizzes"
-                checked={includeQuizzes}
-                onCheckedChange={setIncludeQuizzes}
                 disabled={status === "streaming"}
               />
             </div>
@@ -740,13 +727,50 @@ export default function AICourseGeneratorPage() {
 
   return (
     <DashboardContent breadcrumbs={breadcrumbs}>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto space-y-6">
         {renderStepIndicator()}
         
         {currentStep === GenerationStep.INPUT && renderInputStep()}
         {currentStep === GenerationStep.APPROVE && renderApprovalStep()}
         {currentStep === GenerationStep.CONTENT && renderContentGenerationStep()}
         {currentStep === GenerationStep.COMPLETE && renderCompleteStep()}
+
+        {messages.length > 0 && (
+          <Card className="border-dashed">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Messages State</CardTitle>
+              <CardDescription className="text-xs">Current chat messages and data parts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {messages.map((message, idx) => (
+                  <div key={message.id} className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={message.role === "user" ? "default" : "secondary"} className="text-xs">
+                        {message.role}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">Message {idx + 1}</span>
+                    </div>
+                    
+                    {message.parts.map((part, partIdx) => (
+                      <div key={partIdx} className="text-xs space-y-1">
+                        <div className="font-mono text-muted-foreground">Type: {part.type}</div>
+                        {part.type === "text" && (
+                          <div className="text-sm">{part.text}</div>
+                        )}
+                        {part.type.startsWith("data-") && (
+                          <pre className="text-xs bg-background p-2 rounded overflow-x-auto">
+                            {JSON.stringify((part as any).data, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardContent>
   );

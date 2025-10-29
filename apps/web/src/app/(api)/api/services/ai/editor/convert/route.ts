@@ -1,4 +1,7 @@
-import { streamObject } from "ai";
+import { EditorConvertChatMessage } from "@/lib/ai/editor-convert/types";
+import { buildTipTapFormatInstructions } from "@/lib/ai/prompts/tiptap-format";
+import { TiptapContentSchema } from "@/lib/ai/prompts/tiptap-helpers";
+import { streamObject, createUIMessageStream, createUIMessageStreamResponse, UIMessageStreamWriter } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import mammoth from "mammoth";
@@ -7,26 +10,12 @@ import PDFParser from "pdf2json";
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
+type DataStream = UIMessageStreamWriter<EditorConvertChatMessage>;
+
 const allowedExtensions = ["pdf", "docx"] as const;
 
 const RequestSchema = z.object({
   extensions: z.array(z.string()).optional().default(["paragraph", "heading", "bulletList", "orderedList", "table", "image"]),
-});
-
-const TiptapNodeSchema: any = z.lazy(() => z.object({
-  type: z.string(),
-  attrs: z.record(z.any()).optional(),
-  content: z.array(TiptapNodeSchema).optional(),
-  marks: z.array(z.object({
-    type: z.string(),
-    attrs: z.record(z.any()).optional(),
-  })).optional(),
-  text: z.string().optional(),
-}));
-
-const TiptapContentSchema = z.object({
-  type: z.literal("doc"),
-  content: z.array(TiptapNodeSchema),
 });
 
 
@@ -63,65 +52,58 @@ async function extractContentFromDOCX(buffer: ArrayBuffer): Promise<ExtractedCon
 async function convertToTiptapWithAI(
   extractedContent: ExtractedContent,
   enabledExtensions: string[],
-  fileName: string
+  dataStream: DataStream
 ): Promise<any> {
-  console.log("[AI CONVERT] Starting conversion");
-  console.log("[AI CONVERT] Enabled extensions:", enabledExtensions);
-  console.log("[AI CONVERT] Text length:", extractedContent.text.length);
-  console.log("[AI CONVERT] Images found:", extractedContent.images?.length || 0);
-  console.log("[AI CONVERT] Tables found:", extractedContent.tables?.length || 0);
-
   const extensionInstructions: Record<string, string> = {
-    paragraph: "- Use 'paragraph' type for regular text blocks",
-    heading: "- Use 'heading' type with attrs.level (1-6) for headings",
-    bulletList: "- Use 'bulletList' with 'listItem' children for bullet points",
-    orderedList: "- Use 'orderedList' with 'listItem' children for numbered lists",
-    table: "- Use 'table' > 'tableRow' > 'tableCell' structure for tables",
-    image: "- Use 'image' type with attrs.src for images (mark with placeholder URL)",
-    blockquote: "- Use 'blockquote' for quoted text",
-    codeBlock: "- Use 'codeBlock' for code snippets",
-    hardBreak: "- Use 'hardBreak' for line breaks",
-    bold: "- Use marks: [{ type: 'bold' }] for bold text",
-    italic: "- Use marks: [{ type: 'italic' }] for italic text",
+    paragraph: "Use 'paragraph' type for regular text blocks",
+    heading: "Use 'heading' type with attrs.level (1-6) for headings",
+    bulletList: "Use 'bulletList' with 'listItem' children for bullet points",
+    orderedList: "Use 'orderedList' with 'listItem' children for numbered lists",
+    table: "Use 'table' > 'tableRow' > 'tableCell' structure for tables",
+    image: "Use 'image' type with attrs.src for images (mark with placeholder URL)",
+    blockquote: "Use 'blockquote' for quoted text",
+    codeBlock: "Use 'codeBlock' for code snippets",
+    hardBreak: "Use 'hardBreak' for line breaks",
+    bold: "Use marks: [{ type: 'bold' }] for bold text",
+    italic: "Use marks: [{ type: 'italic' }] for italic text",
   };
 
   const activeInstructions = enabledExtensions
     .map(ext => extensionInstructions[ext])
     .filter(Boolean)
-    .join("\n");
+    .join("\n- ");
 
-  const prompt = `Convert the following text content into Tiptap JSON format step by step.
+  const systemMessage = `You are a document conversion expert specializing in Tiptap JSON format.
 
-STEP 1: Analyze the content structure
-- Identify headings, paragraphs, lists, tables
-- Note any formatting (bold, italic, etc.)
+Your task is to convert text content into valid Tiptap JSON structure with proper nesting and formatting.`;
 
-STEP 2: Use these Tiptap node types (ONLY use enabled extensions):
-${activeInstructions}
+  const userMessage = `Convert the following text content into Tiptap JSON format.
 
-STEP 3: Build the JSON structure
+**Enabled Extensions:**
+- ${activeInstructions}
+
+**Text content:**
+${extractedContent.text.substring(0, 8000)}${extractedContent.text.length > 8000 ? '\n... (content truncated)' : ''}
+
+${extractedContent.tables && extractedContent.tables.length > 0 ? `\n**Tables detected:** ${extractedContent.tables.length}` : ''}
+
+**Structure Requirements:**
 - Start with type: "doc"
 - Add content array with proper nodes
 - Nest content correctly (lists have listItems, tables have rows/cells)
 - Add text nodes inside content where needed
 - Use marks array for formatting (bold, italic, etc.)
 
-Text content to convert:
-${extractedContent.text.substring(0, 8000)}${extractedContent.text.length > 8000 ? '\n... (content truncated)' : ''}
-
-${extractedContent.tables && extractedContent.tables.length > 0 ? `\nTables detected: ${extractedContent.tables.length}` : ''}
-
-Return ONLY valid Tiptap JSON. Make it clean and well-structured.`;
+Return ONLY valid Tiptap JSON.`;
 
   try {
     const result = streamObject({
       model: openai("gpt-4o"),
       schema: TiptapContentSchema,
-      prompt,
+      system: systemMessage,
+      prompt: userMessage,
       temperature: 0.2,
     });
-
-    console.log("[AI CONVERT] Streaming conversion...");
     
     let finalObject;
     for await (const partialObject of result.partialObjectStream) {
@@ -129,9 +111,6 @@ Return ONLY valid Tiptap JSON. Make it clean and well-structured.`;
         finalObject = partialObject;
       }
     }
-
-    console.log("[AI CONVERT] Conversion complete");
-    console.log("[AI CONVERT] Generated nodes:", finalObject?.content?.length || 0);
 
     return finalObject;
   } catch (error) {
@@ -141,21 +120,18 @@ Return ONLY valid Tiptap JSON. Make it clean and well-structured.`;
 }
 
 export async function POST(req: Request) {
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const sendUpdate = (data: any) => {
-        controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
-      };
-
+  const stream = createUIMessageStream<EditorConvertChatMessage>({
+    execute: async ({ writer: dataStream }) => {
       try {
         const formData = await req.formData();
         const file = formData.get("file") as File | null;
         const extensionsRaw = formData.get("extensions") as string | null;
 
         if (!file) {
-          sendUpdate({ error: "No file provided" });
-          controller.close();
+          dataStream.write({
+            type: "data-error",
+            data: { data: { error: "No file provided" } }
+          });
           return;
         }
 
@@ -169,7 +145,7 @@ export async function POST(req: Request) {
               enabledExtensions = requestValidation.data.extensions;
             }
           } catch (error) {
-            console.log("[FILE CONVERT] Using default extensions");
+            console.error("[FILE CONVERT] Extensions parse error:", error);
           }
         }
 
@@ -177,111 +153,107 @@ export async function POST(req: Request) {
         const extension = fileName.split(".").pop()?.toLowerCase();
 
         if (!extension || !allowedExtensions.includes(extension as any)) {
-          sendUpdate({ error: `Only ${allowedExtensions.join(", ")} files are supported` });
-          controller.close();
+          dataStream.write({
+            type: "data-error",
+            data: { data: { error: `Only ${allowedExtensions.join(", ")} files are supported` } }
+          });
           return;
         }
 
-        sendUpdate({
-          type: "progress",
-          step: "Preparing file...",
-          progress: 10,
-          label: "Initializing"
+        dataStream.write({
+          type: "data-progress",
+          data: {
+            data: {
+              step: `Extracting content from ${extension.toUpperCase()} file...`,
+              progress: 30,
+              label: "Extracting"
+            }
+          }
         });
 
         const buffer = await file.arrayBuffer();
         let extractedContent: ExtractedContent;
-
-        sendUpdate({
-          type: "progress",
-          step: `Extracting content from ${extension.toUpperCase()} file...`,
-          progress: 30,
-          label: "Extracting"
-        });
         
         if (extension === "pdf") {
           extractedContent = await extractContentFromPDF(buffer);
         } else if (extension === "docx") {
           extractedContent = await extractContentFromDOCX(buffer);
         } else {
-          sendUpdate({ error: "Unsupported file type" });
-          controller.close();
+          dataStream.write({
+            type: "data-error",
+            data: { data: { error: "Unsupported file type" } }
+          });
           return;
         }
 
         if (!extractedContent.text || extractedContent.text.trim().length === 0) {
-          sendUpdate({ error: "No text content found in file" });
-          controller.close();
+          dataStream.write({
+            type: "data-error",
+            data: { data: { error: "No text content found in file" } }
+          });
           return;
         }
 
-        sendUpdate({
-          type: "progress",
-          step: `Extracted ${extractedContent.text.length} characters`,
-          progress: 50,
-          label: "Processing"
+        dataStream.write({
+          type: "data-progress",
+          data: {
+            data: {
+              step: "Converting to Tiptap format with AI...",
+              progress: 60,
+              label: "Converting"
+            }
+          }
         });
 
-        sendUpdate({
-          type: "progress",
-          step: "Converting to Tiptap format with AI...",
-          progress: 60,
-          label: "Converting"
-        });
-
-        const tiptapContent = await convertToTiptapWithAI(extractedContent, enabledExtensions, fileName);
+        const tiptapContent = await convertToTiptapWithAI(extractedContent, enabledExtensions, dataStream);
 
         const finalValidation = TiptapContentSchema.safeParse(tiptapContent);
         if (!finalValidation.success) {
-          sendUpdate({ 
-            error: "Generated content validation failed",
-            details: finalValidation.error.errors 
+          dataStream.write({
+            type: "data-error",
+            data: {
+              data: {
+                error: "Generated content validation failed",
+                details: finalValidation.error.errors
+              }
+            }
           });
-          controller.close();
           return;
         }
 
-        sendUpdate({
-          type: "progress",
-          step: "Finalizing conversion...",
-          progress: 90,
-          label: "Finalizing"
+        dataStream.write({
+          type: "data-complete",
+          data: {
+            data: {
+              content: tiptapContent,
+              metadata: {
+                fileName,
+                extension,
+                originalLength: extractedContent.text.length,
+                nodesCount: tiptapContent.content.length,
+                imagesFound: extractedContent.images?.length || 0,
+                tablesFound: extractedContent.tables?.length || 0,
+              },
+              step: "Conversion complete!",
+              progress: 100,
+              label: "Complete"
+            }
+          }
         });
-
-        sendUpdate({
-          type: "complete",
-          content: tiptapContent,
-          metadata: {
-            fileName,
-            extension,
-            originalLength: extractedContent.text.length,
-            nodesCount: tiptapContent.content.length,
-            imagesFound: extractedContent.images?.length || 0,
-            tablesFound: extractedContent.tables?.length || 0,
-          },
-          step: "Conversion complete!",
-          progress: 100,
-          label: "Complete"
-        });
-
-        controller.close();
 
       } catch (error) {
         console.error("[FILE CONVERT] Error:", error);
-        sendUpdate({ 
-          error: error instanceof Error ? error.message : "Failed to process file" 
+        dataStream.write({
+          type: "data-error",
+          data: {
+            data: { error: error instanceof Error ? error.message : "Failed to process file" }
+          }
         });
-        controller.close();
       }
     },
+    onError: () => "An error occurred during file conversion",
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "application/x-ndjson",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-    },
-  });
+  return createUIMessageStreamResponse({ stream });
 }
 

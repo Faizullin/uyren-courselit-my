@@ -1,5 +1,7 @@
 import { getActionContext } from "@/server/api/core/actions";
 import { CourseGeneratorChatMessage } from "@/lib/ai/course-generator/types";
+import { buildTipTapFormatInstructions } from "@/lib/ai/prompts/tiptap-format";
+import { TiptapContentSchema, textToTiptapDoc } from "@/lib/ai/prompts/tiptap-helpers";
 import { openai } from "@ai-sdk/openai";
 import { connectToDatabase } from "@workspace/common-logic/lib/db";
 import { CourseModel } from "@workspace/common-logic/models/lms/course.model";
@@ -7,7 +9,7 @@ import { CourseLevelEnum, CourseStatusEnum } from "@workspace/common-logic/model
 import { LessonModel } from "@workspace/common-logic/models/lms/lesson.model";
 import { LessonTypeEnum } from "@workspace/common-logic/models/lms/lesson.types";
 import { slugify } from "@workspace/utils";
-import { createUIMessageStream, createUIMessageStreamResponse, generateText, LanguageModelUsage, streamObject, streamText, UIMessageStreamWriter } from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse, generateText, LanguageModelUsage, streamObject, UIMessageStreamWriter } from "ai";
 import type { ModelMessage } from "ai";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -59,7 +61,6 @@ const GenerateContentRequestSchema = z.object({
   courseId: z.string(),
   structure: CourseStructureSchema,
   useWebSearch: z.boolean().optional().default(true),
-  includeQuizzes: z.boolean().optional().default(false),
   additionalPrompt: z.string().optional(),
 });
 
@@ -71,11 +72,72 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { step, ...data } = body;
 
+
+  // const { messages } = body
+
+  // const stream = createUIMessageStream({
+  //   execute: ({ writer }) => {
+  //     // 1. Send initial status (transient - won't be added to message history)
+  //     writer.write({
+  //       type: 'data-notification',
+  //       data: { message: 'Processing your request...', level: 'info' },
+  //       transient: true, // This part won't be added to message history
+  //     });
+
+  //     // 2. Send sources (useful for RAG use cases)
+  //     writer.write({
+  //       type: 'source',
+  //       value: {
+  //         type: 'source',
+  //         sourceType: 'url',
+  //         id: 'source-1',
+  //         url: 'https://weather.com',
+  //         title: 'Weather Data Source',
+  //       },
+  //     });
+
+  //     // 3. Send data parts with loading state
+  //     writer.write({
+  //       type: 'data-weather',
+  //       id: 'weather-1',
+  //       data: { city: 'San Francisco', status: 'loading' },
+  //     });
+
+  //     const result = streamText({
+  //       model: openai('gpt-4.1'),
+  //       messages: convertToModelMessages(messages),
+  //       onFinish() {
+  //         // 4. Update the same data part (reconciliation)
+  //         writer.write({
+  //           type: 'data-weather',
+  //           id: 'weather-1', // Same ID = update existing part
+  //           data: {
+  //             city: 'San Francisco',
+  //             weather: 'sunny',
+  //             status: 'success',
+  //           },
+  //         });
+
+  //         // 5. Send completion notification (transient)
+  //         writer.write({
+  //           type: 'data-notification',
+  //           data: { message: 'Request completed', level: 'info' },
+  //           transient: true, // Won't be added to message history
+  //         });
+  //       },
+  //     });
+
+  //     writer.merge(result.toUIMessageStream());
+  //   },
+  // });
+
+  // return createUIMessageStreamResponse({ stream });
+
   let finalMergedUsage: LanguageModelUsage | undefined;
 
-  const stream = createUIMessageStream({
-    execute: ({ writer: dataStream }) => {
-      handleRequest(step, data, dataStream, finalMergedUsage);
+  const stream = createUIMessageStream<CourseGeneratorChatMessage>({
+    execute: async ({ writer: dataStream }) => {
+      await handleRequest(step, data, dataStream, finalMergedUsage);
     },
     onError: () => "An error occurred during course generation",
   });
@@ -212,6 +274,7 @@ Generate a course structure with:
       }
     });
 
+    // 
     const result = streamObject({
       model: openai("gpt-4o"),
       schema: CourseStructureSchema,
@@ -235,23 +298,25 @@ Generate a course structure with:
       },
     });
 
-    for await (const partialObject of result.partialObjectStream) {
-      if (partialObject && partialObject.chapters) {
-        const chaptersCount = partialObject.chapters.length;
-        const lessonsCount = partialObject.chapters.reduce((sum, ch) => sum + (ch?.lessons?.length || 0), 0);
 
-        dataStream.write({
-          type: "data-structure-progress",
-          data: {
-            data: {
-              structure: partialObject,
-              chaptersCount,
-              lessonsCount,
-              progress: 40 + Math.min((chaptersCount / 6) * 50, 50),
-            }
-          }
-        });
-      }
+
+    for await (const partialObject of result.partialObjectStream) {
+      // if (partialObject && partialObject.chapters) {
+      //   const chaptersCount = partialObject.chapters.length;
+      //   const lessonsCount = partialObject.chapters.reduce((sum, ch) => sum + (ch?.lessons?.length || 0), 0);
+
+      //   dataStream.write({
+      //     type: "data-structure-progress",
+      //     data: {
+      //       data: {
+      //         structure: partialObject,
+      //         chaptersCount,
+      //         lessonsCount,
+      //         progress: 40 + Math.min((chaptersCount / 6) * 50, 50),
+      //       }
+      //     }
+      //   });
+      // }
     }
 
   } catch (error) {
@@ -275,7 +340,7 @@ async function handleApproveStructure(
     courseCode,
     slug: slugify(structure.title.toLowerCase()),
     ownerId: ctx.user._id,
-    description: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: structure.description }] }] },
+    description: textToTiptapDoc(structure.description),
     shortDescription: structure.shortDescription,
     level: structure.level,
     durationInWeeks: structure.durationInWeeks,
@@ -287,6 +352,10 @@ async function handleApproveStructure(
     paidCourse: false,
     status: CourseStatusEnum.IN_PROGRESS,
     chapters: [],
+    language: "en",
+    tagIds: [],
+    instructors: [],
+    paymentPlanIds: [],
   });
 
   for (let i = 0; i < structure.chapters.length; i++) {
@@ -403,7 +472,7 @@ async function handleGenerateContent(
 
         const lessonSystemMessage = `You are an expert educator and content creator with deep pedagogical knowledge.
 
-Your role is to create comprehensive, engaging lesson content that is:
+Your role is to create comprehensive, engaging lesson content in TipTap JSON format that is:
 - Clear and accessible to the target audience
 - Well-structured with logical flow
 - Rich with practical examples and real-world applications
@@ -412,9 +481,9 @@ Your role is to create comprehensive, engaging lesson content that is:
 
 ${data.useWebSearch ? `Include current, real-world examples from ${new Date().getFullYear()}, recent statistics, modern tools, contemporary best practices, and industry-standard approaches. Reference specific companies, products, or case studies where relevant.` : ''}
 
-Use markdown formatting and maintain a professional but conversational, encouraging tone. Make it feel like a knowledgeable mentor explaining the topic.`;
+Maintain a professional but conversational, encouraging tone. Make it feel like a knowledgeable mentor explaining the topic.`;
 
-        const lessonUserMessage = `Create detailed lesson content for:
+        const lessonUserMessage = `Create detailed lesson content in TipTap JSON format for:
 
 **Course:** ${course.title}
 **Chapter:** ${courseChapter.title}
@@ -449,42 +518,24 @@ Structure the content with these sections:
 - Reinforce how objectives were met
 - Preview what comes next
 
-${data.includeQuizzes ? `\n## Practice Questions\nCreate 3-5 multiple-choice or short-answer questions that test understanding of key concepts. Include a mix of recall and application questions.` : ''}
+${buildTipTapFormatInstructions()}
 
-**Format with:**
-- Markdown (## for sections, ### for subsections)
-- **Bold** for key terms (first time introduced)
-- *Italics* for emphasis
-- \`Code blocks\` for technical terms, commands, or code
-- Bullet points (-) for lists
-- Numbered lists (1. 2. 3.) for sequential steps
-- > Blockquotes for important callouts or tips`;
+Return the content as valid TipTap JSON with type "doc" at the root.`;
 
-        let contentText = "";
+        let tiptapContent: any;
 
         try {
-          if (data.useWebSearch) {
-            const result = await generateText({
-              model: openai("gpt-4o-mini"),
-              tools: {
-                webSearch: openai.tools.webSearch(),
-              },
-              system: lessonSystemMessage,
-              prompt: lessonUserMessage,
-              temperature: 0.7,
-            });
-            contentText = result.text;
-          } else {
-            const result = streamText({
-              model: openai("gpt-4o-mini"),
-              system: lessonSystemMessage,
-              prompt: lessonUserMessage,
-              temperature: 0.7,
-              maxOutputTokens: 3000,
-            });
+          const result = streamObject({
+            model: openai("gpt-4o-mini"),
+            schema: TiptapContentSchema,
+            system: lessonSystemMessage,
+            prompt: lessonUserMessage,
+            temperature: 0.7,
+          });
 
-            for await (const chunk of result.textStream) {
-              contentText += chunk;
+          for await (const partialObject of result.partialObjectStream) {
+            if (partialObject) {
+              tiptapContent = partialObject;
             }
           }
         } catch (error) {
@@ -494,14 +545,14 @@ ${data.includeQuizzes ? `\n## Practice Questions\nCreate 3-5 multiple-choice or 
 
         const lesson = await LessonModel.create({
           orgId: course.orgId,
+          courseId: course._id,
           title: lessonData.title,
           slug: slugify(lessonData.title.toLowerCase()),
-          content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: contentText }] }] },
+          content: tiptapContent,
           type: LessonTypeEnum.TEXT,
           downloadable: false,
           requiresEnrollment: true,
-          published: false,
-          owner: ctx.user._id,
+          ownerId: ctx.user._id,
         });
 
         courseChapter.lessonOrderIds.push(lesson._id);
